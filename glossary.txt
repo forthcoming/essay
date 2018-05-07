@@ -1,4 +1,7 @@
-essay	英[ˈeseɪ]  n.散文; 随笔; 尝试，企图; 试验; vt.	尝试; 试验;
+infinity 美[ɪnˈfɪnɪti]  n.<数>无穷大; 无限的时间或空间;
+bastard	英[ˈbɑ:stəd] n.	私生子，杂种; 代用品，假冒品; 态度傲慢且令人讨厌的人; adj.杂种的，不纯粹的; 伪的，假的; 奇形怪状的，异常的;
+scenario 英[səˈnɑ:riəʊ] n.（行动的） 方案; 剧情概要; 分镜头剧本;
+essay	英[ˈeseɪ] n.散文; 随笔; 尝试，企图; 试验; vt.	尝试; 试验;
 w ['dʌblju:]
 IPO  Initial Public Offerings 首次公开募股;
 artificial intelligence [ˌɑrtəˈfɪʃəl ɪnˈtɛlədʒəns]   n.人工智能; 仿智;
