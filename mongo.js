@@ -217,3 +217,40 @@ db.inventory.aggregate( [ { $unwind : "$sizes" } ] )
 { "_id" : 1, "item" : "ABC1", "sizes" : "L" }
 */
 
+/**************************************************************************
+example
+***************************************************************************/
+use Atlas;  // shell中需要
+
+var name_en=[
+    "cloth",
+    "shoes",
+    "sports"
+];
+var platforms=[
+    'cuckoo',
+    '1688'
+];
+
+for(let name of name_en){
+    for(let platform of platforms){
+        var cursor=db.getCollection(`image_phash_${name}_${platform}`).find({phash:{$in:['8000000000000000','b36acc9516eec1c1']}},{system_id:1,_id:0});
+        while(cursor.hasNext()){
+            var system_id=cursor.next()['system_id'];
+            print(system_id);                        
+            var node=db.getCollection(`cluster_node_${name}`);   // 必须使用getCollection
+            var result=node.findOne({'system_id':system_id},{cluster_id:1,_id:0});
+            var cluster_id=0;
+            if(result){
+                cluster_id=result['cluster_id'];
+            }
+            node.deleteOne({'system_id':system_id});
+            if(node.findOne({'cluster_id':cluster_id,'on_sale':true})){
+                var data=node.find({'cluster_id':cluster_id,'on_sale':true},{'serial_num':1,'_id':0}).sort({'serial_num':1}).limit(1);
+                node.updateMany({'cluster_id':cluster_id},{$set:{'cluster_id':data.next()['serial_num']}},{multi:true});
+            }
+            db.getCollection(`cluster_edge_${name}`).deleteMany({$or:[{"from_node_id":system_id},{"to_node_id":system_id}]});
+            db.getCollection(`image_phash_${name}_${platform}`).deleteOne({'system_id':system_id});
+        }
+    }
+}
