@@ -127,8 +127,8 @@ b = np.arange(4,8).reshape(2,2)
 np.vstack((a,b))  # [[0 1] [2 3] [4 5] [6 7]]
 np.hstack((a,b))  # [[0 1 4 5] [2 3 6 7]]
 a = np.arange(24).reshape(2,12)
-np.hsplit(a,3)  # Split a into 3  [ array([[0,1,2,3],[12,13,14,15]]), array([[4,5,6,7],[16,17,18,19]]), array([[8,9,10,11],[20,21,22,23]]) ]
-np.hsplit(a,(3,4)) # Split a after the third and the fourth column  [array([[0,1,2],[12,13,14]]), array([[3],[15]]), array([[4,5,6,7,8,9,10,11],[16,17,18,19,20,21,22,23]])]
+np.hsplit(a,3)  # Split a into 3 [ array([[0,1,2,3],[12,13,14,15]]), array([[4,5,6,7],[16,17,18,19]]), array([[8,9,10,11],[20,21,22,23]]) ]
+np.hsplit(a,(3,4)) # Split a after the third and the fourth column [array([[0,1,2],[12,13,14]]), array([[3],[15]]), array([[4,5,6,7,8,9,10,11],[16,17,18,19,20,21,22,23]])]
 
 #np.linalg.det(a)    #返回的是矩阵a的行列式
 #np.linalg.eig(a)    #矩阵a的特征值和特征向量
@@ -215,7 +215,7 @@ a[j]   # [[ 9 16] [81 49]]  the same shape as j
 # a,b,c共享数据存储内存区域
 a=np.array([1,2,3,4])
 b=a.reshape(2,2)
-c=a[:]  #与list的切片操作不同，注意!!
+c=a[:]  #与list的切片操作不同!!
 # print(b)
 # print(c)
 a[3]=-1
