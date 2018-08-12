@@ -28,7 +28,6 @@ while True:  #服务器程序通过一个永久循环来接受来自客户端的
     t = threading.Thread(target=tcplink, args=(sock, addr))
     t.start()
 
-
 ########################################################################################################################
 # TCPClient
 
@@ -42,7 +41,6 @@ for data in [b'Michael', b'Tracy', b'Sarah']:
     print(client.recv(1024))
 client.send(b'exit')
 client.close()
-
 
 ########################################################################################################################
 # UDPServer
@@ -73,7 +71,6 @@ client.close()
 ########################################################################################################################
 # HTTP请求
 
-#coding=utf-8
 import socket
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)   #AF_INET指定使用IPv4协议,SOCK_STREAM指定使用面向流的TCP协议
 client.connect(('www.sina.com.cn', 80))   #参数类型是tuple
