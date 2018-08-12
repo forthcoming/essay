@@ -14,6 +14,7 @@ db.user.findOne()._id.getTimestamp();
 
 /**************************************************************************
 _id
+mongodb默认按_id升序输出,so最先插入的数据会靠前展示
 ***************************************************************************/
 from pymongo import MongoClient
 from datetime import datetime
@@ -36,7 +37,6 @@ x=test.find_one()['_id'].generation_time
 print(x,type(x))  # 2018-08-10 03:22:56+00:00 <class 'datetime.datetime'>
 
 client.close()
-# mongodb默认按_id升序输出,so最先插入的数据会靠前展示
 
 /**************************************************************************
 CRUD
