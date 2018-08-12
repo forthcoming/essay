@@ -1,0 +1,114 @@
+conda install git  #推荐，版本更新
+github网页上按t即可按关键字查找文件名
+github可以配置ssh免密码登录
+
+.gitignore     让git忽略末某些文件无需纳入 Git 的管理，也不希望它们总出现在未跟踪文件列表
+# no .a files
+*.a
+# but do track lib.a, even though you're ignoring .a files above
+!lib.a
+# only ignore the TODO file in the current directory, not subdir/TODO
+/TODO
+# ignore all files in the build/ directory
+build/
+# ignore doc/notes.txt, but not doc/server/arch.txt
+doc/*.txt
+# ignore all .pdf files in the doc/ directory
+doc/**/*.pdf
+                    
+[root@local Spiders]# git remote -v  #显示需要读写远程仓库的简写与其对应的URL
+origin    https://github.com/xxoome/Spiders.git (fetch)
+origin    https://github.com/xxoome/Spiders.git (push)
+git diff                     #比较工作区与暂存区
+git diff --staged     #比较暂存区跟已提交的文件
+[root@local github]# git diff
+diff --git a/cpp b/cpp
+index 9c59e24..66a52ee 100644
+--- a/cpp
++++ b/cpp
+@@ -1 +1,2 @@
+ first
++second
+git rm -f filename  #将文件从git和磁盘中彻底删除
+git rm --cached filename  #只将文件从git中删除，即不再跟踪
+git mv filename
+git tag # 在控制台打印出当前仓库的所有tag
+git tag name  # 创建轻量标签
+git blame filename    #显示文件中每一行的作者，最后一次改动后进行的提交(commit)以及该次提交的时间戳
+git init
+git pull=git fetch+git merge
+git stash list   # stash是本地的,不会通过git push命令上传到git server
+git stash -m"test-stash"
+git stash pop stash@{id}
+git add -A
+git log  #查看提交历史
+git log  --oneline   #查看提交历史
+git log -p  #查看提交历史,显示每次提交的内容差异
+git reflog       #查看历史记录的版本号id
+git merge dev   #合并dev分支到当前分支上，注意区别于git merge --no-ff -m'--no-ff' dev
+git reset HEAD filename   #git add的反向操作,使其从Changes to be committed 到 Changes not staged for commit
+git reset 47902f     #就像是这些提交从来没有发生过，会保留工作目录， 修改内容还在磁盘上
+git reset --hard 47902f   #回到之前某次提交状态，不保留工作目录
+git reset  –hard HEAD^   #回到上次提交状态
+git reset  –hard HEAD^^   #回到上上次提交状态
+git push --force  #撤销之前错误的提交（在团队协作中危险，慎用）
+git commit --amend -m "***"
+用一个新的 commit 更新并替换上一次的 commit ；
+这个新的 commit 会把任何修改内容和上一个 commit 的内容结合起来；
+如果当前没有提出任何修改，这个操作就只会把上次的 commit 消息重写一遍。
+git revert commit_id  #逆操作之前的某个操作(历史记录仍然在，版本向前推进)
+git remote add <shortname> <url>
+git push [remote-name] [branch-name]   # 将master分支推送到origin服务器（git clone时通常会自动帮你设置好那两个名字）
+git clone -b gh-pages https://github.com/xxoome/collector.git  #克隆指定分支，默认为master分支
+git clone -c http.proxy=socks5://127.0.0.1:1080 https://chromium.googlesource.com/chromium/tools/depot_tools
+git branch    #列出所有分支，分支前的 * 字符代表当前所在分支（HEAD指针所指向的分支 ）
+git branch branchname   #创建分支
+git branch -d iss53   #删除分支
+git checkout branchname  #切换分支，对应的工作目录也切换了
+git checkout -b iss53   #等价于git branch iss53 && git checkout iss53
+git checkout -- <file>   #把file在工作区的修改全部撤销。
+1. file自动修改后，还没有放到暂存区，使用撤销修改就回到和版本库一模一样的状态。
+2. file已经放入暂存区了，接着又作了修改，撤销修改就回到添加暂存区后的状态。
+注意：— 很重要，如果没有 — 的话，那么命令变成创建分支了。
+git config --global core.editor gedit    #配置git commit时使用的编辑器
+git commit -m 'add two files'
+
+注意:通过git pull的代码,需要通过git branch -a查看远程分支后才能在本地切换分支( 远程分支会用红色表示)
+删除README.md文件及其历史提交记录
+
+git filter-branch --force --index-filter 'git rm --cached --ignore-unmatch README.md' --prune-empty --tag-name-filter cat -- --all
+git push origin --force --all
+
+git配置文件 如下，每一个级别覆盖上一级别的配置
+/root/miniconda3/etc/gitconfig   git config --system读写该配置，作用域全局。(yum安装对应/etc/gitconfig)
+~/.gitconfig        git config --global读写该配置，只针对当前用户。
+.git/config           只针对当前仓库有效
+
+[root@local github]# git status
+# On branch master
+#
+# Initial commit
+#
+# Changes to be committed:
+#   (use "git rm --cached <file>..." to unstage)
+#
+#    new file:   README
+#
+# Changes not staged for commit:
+#   (use "git add <file>..." to update what will be committed)
+#   (use "git checkout -- <file>..." to discard changes in working directory)
+#
+#    modified:   README
+
+On branch master：
+代表位于主分支上
+Untracked files ：
+未跟踪的文件，意味着 Git 在之前的快照（提交）中没有这些文件；Git 不会自动将之纳入跟踪范围，使用git add 开始跟踪一个文件
+Changes to be committed：
+说明是已暂存状态，已被跟踪。
+Changes not staged for commit ：
+跟踪文件的内容发生了变化，但还没有放到暂存区
+注意：
+要暂存这次更新，需要运行 git add 命令。
+这是个多功能命令：可以用它开始跟踪新文件，或者把已跟踪的文件放到暂存区，还能用于合并时把有冲突的文件标记为已解决状态等。
+将这个命令理解为“添加内容到下一次提交中”而不是“将一个文件添加到项目中”要更加合适。
