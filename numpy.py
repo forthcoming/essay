@@ -1,7 +1,4 @@
-
-
-import numpy as np
-import time,math
+import time,math,numpy as np
 
 np.cross( np.array([1,2,3]), np.array([-1,2,0]) )  # 两列向量叉积 [-6 -3 4]
 np.exp(np.array([1,2]))
@@ -114,7 +111,7 @@ a = np.floor(10*np.random.random((3,4)))  # [[2. 4. 0. 6.] [1. 6. 6. 5.] [6. 1. 
 a.T #转置   [[2. 1. 6.] [4. 6. 1.] [0. 6. 4.] [6. 5. 2.]]
 a.ravel() # flatten the array   [2. 1. 6. 4. 6. 1. 0. 6. 4. 6. 5. 2.]
 # a.shape = 6, 2  #自身改变要求正好合适
-a.resize(4,5)   #自身改变，功能更强,超出部分用0补充
+a.resize(4,5)     #自身改变,功能更强,超出部分用0补充
 
 
 
@@ -141,9 +138,9 @@ np.hsplit(a,(3,4)) # Split a after the third and the fourth column  [array([[0,1
 x = np.linspace(0, 2*np.pi, 10)
 y = np.sin(x)  
 '''
-对数组x中的每个元素进行正弦计算，返回一个同样大小的新数组
-计算之后x中的值并没有改变，而是新创建了一个数组保存结果。
-如果我们希望将sin函数所计算的结果直接覆盖到数组x上去的话，可以将要被覆盖的数组作为第二个参数传递给ufunc函数。
+对数组x中的每个元素进行正弦计算,返回一个同样大小的新数组
+计算之后x中的值并没有改变,而是新创建了一个数组保存结果。
+如果我们希望将sin函数所计算的结果直接覆盖到数组x上去的话,可以将要被覆盖的数组作为第二个参数传递给ufunc函数。
 '''
 t = np.sin(x,x)
 x
@@ -181,25 +178,28 @@ math.sin: 2.561601807457043
 
 
 '''
-atan2(a,b)是4象限反正切，它的取值不仅取决于正切值a/b，还取决于点 (b, a) 落入哪个象限：
-   当点(b, a) 落入第一象限时，atan2(a,b)的范围是 0 ~ pi/2;
-　当点(b, a) 落入第二象限时，atan2(a,b)的范围是 pi/2 ~ pi;
-   当点(b, a) 落入第三象限时，atan2(a,b)的范围是 －pi～－pi/2;
-　当点(b, a) 落入第四象限时，atan2(a,b)的范围是 -pi/2～０
+atan2(a,b)是4象限反正切,它的取值不仅取决于正切值a/b,还取决于点 (b, a) 落入哪个象限:
+   当点(b, a) 落入第一象限时,atan2(a,b)的范围是 0 ~ pi/2;
+　当点(b, a) 落入第二象限时,atan2(a,b)的范围是 pi/2 ~ pi;
+   当点(b, a) 落入第三象限时,atan2(a,b)的范围是 －pi～－pi/2;
+　当点(b, a) 落入第四象限时,atan2(a,b)的范围是 -pi/2～0
 
-而 atan(a/b) 仅仅根据正切值为a/b求出对应的角度 （可以看作仅仅是2象限反正切）：
-   当 a/b > 0 时，atan(a/b)取值范围是 0 ~ pi/2；
-   当 a/b < 0 时，atan(a/b)取值范围是 -pi/2～０
+而 atan(a/b) 仅仅根据正切值为a/b求出对应的角度(可以看作仅仅是2象限反正切):
+   当 a/b > 0 时,atan(a/b)取值范围是 0 ~ pi/2;
+   当 a/b < 0 时,atan(a/b)取值范围是 -pi/2～0
 
-故 atan2(a,b) = atan(a/b) 仅仅发生在 点 (b, a) 落入第一象限 （b>0, a>0）或 第四象限（b>0, a<0）。当点 (b, a) 落入第二、三象限时，很显然atan2(a,b) 不等于 atan(a/b) ，并且atan2(a,b)也不可能等于 2*atan(a/b) 。这是因为，假如点 (b, a) 落入第二象限，则 a/b<0,  故atan(a/b)取值范围始终是 -pi/2～０，2*atan(a/b) 的取值范围是－pi～0，然而，atan2(a,b)的范围是 pi/2 ~ pi，故不可能有atan2(a,b) = 2*atan(a/b) 。假如点(b, a) 落入第三象限，则则 a/b>0 , 故 atan(a/b) 取值范围是 0 ~ pi/2，2*atan(a/b) 的取值范围是 0 ~ pi，而此时atan2(a,b)的范围是 －pi～－pi/2，很显然，atan2(a,b) = 2*atan(a/b)
-
-举个最简单的例子，a = 1, b = -1，则 atan(a/b) = atan(-1) = -pi/4, 而 atan2(a,b) = 3*pi/4
+故 atan2(a,b) = atan(a/b) 仅仅发生在 点 (b, a) 落入第一象限 （b>0, a>0）或 第四象限（b>0, a<0）
+当点 (b, a) 落入第二、三象限时，很显然atan2(a,b) 不等于 atan(a/b),并且atan2(a,b)也不可能等于 2*atan(a/b)
+这是因为，假如点 (b, a) 落入第二象限，则 a/b<0,故atan(a/b)取值范围始终是 -pi/2～0,2*atan(a/b) 的取值范围是－pi～0,
+然而atan2(a,b)的范围是 pi/2 ~ pi,故不可能有atan2(a,b) = 2*atan(a/b),假如点(b, a) 落入第三象限，则则 a/b>0,
+故 atan(a/b) 取值范围是 0 ~ pi/2,2*atan(a/b) 的取值范围是 0 ~ pi,而此时atan2(a,b)的范围是 －pi～－pi/2,很显然atan2(a,b) = 2*atan(a/b)
+举个最简单的例子,a = 1, b = -1,则 atan(a/b) = atan(-1) = -pi/4, 而 atan2(a,b) = 3*pi/4
 '''
 
 
 '''
 当使用布尔数组b作为下标存取数组x中的元素时,将收集数组x中所有在数组b中对应下标为True的元素。
-使用布尔数组作为下标获得的数组不和原始数组共享数据空间，
+使用布尔数组作为下标获得的数组不和原始数组共享数据空间
 '''
 a = np.arange(6).reshape(2,3)  # [[0 1 2] [3 4 5]]
 b = a > 3   # [[False False False] [False  True  True]]
