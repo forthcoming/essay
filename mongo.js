@@ -165,14 +165,19 @@ while not done:  # 防止游标超时
 aggregate
 ***************************************************************************/       
 db.user.aggregate([
-    {$match:{error:"BLACKLIST"}},
-    {$group : {_id: {b_id:"$b_id",c_id:"$c_id"}, num : {$sum : '$sales'}}},
-    {$match:{num:{$gte:3}}}  // 第二个$match相当于SQL中的having
-]);                          // _id意思是按后面给的字段分组,累加sales字段
-
-db.user.aggregate([
-    {$match:{error:"BLACKLIST"}},
-    {$group : {_id:null , num : {$sum : 1}}}
+    {
+        $match:{error:"BLACKLIST"}
+    },
+    {
+        $group: {
+            _id:{b_id:"$b_id",c_id:"$c_id"},  // _id意思是按后面给的字段分组,_id:null意思是不分组
+            cnt:{$sum: 1}, 
+            num:{$sum:'$sales'}
+        }
+    },
+    {
+        $match:{num:{$gte:3}}                // 第二个$match相当于SQL中的having
+    }  
 ]);
 
 db.galance.aggregate([
