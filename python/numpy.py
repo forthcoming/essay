@@ -245,7 +245,3 @@ array([[ 0],
 '''
 a.shape    #(6, 1)
 
-
-comment_count="1.12"
-xx=comment_count if comment_count.isdigit() else 0
-print(xx)
