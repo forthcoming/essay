@@ -1,7 +1,8 @@
 import binascii,calendar,datetime,hashlib,os,random,socket,struct,threading,time
 
 '''
-代码改编自pymongo的bson.ObjectId
+代码改编自pymongo的bson.objectid
+mongodb的每一条插入语句都会包含if "_id" not in document:document["_id"] = ObjectId()语句
 '''
 def _machine_bytes():
     machine_hash = hashlib.md5()
