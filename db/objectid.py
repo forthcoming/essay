@@ -32,7 +32,6 @@ class ObjectId:
             oid = struct.pack(">i", int(time.time()))  # 4 bytes current time  >: big-endian   i: int 
             oid += ObjectId._machine_bytes  # 3 bytes machine
             oid += struct.pack(">H", os.getpid() & 0xFFFF)  # 2 bytes pid  H: unsigned short
-
             with ObjectId._inc_lock:              # 3 bytes inc,确保相同进程的同一秒产生的ID也是不同的
                 oid += struct.pack(">i", ObjectId._inc)[1:4]  # _inc只有3byte长度so高位会被填充成0
                 ObjectId._inc = (ObjectId._inc + 1) & 0xFFFFFF
