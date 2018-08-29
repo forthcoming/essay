@@ -14,19 +14,16 @@ class ObjectId:
     def __init__(self, oid=None):
         """
         An ObjectId is a 12-byte unique identifier consisting of:
-          - a 4-byte value representing the seconds since the Unix epoch,
-          - a 3-byte machine identifier,
-          - a 2-byte process id, and
-          - a 3-byte counter, starting with a random value.
+        4-byte value representing the seconds since the Unix epoch,
+        3-byte machine identifier,
+        2-byte process id, and
+        3-byte counter, starting with a random value.
 
         By default,ObjectId() creates a new unique identifier. The optional parameter oid can be any 12 class:bytes.
-        For example, the 12 bytes b'foo-bar-quux' do not follow the ObjectId specification but they are acceptable input::
-        ObjectId(b'foo-bar-quux')
-        ObjectId('666f6f2d6261722d71757578')
-
+        For example, the 12 bytes b'foo-bar-quux' do not follow the ObjectId specification but they are acceptable input:
+        ObjectId(b'foo-bar-quux') # 666f6f2d6261722d71757578
         oid can also be class:str of 24 hex digits:
-        ObjectId('0123456789ab0123456789ab')
-        ObjectId('0123456789ab0123456789ab')
+        ObjectId('0123456789ab0123456789ab') # 0123456789ab0123456789ab
         """
         if oid is None: # Generate a new value for this ObjectId.
             oid = struct.pack(">i", int(time.time()))  # 4 bytes current time  >: big-endian   i: int 
@@ -63,7 +60,6 @@ class ObjectId:
         >>> gen_time = datetime.datetime(2010, 1, 1)
         >>> dummy_id = ObjectId.from_datetime(gen_time)
         >>> result = collection.find({"_id": {"$lt": dummy_id}})
-
         generation_time: 
             class:datetime.datetime to be used as the generation time for the resulting ObjectId.
         """
