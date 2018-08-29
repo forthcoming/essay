@@ -1,5 +1,8 @@
 import binascii,calendar,datetime,hashlib,os,random,socket,struct,threading,time
 
+'''
+代码改编自pymongo的bson.ObjectId
+'''
 def _machine_bytes():
     machine_hash = hashlib.md5()
     machine_hash.update(socket.gethostname().encode())
