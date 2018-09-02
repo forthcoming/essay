@@ -83,6 +83,8 @@ git配置文件如下,每一个级别覆盖上一级别的配置
 ~/.gitconfig        git config --global读写该配置,只针对当前用户。
 .git/config         只针对当前仓库有效
 
+fork + pull requests用以贡献开源代码
+
 [root@local github]# git status
 # On branch master
 #
