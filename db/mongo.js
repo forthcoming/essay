@@ -133,6 +133,38 @@ db.restaurants.find( { cuisine: "Italian", rating: { $lt: 8 } } );
 db.restaurants.find( { cuisine: "Italian" } );
 
 /**************************************************************************
+geo
+***************************************************************************/
+db.places.insertMany([
+    {
+        loc : { type: "Point", coordinates: [ -73.97, 40.77 ] },
+        name: "Central Park",
+        category : "Parks"
+    },
+    {
+        loc : { type: "Point", coordinates: [ -73.88, 40.78 ] },
+        name: "La Guardia Airport",
+        category : "Airport"
+    }
+]);
+// 2d:非球面索引(如游戏地图)  2dsphere:球面索引
+db.places.createIndex({loc:'2dsphere'});  // 需要被间索引的字段(这里是loc),其中的子对象是由GeoJson指定,字段如type,coordinates都不能随意更改
+db.places.find( //前提是被查询字段已经建立2dsphere索引,returns whose location is at least 1000 meters from and at most 5000 meters from the specified point, ordered from nearest to farthest
+   {
+     loc: {
+        $nearSphere: { 
+           $geometry: {
+              type : "Point",
+              coordinates : [ -73.9667, 40.78 ]
+           },
+           $minDistance: 1000,
+           $maxDistance: 5000
+        }
+     }
+   }
+);
+
+/**************************************************************************
 cursor
 ***************************************************************************/
 var name='user';
