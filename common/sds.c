@@ -1,11 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
 #include <assert.h>
 #include <limits.h>
 #include <sys/types.h>
-#include <stdarg.h>
 #include <stdint.h>
 
 const char *SDS_NOINIT = "SDS_NOINIT";
@@ -110,7 +108,7 @@ static inline void sdssetlen(sds s, size_t newlen) {
     switch(flags&SDS_TYPE_MASK) {
         case SDS_TYPE_5:
             {
-                unsigned char *fp = ((unsigned char*)s)-1;
+                unsigned char *fp = ((unsigned char*)s)-1;  // 必须先把char*类型转换成unsigned char*,然后再赋值
                 *fp = SDS_TYPE_5 | (newlen << SDS_TYPE_BITS);
             }
             break;
@@ -240,7 +238,7 @@ sds sdsnewlen(const void *init, size_t initlen) {  // A String value can be at m
         type = SDS_TYPE_8;  // Empty strings are usually created in order to append. Use type 8 since type 5 is not good at this.
     int hdrlen = sdsHdrSize(type);
 
-    void *sh = malloc(hdrlen+initlen+1);  // 注意
+    void *sh = malloc(hdrlen+initlen+1);  // 注意此时只能根据type决定sh所属的类型
     if (init==SDS_NOINIT)
         init = NULL;
     else if (!init)
@@ -428,9 +426,9 @@ void sdsIncrLen(sds s, ssize_t incr) {  // it is possible to use a negative incr
     s[len] = '\0';
 }
 
-/* 
+/*
 Append the specified binary-safe string pointed by 't' of 'len' bytes to the end of the specified sds string 's'.
-After the call, the passed sds string is no longer valid and all the references must be substituted with the new pointer returned by the call. 
+After the call, the passed sds string is no longer valid and all the references must be substituted with the new pointer returned by the call.
 */
 sds sdscatlen(sds s, const void *t, size_t len) {
     size_t curlen = sdslen(s);
