@@ -34,8 +34,8 @@ struct __attribute__ ((__packed__)) sdshdr32 {
     char buf[];
 };
 struct __attribute__ ((__packed__)) sdshdr64 {
-    uint64_t len; /* 字符串的真正长度 */
-    uint64_t alloc; /* 字符串的最大容量,excluding the header and null terminator */
+    uint64_t len; /* 字符串的真正长度,不包括末尾的\0 */
+    uint64_t alloc; /* 不包括末尾\0的字符串的最大容量,excluding the header and null terminator */
     unsigned char flags; /* 总是占用一个字节,其中的最低3个bit用来表示header的类型*/
     char buf[];
 };
