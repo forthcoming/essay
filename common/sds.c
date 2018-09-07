@@ -296,7 +296,7 @@ void sdsfree(sds s) {  // Free an sds string. No operation is performed if 's' i
  * bytes after the end of the string, plus one more byte for nul term.
  * Note: this does not change the *length* of the sds string as returned by sdslen(), but only the free buffer space we have.
  */
-sds sdsMakeRoomFor(sds s, size_t addlen) {
+sds sdsMakeRoomFor(sds s, size_t addlen) {  // 扩充已有sds的可用空间为指定的大小
     void *sh, *newsh;
     size_t avail = sdsavail(s);
     size_t len, newlen;
@@ -347,7 +347,7 @@ sds sdsMakeRoomFor(sds s, size_t addlen) {
  *
  * After the call, the passed sds string is no longer valid and all the
  * references must be substituted with the new pointer returned by the call. */
-sds sdsRemoveFreeSpace(sds s) {
+sds sdsRemoveFreeSpace(sds s) {   // 将buf内多余的空间释放出去
     void *sh, *newsh;
     char type, oldtype = s[-1] & SDS_TYPE_MASK;
     int hdrlen, oldhdrlen = sdsHdrSize(oldtype);
