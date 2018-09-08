@@ -286,7 +286,7 @@ sds sdsnewlen(const void *init, size_t initlen) {  // A String value can be at m
     return s;
 }
 
-void sdsfree(sds s) {  // Free an sds string. No operation is performed if 's' is NULL.
+void sdsfree(sds s) {  // Free an sds string. No operation is performed if 's' is NULL.SDS strings require to be freed with sdsfree() since they are heap allocated.
     if(s)
         free((char*)s-sdsHdrSize(s[-1]));
 }
