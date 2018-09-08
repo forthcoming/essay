@@ -19,7 +19,7 @@ struct __attribute__ ((__packed__)) sdshdr8 {
     uint8_t len; /* used */
     uint8_t alloc; /* excluding the header and null terminator */
     unsigned char flags; /* 3 lsb of type, 5 unused bits */
-    char buf[];
+    char buf[];  // flexible array member must at end of struct.不占用结构体大小
 };
 struct __attribute__ ((__packed__)) sdshdr16 {
     uint16_t len; /* used */
