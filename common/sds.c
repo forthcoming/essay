@@ -19,7 +19,7 @@ struct __attribute__ ((__packed__)) sdshdr8 {
     uint8_t len; /* used */
     uint8_t alloc; /* excluding the header and null terminator */
     unsigned char flags; /* 3 lsb of type, 5 unused bits */
-    char buf[];  // flexible array member must at end of struct.不占用结构体大小
+    char buf[];  // flexible array member must at end of struct.不占用内存空间,sizeof将忽略它
 };
 struct __attribute__ ((__packed__)) sdshdr16 {
     uint16_t len; /* used */
@@ -43,7 +43,6 @@ struct __attribute__ ((__packed__)) sdshdr64 {
 /*
 宏定义中##是将两个符号连接成一个,如sdshdr和8(T为8)合成sdshdr8
 __attribute__ ((__packed__))告诉编译器不要对结构体字节对齐,只有这样才能通过(char*)sh+sizeof(struct sdshdrT)正确找到buf
-柔性数组buf并不占用内存空间,sizeof将忽略它
 SDS_HDR_VAR(T,s):sh变量指向sdshdr结构体起始位置
 SDS_HDR(T,s):指向sdshdr结构体起始位置
 size_t它是sizeof操作符返回的结果,代表个数
