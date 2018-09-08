@@ -253,7 +253,7 @@ sds sdsnewlen(const void *init, size_t initlen) {  // A String value can be at m
         case SDS_TYPE_8: {
             SDS_HDR_VAR(8,s);
             sh->len = initlen;     // 结构体变量的地址等于其第一个成员的地址
-            sh->alloc = initlen;  // 此时的sh是局部变量而非全局变量sh,跟外部的sh地址相同,外部的sh不能通过(struct sdshdr60*)sh->alloc访问
+            sh->alloc = initlen;  // 此时的sh是局部变量而非全局变量sh,跟外部的sh地址相同
             *fp = type;
             break;
         }
