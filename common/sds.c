@@ -468,6 +468,6 @@ int main()
     char* f="avatar";
     printf("\n%p,%p,%p\n",c,d,f);  // d==f!=c
 
-    int *p = (int *)malloc(20*sizeof(int));  // 申请的内存段内数据没有初始化
+    int *p = malloc(20*sizeof(int));  // 申请的内存段内数据没有初始化,不必强制类型转换
     free(p);
 }
