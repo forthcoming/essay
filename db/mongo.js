@@ -213,20 +213,33 @@ db.user.aggregate([
 ]);
 
 db.galance.aggregate([
-  {
-      $lookup:{              // left join,匹配不到detail时cmp为[]
-          from: "detail",
-          localField: "_id",
-          foreignField: "_id",
-          as: "cmp"
-      }
-  },
-  {
-      $match:{
-          category:{$exists: true},
-          cmp:{$ne:[]}
-      }
-  }
+    {
+        $lookup:{              // left join,匹配不到detail时cmp为[]
+            from: "detail",
+            localField: "_id",
+            foreignField: "_id",
+            as: "cmp"
+        }
+    },
+    {
+        $match:{
+            category:{$exists: true},
+            cmp:{$ne:[]}
+        }
+    },
+    {
+        $project:{
+            _id:0,
+            category_url:0,
+            category_name:0,
+            parent_id:0,
+            'cmp._id':0,
+            'cmp.category_url':0,
+            'cmp.category_name':0,
+            'cmp.parent_id':0,
+            'cmp.dw_web_id':0
+        }
+    }
 ]);
 
 db.user.aggregate([   // 去重
