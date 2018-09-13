@@ -13,6 +13,7 @@ np.logspace( 0, 2, 5 ) #产生10^0到10^2有5个元素的等比数列   [1. 3.16
 np.zeros( (3,4) )
 np.nonzero([1,2,0,0,3,0])  #(array([0, 1, 4], dtype=int64),)  Return the indices of the elements that are non-zero.
 np.diag([1,2,3])   #对角方阵
+np.eye(2)  # 单位方阵
 np.ones( (2,3,4), dtype=np.int16)   # 类似于[[[1 for j in range(4)] for i in range(3)] for k in range(2)]
 np.empty((2,3))  #creates an array whose initial content is random and depends on the state of the memory. By default, the dtype of the created array is float64
 a=np.arange(24).reshape(2,3,4)  #三维数组
