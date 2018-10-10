@@ -1,3 +1,17 @@
+导出数据
+mongoexport -h rds.aliyuncs.com:3717 -u name -p M7webU -d Atlas -c category -o category.json --authenticationDatabase admin
+导入数据
+mongoimport -h 192.168.105.20:27017 -d Atlas -c category category.json
+mongodump -h IP --port 端口 -u 用户名 -p 密码 -d 数据库 -c 表 -o 文件存放路径
+-h 指明数据库宿主机的IP
+--port 指明数据库的端口 
+-u 指明数据库的用户名
+-p 指明数据库的密码
+-d 指明数据库的名字
+-c 指明collection的名字
+-o 指明到要导出的文件名
+-q 指明导出数据的过滤条件
+
 /**************************************************************************
 basic
 collection => table
