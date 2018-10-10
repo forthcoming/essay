@@ -87,6 +87,7 @@ db.user.updateMany({slug: 'avatar'},{$set: { item: 2 },$setOnInsert: {slug:'akat
 index
 相同索引只创建一次
 sort要跟索引完全保持一致,sort多个字段就要建立复合索引,这要求字段个数,顺序完全一致,注意asc和desc必须跟索引完全一致或完全相反,否则索引会失效
+sort按某个字段-1排序时,不存在or等于null的会被放到最后
 find使用索引情况比较复杂，建议通过explain观察
 If MongoDB cannot use an index to get documents in the requested sort order, the combined size of all documents in the sort operation, plus a small overhead, must be less than 32 megabytes.
 ***************************************************************************/
@@ -111,7 +112,7 @@ db.collection.createIndex({field1:1,field2:-1 });  // 复合索引
 
 db.collection.createIndex({ field:"hashed" });
 /*
-hashed:哈希索引,支持"=,in"查询,但不支持范围查询,不能创建具有哈希索引字段的复合索引或在哈希索引上指定唯一约束;
+hashed:哈希索引,支持"=,in"查询,但不支持范围查询,不能创建具有哈希索引字段的复合索引或在哈希索引上指定唯一约束
 但可以在同一个字段上创建哈希索引和非哈希索引,MongoDB将对范围查询使用标量索引
 */
 
