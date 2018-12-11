@@ -102,8 +102,8 @@ index
 相同索引只创建一次
 sort要跟索引完全保持一致,sort多个字段就要建立复合索引,这要求字段个数,顺序完全一致,注意asc和desc必须跟索引完全一致或完全相反,否则索引会失效
 sort按某个字段-1排序时,不存在or等于null的会被放到最后
-find使用索引情况比较复杂，建议通过explain观察
-If MongoDB cannot use an index to get documents in the requested sort order, the combined size of all documents in the sort operation, plus a small overhead, must be less than 32 megabytes.
+If MongoDB cannot use an index to get documents in the requested sort order, the combined size of all documents in the sort operation, 
+plus a small overhead, must be less than 32 megabytes.
 ***************************************************************************/
 db.collection.getIndexes();
 db.collection.dropIndexes();
@@ -132,7 +132,7 @@ hashed:哈希索引,支持"=,in"查询,但不支持范围查询,不能创建具�
 
 db.restaurants.createIndex({cuisine:1},{partialFilterExpression:{rating:{$gt:5}}});
 /*
-部分索引:仅索引符合过滤器表达式的文档,索引存储占用空间更少,创建和维护成本更低。
+部分索引:仅索引符合过滤器表达式的文档,索引存储占用空间更少,创建和维护成本更低
 To use the partial index,a query must contain the filter expression (or a modified filter expression that specifies a subset of the filter expression) as part of its query condition.
 */
 
@@ -142,7 +142,7 @@ the same behavior as a sparse index,建议用部分索引替代稀疏索引,普�
 */
 
 // 以下查询可以使用部分索引,因为查询谓词{$gte:8}是过滤器表达式{$gt:5}的子集
-db.restaurants.find( { cuisine: "Italian", rating: { $gte: 8 } } )；
+db.restaurants.find( { cuisine: "Italian", rating: { $gte: 8 } } );
 // 以下查询不能使用部分索引
 db.restaurants.find( { cuisine: "Italian", rating: { $lt: 8 } } );
 db.restaurants.find( { cuisine: "Italian" } );
