@@ -33,3 +33,13 @@ Notepad++
 小写转换大写:Ctrl + shift + U
 大写转换小写:Ctrl + U
 视图 => 显示符号 => 显示空格与制表符
+
+Pycharm
+CTRL+SHIFT+N 按文件名查找
+CTRL / 注释、取消注释行
+ALT 左键 列模式选择
+Ctrl+Shift+F 高级查找
+Ctrl+Z  Undo
+Ctrl+Shift+Z  Redo
+Ctrl+R  替换
+右击选项卡标题区域 -> Split Vertically 即可同时展现多个窗口
