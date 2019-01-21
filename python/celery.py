@@ -45,7 +45,7 @@ import time
 app = Celery('task')
 app.config_from_object('Ticktock.config')
 
-@app.task(ignore_result=False)
+@app.task(name='tobedone',ignore_result=False)
 def todo(x,y):
     print(f'result: {x+y}')
     return x+y # return变量保存数据到redis
@@ -66,6 +66,7 @@ celery -A Ticktock worker -l info -B --logfile=/root/Desktop/Ticktock/%n.log    
 ### 调用
 from Ticktock.celery import * 
 result=test.delay(20)
+# result=app.send_task('tobedone',[3,4],{})  # 任务名错了不报错,字典传param=param型参数,适于远程调用
 print(result.get(timeout=4))
 print(result.id)
 print(result.ready())  # returns whether the task has finished processing or not
