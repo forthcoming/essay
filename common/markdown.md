@@ -56,5 +56,5 @@ cond(no)->op
 from datetime import datetime,timedelta
 now=datetime.now()
 print(now.date())
-</code>   
+</code>    
 <del>strike-through</del>
