@@ -15,7 +15,7 @@ python中的多线程其实并不是真正的多线程,如果想要充分地使�
 如果分不清任务是CPU密集型还是IO密集型,我就用如下2个方法分别试
 from concurrent.futures import ProcessPoolExecutor as Pool
 from concurrent.futures import ThreadPoolExecutor as Pool
-哪个速度快就用那个,从此以后我都尽量在写兼容的方式,这样在多线程/多进程之间切换非常方便。
+哪个速度快就用那个,从此以后我都尽量在写兼容的方式,这样在多线程/多进程之间切换非常方便
 技巧:如果一个任务拿不准是CPU密集还是I/O密集型(宜用多线程),且没有其它不能选择多进程方式的因素,都统一直接上多进程模式
 
 ###########################################################################################################################
@@ -37,12 +37,12 @@ if __name__=='__main__':
     print(p,p.is_alive(),p.pid,p.name)         #<Process(python, stopped[SIGTERM])> False 10732 python
 
     p = Process(target=test, name='test',args=(4,))
-    p.daemon=True  #如果父進程結束，子進程也將終止(When a process exits, it attempts to terminate all of its daemonic child processes.)
+    p.daemon=True  # 如果父进程結束,子进程也將終止(When a process exits, it attempts to terminate all of its daemonic child processes.)
     print('PPID:{} PID:{}'.format(os.getppid(),os.getpid()))  #PPID:8092 PID:7872
     p.start() #异步执行子进程
     print('Process has start.')
     p.join()               
-    print('Process end.')  #执行到这里父进程将结束
+    print('Process end.')  # 执行到这里父进程将结束
     
 ###########################################################################################################################
 
