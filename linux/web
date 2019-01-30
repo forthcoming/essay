@@ -107,8 +107,52 @@ http {
 
 ---------------------------------------------------------------------------------------------------------------------------------
 
+[program:showstar_webapp]
+command     	= /data1/coolshot/bin/gunicorn show:app -c etc/gunicorn/gunicorn.py
+directory   	= /coolshot/sugar/
+numprocs    	= 1
+process_name    = %(program_name)s-%(process_num)02d
+autostart   	= true
+autorestart 	= true
+startretries    = 10
+stopsignal  	= TERM
+stopwaitsecs    = 10
+redirect_stderr = true
+stdout_logfile  = /logs/%(program_name)s.log
+stderr_logfile  = /logs/%(program_name)s.log
+
+[program:celery_jpush]
+command     	= /data1/coolshot/bin/celery worker -A show.celery.async_jpush.celery --loglevel=info --concurrency=4 -n=%(program_name)s-%(process_num)02d
+directory   	= /coolshot/sugar/
+numprocs    	= 1
+process_name    = %(program_name)s-%(process_num)%
+autostart   	= true
+autorestart 	= true
+startretries    = 10
+stopsignal  	= TERM
+stopwaitsecs    = 10
+redirect_stderr = true
+stdout_logfile  = /logs/%(program_name)s.log
+stderr_logfile  = /logs/%(program_name)s.log
+
+-----------------------------------------------------------------------------------------------------------------------------------------
+
+supervisord -c /etc/supervisor/supervisord.conf  # 启动supervisor
+supervisorctl shutdown  # 停止supervisord服务
+supervisorctl tail -f 进程名 # 查看该进程的日志,进程名是[program:xx]中的xx
+supervisorctl reload # 修改完配置文件后重新启动supervisor
+supervisorctl status # 查看supervisor监管的进程状态
+supervisorctl start 进程名 # 启动进程
+supervisorctl stop 进程名 # 停止进程
+supervisorctl stop all # 停止全部进程,start、restart、stop都不会载入最新的配置文件
+
+服务端称为supervisord,主要负责在启动自身时启动管理的子进程
+客户端称为supervisorctl,它提供命令行来使用supervisord服务端提供的功能,当客户端和服务器位于同一台机器上时,客户端与服务器共用同一个配置文件supervisord.conf
+
 nginx -t   #检测配置文件是否有效
 nginx -s reload 更改配置重启nginx
-gunicorn无法处理static资源(js,jpg,css)，应为其本身是用來處理Python網頁應用程式，而前端的static資源，主要還是交由後面nignx來負責。
+
+gunicorn无法处理static资源(js,jpg,css),应为其本身是用來處理Python網頁應用程式,而前端的static資源,主要還是交由後面nignx來負責
+
 create the SSL key and certificate files in one motion by typing:
 openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/nginx/ssl/nginx.key -out /etc/nginx/ssl/nginx.crt
