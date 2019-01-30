@@ -1,0 +1,114 @@
+vim gunicorn.py
+[root@local mysite]# nohup gunicorn mysite:app -c gunicorn.py
+[root@local mysite]# kill -HUP `cat /run/gunicorn.pid`
+
+bind = "127.0.0.1:7000"  # 只能通过127.0.0.1:7000访问
+workers = 3 # 进程数
+errorlog='/var/log/gunicorn/error.log'  #提前建好目录
+accesslog='/var/log/gunicorn/access.log'
+loglevel='debug'
+daemon=True
+pidfile='/run/gunicorn.pid'
+timeout=120  # 30s default
+threads = 2 # 指定每个进程开启的线程数
+
+---------------------------------------------------------------------------------------------------------------------
+
+# location = patt{}  精准匹配
+# location patt{}    一般匹配(前几个匹配上就行了)
+# location ~patt{}   正则匹配(~*不区分大小写)
+# 精准匹配(一旦匹配上就返回,有序)> 正则表达式(一旦匹配到就不再匹配,有序) >一般匹配(谁匹配的最长谁说了算,无序)
+# For more information on configuration, see:
+#   * Official English Documentation: http://nginx.org/en/docs/
+#   * Official Russian Documentation: http://nginx.org/ru/docs/
+
+user root;
+worker_processes auto;  #有多少个工作的子进程
+error_log /var/log/nginx/error.log;
+pid /run/nginx.pid;
+
+# Load dynamic modules. See /usr/share/nginx/README.dynamic.
+include /usr/share/nginx/modules/*.conf;
+
+events {
+    worker_connections 1024;  #一个子进程最大能同时连接多少个
+}
+
+http {
+    log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+                      '$status $body_bytes_sent "$http_referer" '
+                      '"$http_user_agent" "$http_x_forwarded_for"';
+
+    access_log  /var/log/nginx/access.log  main;
+
+    sendfile            on;
+    tcp_nopush          on;
+    tcp_nodelay         on;
+    keepalive_timeout   65;
+    types_hash_max_size 2048;
+
+    include             /etc/nginx/mime.types;
+    default_type        application/octet-stream;
+
+    # Load modular configuration files from the /etc/nginx/conf.d directory.
+    # See http://nginx.org/en/docs/ngx_core_module.html#include
+    # for more information.
+    include /etc/nginx/conf.d/*.conf;
+    upstream test{
+        ip_hash; #同一个用户(ip)会被引到同一个服务器上
+        server 1.2.3.4 weight=2;  #权重默认值为1，权重越大，访问到的概率越大（此处是2/3，会受到ip_hash>的影响）
+        server 2.3.4.5 max_fails=3 fail_timeout=60s; #当有2次请求失败时就不再请求该服务器，直至60s后，>依次循环
+        }
+    
+    #禁用掉通过IP直接访问的方式
+    server {
+       listen 80 default_server;
+       server_name _;
+       return 403;
+       #rewrite ^ https://www.test.com$request_uri?;
+    }
+
+    server {
+       listen         80;
+       server_name    192.168.56.101;
+       #rewrite ^(.*) https://$server_name$1 permanent;
+       return         302 https://$server_name$request_uri;
+    }
+
+    server {
+        listen 443 ssl;
+        ssl_certificate /etc/nginx/ssl/nginx.crt;
+        ssl_certificate_key /etc/nginx/ssl/nginx.key;
+        root         /usr/share/nginx/html;
+        # Load configuration files for the default server block.
+        include /etc/nginx/default.d/*.conf;
+        gzip on;
+        location / {
+            proxy_pass http://127.0.0.1:7000;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $remote_addr; #反向代理导致后端服务器ip为前端服务器ip而不是客户端真正ip,so需要这一句
+        }
+
+        location /static/ {
+            root /root/Desktop/mysite;
+            expires 30d;
+        }
+
+        error_page 404 /404.html;
+            location = /40x.html {
+        }
+
+        error_page 500 502 503 504 /50x.html;
+            location = /50x.html {
+        }
+    }
+}
+
+---------------------------------------------------------------------------------------------------------------------------------
+
+nginx -t   #检测配置文件是否有效
+nginx -s reload 更改配置重启nginx
+gunicorn无法处理static资源(js,jpg,css)，应为其本身是用來處理Python網頁應用程式，而前端的static資源，主要還是交由後面nignx來負責。
+create the SSL key and certificate files in one motion by typing:
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/nginx/ssl/nginx.key -out /etc/nginx/ssl/nginx.crt
