@@ -1,5 +1,3 @@
-
-
 Item     | Value
 :---     | ---:
 Computer | $1600
@@ -26,9 +24,10 @@ Pipe     | $1
 [Link](https://www.baidu.com '百度')
 ![Image](http://h.hiphotos.baidu.com/image/pic/item/63d0f703918fa0ec6fcf95d2229759ee3c6ddbe1.jpg '美女')
 ```python
-print('hello world!')
+from datetime import datetime,timedelta    
+now=datetime.now()    
+print(now.date()) 
 ```
-
 
 $x=\frac{-b\pm\sqrt{b^2-4ac}}{2a}$
 $$x=\frac{-b\pm\sqrt{b^2-4ac}}{2a}$$
@@ -52,9 +51,5 @@ cond(no)->op
 <img src="http://h.hiphotos.baidu.com/image/pic/item/63d0f703918fa0ec6fcf95d2229759ee3c6ddbe1.jpg" title="sexy !!!" height='20%' width='30%'>
 <br>
 <hr>
-<code>
-from datetime import datetime,timedelta    
-now=datetime.now()    
-print(now.date())    
-</code>    
+
 <del>strike-through</del>    
