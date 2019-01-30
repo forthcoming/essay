@@ -352,8 +352,7 @@ let s = 'Test';
 s[0] = 'X';
 alert(s);  // s仍然为'Test'
 
-
-
+/*******************************************************************************************************************************/
 
 Global:They are identical when used like this outside a function block.
 let me = 'go'; //globally scoped
