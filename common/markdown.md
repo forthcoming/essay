@@ -53,8 +53,8 @@ cond(no)->op
 <br>
 <hr>
 <code>
-from datetime import datetime,timedelta
-now=datetime.now()
-print(now.date())
+from datetime import datetime,timedelta    
+now=datetime.now()    
+print(now.date())    
 </code>    
-<del>strike-through</del>
+<del>strike-through</del>    
