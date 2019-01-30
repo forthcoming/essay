@@ -75,8 +75,9 @@ end !
 
 #########################################################################################################################
 
-# using classes as decoration mechanisms instead of functions，In addition, it's more powerful.
+# using classes as decoration mechanisms instead of functions,In addition, it's more powerful.
 # which basically means it must be callable. Thus, any classes we use as decorators must implement__call__.
+# https://www.artima.com/forums/flat.jsp?forum=106&thread=240808
 class entryExit:
   def __init__(self, f):
     self.f = f
@@ -118,7 +119,7 @@ class decoratorWithArguments:
      print("After f(*args)")
    return wrapped_f
 
-@decoratorWithArguments("hello")   #等价于decoratorWithArguments("hello")(sayHello)
+@decoratorWithArguments("hello")   # 等价于decoratorWithArguments("hello")(sayHello)
 def sayHello(a1, a2):
     print('sayHello arguments:', a1, a2)
 
