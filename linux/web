@@ -1,7 +1,4 @@
-vim gunicorn.py
-[root@local mysite]# nohup gunicorn mysite:app -c gunicorn.py
-[root@local mysite]# kill -HUP `cat /run/gunicorn.pid`
-
+vim conf.py
 bind = "127.0.0.1:7000"  # 只能通过127.0.0.1:7000访问
 workers = 3 # 进程数
 errorlog='/var/log/gunicorn/error.log'  #提前建好目录
@@ -11,6 +8,9 @@ daemon=True
 pidfile='/run/gunicorn.pid'
 timeout=120  # 30s default
 threads = 2 # 指定每个进程开启的线程数
+
+[root@local mysite]# nohup gunicorn web:app -c conf.py  # 导入了app的文件web.py所在目录
+[root@local mysite]# kill -HUP `cat /run/gunicorn.pid`
 
 ---------------------------------------------------------------------------------------------------------------------
 
@@ -83,6 +83,10 @@ http {
         # Load configuration files for the default server block.
         include /etc/nginx/default.d/*.conf;
         gzip on;
+        
+        #location ~ ^/show/v1/(.*)$ { proxy_pass http://127.0.0.1:6088; }
+        #location ~ ^/kg_show/v1/(.*)$ { proxy_pass http://127.0.0.1:7700; }
+        
         location / {
             proxy_pass http://127.0.0.1:7000;
             proxy_set_header Host $host;
@@ -151,7 +155,9 @@ supervisorctl stop all # 停止全部进程,start、restart、stop都不会载�
 
 nginx -t   #检测配置文件是否有效
 nginx -s reload 更改配置重启nginx
-
+同一个server下可以有不同的location,也同时可以拥有多个server,不同的server通过server_name区分
+如果可以匹配到任何一个server的server_name,则使用此server,否则匹配到第一个server块,不论server_name是否匹配
+   
 gunicorn无法处理static资源(js,jpg,css),应为其本身是用來處理Python網頁應用程式,而前端的static資源,主要還是交由後面nignx來負責
 
 create the SSL key and certificate files in one motion by typing:
