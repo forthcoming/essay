@@ -1,0 +1,141 @@
+offset  
+返回第一个匹配元素相对于document的偏移坐标,设置所有匹配元素的偏移坐标
+$('p').offset({top:100,left:50})
+$('p').offset()
+
+
+history
+history.length
+history.back()  //  history.go(-1)
+history.forward()
+history.go(0)   // 刷新
+
+
+open
+open([URL], [窗口名称], [参数字符串])
+参数说明:
+URL:可选参数,在窗口中要显示网页的网址或路径,如果省略这个参数,那么窗口就不显示任何文档
+窗口名称:可选参数,被打开窗口的名称
+    1.该名称由字母、数字和下划线字符组成
+    2."_top"、"_blank"、"_self"具有特殊意义的名称
+       _blank:在新窗口显示目标网页
+       _self:在当前窗口显示目标网页
+       _top:框架网页中在上部窗口中显示目标网页
+    3.相同name的窗口只能创建一个,要想创建多个窗口则name不能相同
+   4.name不能包含有空格
+参数字符串:可选参数,设置窗口参数,各参数用逗号隔开
+例如:打开http://www.imooc.com网站,大小为300px * 200px,无菜单,无工具栏,无状态栏,有滚动条窗口
+imooc=open('http://www.imooc.com','_blank','width=300,height=200,menubar=no,toolbar=no, status=no,scrollbars=yes')
+imooc.close()   // 关闭imooc窗口
+
+
+<form>
+    <label>爱好:</label>
+    <select>
+      <option value="看书">看书</option>
+      <option value="旅游" selected="selected">旅游</option>
+      <option value="运动">运动</option>
+      <option value="购物">购物</option>
+    </select>
+    <input type="submit" value="确定"  />
+    <input type="reset" value="重置"  />
+</form>
+
+在表单中有两种按钮可以使用,分别为提交、重置
+<input type="submit" value="提交">
+type: 只有当type值设置为submit时,按钮才有提交作用
+value: 按钮上显示的文字
+
+<input type="reset" value="重置">
+当用户需要重置表单信息到初始时的状态时,比如用户输入用户名后发现书写有误,可以使用重置按钮使输入框恢复到初始状态
+type: 只有当type值设置为reset时,按钮才有重置作用
+
+
+<table border=4 width=250 height=150 align=center>
+ <caption>【表格标题】</caption>
+ <thead>
+    <tr bgcolor="#cccccc">
+    <th>
+</th>
+    <th bgcolor=red>列-A</th>
+    <th>列-B</th>
+    <th>列-C</th>
+    </tr>
+ </thead>
+<tbody>
+ <tr align=center>
+  <td>行-1</td>
+  <td>A1</td>
+  <td>B1</td>
+  <td rowspan=2>C1-C2</td>
+ </tr>
+ <tr align=center>
+  <td>行-2</td>
+  <td>A2</td>
+  <td>B2</td>
+ </tr>
+ <tr align=center>
+  <td>行-3</td>
+  <td>A3</td>
+  <td colspan=2>A3-B3</td>
+ </tr>
+ </tbody>
+ </table>
+ 
+ 
+<a href='http://www.baidu.com' style='text-decoration : none' target='_blank'>点击绑定</a>
+<!--  target="_blank"   在新窗口打开  -->
+<!--  target="_self"   在本窗口打开  -->
+
+
+<label for='xxx'>门店详情</label>
+<input id='xxx' name='' type='text' placeholder=''>
+<label>门店详情
+<input name='' type='text' placeholder=''>
+</label>
+
+
+<!--  特殊符号  -->
+&gt;  &lt;    &amp;  &nbsp;
+
+<!--  id锚点  --->
+<a href='#p1'>p1锚点</a>
+<div id='p1'></div>
+
+
+position:relative
+元素在其正常的位置,偏移某些像素
+position:absolute
+相对于父元素的位置,偏移某些像素,绝对定位时父元素要有position属性才行,会一直往上找,直到找到body
+
+
+<pre>保持格式不变输出</pre>
+<span>行内元素</span>
+<input type='file' name='pic'>
+<button style='cursor:help;'>BUTTON</button>
+
+
+盒模型
+margin: 外边距(顺序上右下左,相邻普通元素margin值取最大者,对浮动元素margin值取其和)
+border: 边框(三要素:宽,形状,颜色)
+padding: 内边距(一般用于盒子和文字之间的距离,背景色与div背景色一致,padding增加不影响div和border原本的大小)
+
+
+常见不需要闭合的标签
+br hr img input link meta source 
+
+
+文字上下居中
+height:43px;
+line-height:43px;
+word-wrap:break-word;   /*自动换行*/
+margin: 20px auto;    /*居中*/
+
+
+不要用纯数字做id
+同一网页标签id名称唯一且只能有一个,class可以有多个且可以重复出现
+css优先级: 选择器越精确,优先级越高,一般可以通过浏览器debug查看
+回车在网页中不显示,多个空格符只显示一个
+
+
+input,textarea均为form内部的,但获取input的值用val(),来自于value属性,获取textarea的值用text(),来自于标签包围的部分
