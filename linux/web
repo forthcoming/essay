@@ -56,8 +56,8 @@ http {
     include /etc/nginx/conf.d/*.conf;
     upstream test{
         ip_hash; #同一个用户(ip)会被引到同一个服务器上
-        server 1.2.3.4 weight=2;  #权重默认值为1，权重越大，访问到的概率越大（此处是2/3，会受到ip_hash>的影响）
-        server 2.3.4.5 max_fails=3 fail_timeout=60s; #当有2次请求失败时就不再请求该服务器，直至60s后，>依次循环
+        server 1.2.3.4 weight=2;  #权重默认值为1,权重越大,访问到的概率越大(此处是2/3,会受到ip_hash>的影响)
+        server 2.3.4.5 max_fails=3 fail_timeout=60s; #当有2次请求失败时就不再请求该服务器,直至60s后,依次循环
         }
     
     #禁用掉通过IP直接访问的方式
@@ -79,6 +79,7 @@ http {
         listen 443 ssl;
         ssl_certificate /etc/nginx/ssl/nginx.crt;
         ssl_certificate_key /etc/nginx/ssl/nginx.key;
+        access_log   /home/avatar/Desktop/nginx.log main; # 每个server可以拥有独立的access log
         root         /usr/share/nginx/html;
         # Load configuration files for the default server block.
         include /etc/nginx/default.d/*.conf;
@@ -89,6 +90,7 @@ http {
         
         location / {
             proxy_pass http://127.0.0.1:7000;
+            # proxy_pass http://test; # 接收方nginx的server_name对应要写成test
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header X-Forwarded-For $remote_addr; #反向代理导致后端服务器ip为前端服务器ip而不是客户端真正ip,so需要这一句
