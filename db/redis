@@ -1,6 +1,7 @@
 cluster
 cluster info 
 cluster nodes 
+cluster slots  # returns details about which cluster slots map to which Redis instances
 cluster keyslot key # 计算键key被放置在哪个槽上
 cluster countkeysinslot <slot(num)>  # 计算槽上有多少个键值对
 cluster getkeysinslot <slot(num)> <count> # 返回count个slot槽中的键
