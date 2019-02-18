@@ -1,3 +1,7 @@
+alias #列出所有别名
+alias avatar='ls -al /home' #给命令起别名(命令带参数时要加引号)
+unalias [-a][别名] #删除别名,-a代表全部
+
 kill
 kill -9 pid  #强行关闭进程
 kill -1 pid  #重启进程(重新读取配置,也可写为kill -HUP)
