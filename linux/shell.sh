@@ -118,6 +118,7 @@ mv #移动文件(夹)or改文件(夹)名,不需用-r
 cp -a #复制整个文件夹/目录,并保持属性不变
 mkdir -p /1/2 #创建目录树
 cd - #返回到上个目录
+wc a.txt  #行数  单词数  字节数  文件名, ls | wc  
 
 Ubuntu
 launcher地址: /usr/share/applications/eclipse.desktop
