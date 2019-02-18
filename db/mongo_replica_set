@@ -2,9 +2,9 @@
 mongod --dbpath E:/MongoDB/01 --replSet amazon --port 27001
 mongod --dbpath E:/MongoDB/02 --replSet amazon --port 27002
 mongod --dbpath E:/MongoDB/03 --replSet amazon --port 27003
+
+
 C:\Users\Administrator>mongo --port 27001
-
-
 config = {
   _id:"amazon",
   members:[
@@ -302,7 +302,7 @@ amazon:PRIMARY> rs.status()
 }
 
 
-amazon:PRIMARY> rs.add({host: "127.0.0.1:27001", priority: 3}) #执行完这句话，27001立马变成PRIMARY，此时的27003变成SECONDARY，切换到27001继续执行
+amazon:PRIMARY> rs.add({host: "127.0.0.1:27001", priority: 3}) #执行完,27001立马变成PRIMARY,此时的27003变成SECONDARY,切换到27001继续执行
 amazon:PRIMARY> rs.add({host: "127.0.0.1:27002", priority: 0})
 amazon:PRIMARY> rs.conf()
 {
