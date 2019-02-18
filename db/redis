@@ -1,0 +1,445 @@
+cluster
+cluster info 
+cluster nodes 
+cluster keyslot key # 计算键key被放置在哪个槽上
+cluster countkeysinslot <slot(num)>  # 计算槽上有多少个键值对
+cluster getkeysinslot <slot(num)> <count> # 返回count个slot槽中的键
+
+redis-cluster只支持db0
+10.1.140.179:8001> select 1
+(error) ERR SELECT is not allowed in cluster mode
+每个节点使用keys *查看时会发现键值个数不一样(主从数据个数是一样)
+客户端连接集群redis-cli需要带上-c,redis-cli -c -p port
+
+创建集群: 
+1. redis-cli 7000[7001|7002|7003|7004|7005|].conf,手动开启每个节点
+2. redis-cli --cluster create 127.0.0.1:7000 127.0.0.1:7001 127.0.0.1:7002 127.0.0.1:7003 127.0.0.1:7004 127.0.0.1:7005 --cluster-replicas 1
+The option --cluster-replicas 1 means that we want a slave for every master created.(create a cluster with 3 masters and 3 slaves)
+The other arguments are the list of addresses of the instances I want to use to create the new cluster.
+集群中的主从是在创建集时分配,并不需要在每个节点的配置文件中设置
+
+in practical terms, what do you get with Redis Cluster?
+The ability to automatically split your dataset among multiple nodes.
+The ability to continue operations when a subset of the nodes are experiencing failures or are unable to communicate with the rest of the cluster.
+
+---------------------------------------------------------------------------------------------------------------------------------------
+
+通用操作
+del key1 key2 ... Keyn:删除1个或多个键,不存在的key忽略掉,返回真正删除的key的数量
+unlink key1 key2 ... Keyn:删除1个或多个键,不存在的key忽略掉,return the number of keys that were unlinked,it is not blocking, while del is.
+rename oldkey newkey:给key赋一个新的key名, 如果newkey已存在 ,则 newkey的原值被覆盖 (类似的还有renamenx)
+randomkey:返回随机key
+exists keyname:判断key是否存在 ,返回 1/0
+type keyname:返回key的值类型 (eg:string,link,set,order set, hash)
+ttl keyname:返回key剩余的过期时间秒数(不过期的key返回-1,不存在的key返回-2)
+persist keyname:把指定key置为永久有效
+expire keyname 整型值:设置key的生命周期,以秒为单位(类似的还有pexpire,毫秒数,设置生命周期)
+move keyname db:将当前数据库的key移动到给定的数据库db当中。若与给定数据库key重名,或key不存在于当前数据库,则MOVE无任何效果
+scan:遍历所有键,类似的还有sscan,hscan,zscan,他们只遍历特定类型键里面的元素值
+redis-cli -h 10.1.138.63 -n 1 --bigkeys : 分析数据库中的大key
+
+---------------------------------------------------------------------------------------------------------------------------------------
+
+keys pattern:查找所有符合给定模式pattern的key
+有3个通配符 *, ? ,[]
+*:通配任意多个字符
+?:通配单个字符
+[]:通配括号内的某1个字符
+127.0.0.1:6379> keys *
+(empty list or set)
+127.0.0.1:6379> mset one 1 two 2 three 3 four 4
+OK
+127.0.0.1:6379> keys o*
+1) "one"
+127.0.0.1:6379> keys *o
+1) "two"
+127.0.0.1:6379> keys ???
+1) "one"
+2) "two"
+127.0.0.1:6379> keys on[dce]
+1) "one"
+
+---------------------------------------------------------------------------------------------------------------------------------------
+
+string常见类型
+set key value [ex 秒数]  [nx]/[xx] :  nx表示key不存在时执行操作,xx表示key存在时执行操作
+get key
+mget key1 key2...  :  类似的还有mset
+setrange key offset value ：把字符串key的第offset个位置起替换成value，只覆盖value个长度
+getrange key start stop ：获取字符串中 [start, stop]范围的值，左数从0开始,右数从-1开始
+append key value
+incr key:key值加1,并返回加1后的值，key必须是数字型字符串，对立操作是decr
+getbit key offset : 获取值的二进制表示对应位上的值,offset从左从0编号,最大不能超过2^32-1,so key最大为512M
+setbit key offset 0/1 : 设置offset对应二进制位上的值,返回该位上的旧值
+bitcount key : 统计1的个数
+bitop operation destkey key1 [key2 ...] : 对key1,key2..keyN作operation,并将结果保存到destkey上。
+127.0.0.1:6379> setbit lower 2 1
+(integer) 0
+127.0.0.1:6379> get lower
+" "
+127.0.0.1:6379> set char Q
+OK
+127.0.0.1:6379> bitop or char char lower
+(integer) 1
+127.0.0.1:6379> get char
+"q"
+
+---------------------------------------------------------------------------------------------------------------------------------------
+
+list常见命令(可以理解为链表)
+llen key: 计算key元素个数
+lindex key index :返回index索引上的值
+lrem key count value :从key列表里移除前count次出现的值为value的元素(count>0从头往尾,count<0从尾往头,count=0移除所有)
+lpush key value : 把值插入到list头部，值可以是多个
+rpop key :  移除并返回存于key的最后一个元素
+lrange key start stop: 返回链表中 [start ,stop]中的元素, 左数从0开始 ,右数从-1开始
+
+127.0.0.1:6379> lpush mylist a b 1
+(integer) 3
+127.0.0.1:6379> lrange mylist 0 -1
+1) "1"
+2) "b"
+3) "a"
+127.0.0.1:6379> rpop mylist
+"a"
+
+---------------------------------------------------------------------------------------------------------------------------------------
+
+set常见命令(唯一性,无序性)
+sadd key value1 value2:往集合key中增加元素
+srem key value1 value2: 删除集合中集为value1 value2的元素,返回实际删除的元素个数
+spop key:返回并删除集合中key中1个随机元素
+srandmember key:返回集合key中随机的1个元素
+smembers key:返回集中所有的元素
+sismember key value:判断value是否在 key集合中
+scard key:返回集合中元素的个数
+smove source dest value:把source中的 value删除 ,并添加到 dest集合中
+sinter  key1 key2 key3: 求出key1 key2 key3三个集合中的交集(公共部分) ,并返回
+sinterstore dest key1 key2 key3:求出key1 key2 key3 三个集合中的交集 ,并赋给dest
+suion key1 key2.. Keyn:求出key1 key2 keyn的并集并返回(类似的还有sunionstore)
+sdiff key1 key2 key3:求出key1与key2 key3的差集,即key1-key2-key3
+
+---------------------------------------------------------------------------------------------------------------------------------------
+
+zset常见命令(有序集合,有序是指按照键score的大小顺序存放)
+zadd key score1 value1 score2 value2:如果添加的成员已经存在于有序集合中，则会更新成员的score并更新到正确的排序位置
+zcard key:返回元素个数
+zrem key value1 value2: 删除集合中的元素
+zrank key member: 返回member的排名(升续0名开始)
+zrevrank key memeber:查询member的排名(降续0名开始)
+zrange key start stop [withscores]:返回名次[start,stop]的元素,默认升续排列,Withscores是把score也打印出来(类似的还有zrevrange)
+zrangebyscore  key min max [withscores] limit m n: 取score在 [min,max]内的元素
+zcount key min max:返回[min,max] 区间内元素的数量
+zremrangebyrank key start end:按排名删除元素 ,删除名次在 [start,end]之间的
+zremrangebyscore key min max:按照socre来删除元素,删除 score在 [min,max]之间的
+
+---------------------------------------------------------------------------------------------------------------------------------------
+
+hash常见命令(可理解为字典)
+hset key field value : 把key中filed域的值设为value,如果有field,则覆盖原field域的值
+hmset key field1 value1 [field2 value2 field3 value3 ......fieldn valuen]
+hdel key field : 删除key中field域
+hlen key : 返回key中元素的数量
+hexists key field : 判断key中有没有field域
+hinrby float key field value : 把key中的field域的值增长浮点值value
+hkeys key : 返回key中所有的 field
+hvals key : 返回key中所有的 value
+
+---------------------------------------------------------------------------------------------------------------------------------------
+
+geohash
+geoadd location 123.121 -34.12 'HK' 45.1 78.9 'Poland' 45.2 78.91 'Turkey'
+# Data is stored into the key as a sorted set,先经度再纬度
+# Latitude and Longitude bits are interleaved in order to form an unique 52 bit integer.We know that a sorted set double score can represent a 52 bit integer without losing precision.
+# geohashEncodeWGS84(xy[0], xy[1], 26, &hash);
+# GeoHashFix52Bits bits = geohashAlign52Bits(hash);
+
+geopos location 'Poland'
+geodist location 'Poland' 'Turkey' km
+# 从zset中读出相应的double类型的score信息,
+# GeoHashBits hash1={.bits = (uint64_t)score1,.step = 26};
+# GeoHashBits hash2={.bits = (uint64_t)score2,.step = 26};
+# geohashDecodeToLongLatWGS84(hash1, x1);
+# geohashDecodeToLongLatWGS84(hash2, x2);
+# return geohashGetDistance(x1,x2);
+# geopos处理过程类似
+
+geohash location 'HK'
+# Returns an array with an 11 characters geohash representation of the position of the specified elements.
+# The internal format we use for geocoding is a bit different than the standard, since we use as initial latitude range -85,85,
+# while the normal geohashing algorithm uses -90,90.So we have to decode our position and re-encode using the standard ranges in order to output a valid geohash string.
+# GeoHashBits hash = {.bits = (uint64_t)score, .step = 26};
+# geohashDecodeToLongLatWGS84(hash, xy);
+# GeoHashRange r[2]=[{.min = -180,.max = 180},{.min = -90,.max = 90}];
+# GeoHashBits hash;
+# geohashEncode(&r[0],&r[1],xy[0],xy[1],26,&hash);
+# char *geoalphabet= "0123456789bcdefghjkmnpqrstuvwxyz";
+# char buf[12];
+# for (int i = 0; i < 11; i++) {
+#     int idx = (hash.bits >> (52-((i+1)*5))) & 0x00011111;
+#     buf[i] = geoalphabet[idx];
+# }
+# buf[11] = '\0';  # 此时的buf[10]一定等于'0'
+# 注意：    
+# int x=5;
+# uint64_t y=5;
+# x<<-2 => x<<30
+# y>>-3 => x>>61
+
+georadius location 45.1 78.88 4 km withdist  # 只返回location下的坐标
+georadiusbymember location 'Poland' 3 km
+
+---------------------------------------------------------------------------------------------------------------------------------------
+
+hyperloglog
+127.0.0.1:6379> pfadd hll a b c d a      
+(integer) 1       # 1 if at least 1 HyperLogLog internal register was altered. 0 otherwise.
+127.0.0.1:6379> pfcount hll
+(integer) 4
+
+---------------------------------------------------------------------------------------------------------------------------------------
+
+安装redis到/usr/local/redis目录
+$ wget http://download.redis.io/releases/redis-3.2.9.tar.gz
+$ tar xzf redis-3.2.9.tar.gz
+$ cd redis-3.2.9
+$ make PREFIX=/opt/redis install #安装到指定目录中(没该目录则会自动创建)
+$ mv redis.conf /opt/redis
+
+ll ~/redis/bin
+-rwxr-xr-x. 1 root root 2075842 Jan 31 01:10 redis-benchmark
+-rwxr-xr-x. 1 root root   25173 Jan 31 01:10 redis-check-aof
+-rwxr-xr-x. 1 root root   56020 Jan 31 01:10 redis-check-dump
+-rwxr-xr-x. 1 root root 2205500 Jan 31 01:10 redis-cli
+lrwxrwxrwx. 1 root root      12 Jan 31 01:10 redis-sentinel -> redis-server
+-rwxr-xr-x. 1 root root 4358017 Jan 31 01:10 redis-server
+
+redis-benchmark：redis性能测试工具
+redis-check-aof：检查aof日志的工具
+redis-check-dump：检查rbd日志的工具
+添加redis到环境变量(/etc/profile作用于所有用户,写错后会导致系统登不进去)
+vim ~/.bashrc
+
+REDIS=/root/redis/bin
+PYCHARM=/root/pycharm/bin
+CONDA=/root/miniconda3/bin
+export PATH=$PATH:$REDIS:$PYCHARM:$CONDA
+
+启动redis
+redis-server /root/redis/redis.conf    #指定启动时调用的配置文件
+
+---------------------------------------------------------------------------------------------------------------------------------------
+
+事务
+import redis,time
+from redis.exceptions import WatchError
+
+r = redis.StrictRedis(host='localhost', port=6379, db=0)
+r.flushdb()
+'''
+MULTI/EXEC are implemented as part of the Pipeline class.
+The pipeline is wrapped with the MULTI and EXEC statements by default when it is executed, which can be disabled by specifying transaction=False.
+Apart from making a group of operations atomic, pipelines are useful for reducing the back-and-forth overhead between the client and server.
+'''
+pipe = r.pipeline(transaction=True) # The following SET commands are buffered
+pipe.set('bing', 'baz')
+pipe.set('foo', 'bar').get('bing')  # 所有缓冲到pipeline的命令返回pipeline对象本身,因此可以链式调用
+pipe.execute()  # returning a list of responses, one for each command.  [True, True, b'baz']
+
+with r.pipeline() as pipe:
+    while True:
+        try:
+            pipe.watch('OUR-SEQUENCE-KEY')  # 跟redis客户端一致,watch必须出现在multi之前
+            # after WATCHing, the pipeline is put into immediate execution mode until we tell it to start buffering commands again.
+            # this allows us to get the current value of our sequence
+            current_value = pipe.get('OUR-SEQUENCE-KEY') or 0
+            next_value = int(current_value) + 1
+            time.sleep(7)  # 可以模拟在其他客户端更改OUR-SEQUENCE-KEY的值
+            pipe.multi() # now we can put the pipeline back into buffered mode with MULTI
+            pipe.set('OUR-SEQUENCE-KEY', next_value)
+            pipe.execute()
+            # if a WatchError wasn't raised during execution, everything we just did happened atomically.
+            break
+        except WatchError as e:
+            print(e)
+            # another client must have changed 'OUR-SEQUENCE-KEY' between the time we started WATCHing it and the pipeline's execution.
+            # our best bet is to just retry.       
+# 因为在整个WATCH过程中,Pipeline必须绑定到一个连接,必须调用reset()方法确保连接返回连接池
+# 如果Pipeline用作Context Manager(如上面的例子所示),reset()会自动调用,当然也可以用手动的方式明确调用reset()
+
+'''
+multi
+It can never happen that a request issued by another client is served in the middle of the execution of a Redis transaction. 
+This guarantees that the commands are executed as a single isolated operation.
+Redis是单线程的服务,天生所有操作均具有原子性
+事务状态是以一个事务为单位,执行事务队列中的所有命令:除非当前事务执行完毕,否则服务器不会中断事务,也不会执行其他客户端的其他命令
+事物存在语法错误,则整个事务都不会执行
+事务存在逻辑错误,比如set a 1,lpop a则会跳过该命令,执行剩下的命令,不支持回滚
+exec
+开始顺序执行各条命令,之后终止watch命令
+discard
+中止事务运行
+watch
+要求所有受监控的键在执行exec前都没有被修改时才会执行事务(相同客户端在事务内部修改这些键不影响事务的运行)
+只能在客户端进入事务状态之前执行才有效
+
+当前客户端的事务执行失败,程序需要做的就是不断重试这个操作,直到没有发生碰撞为止
+这种形式的锁被称作乐观锁,它是一种非常强大的锁机制.因为大多数情况下不同的客户端会访问不同的键,碰撞的情况一般都很少,所以通常并不需要进行重试
+'''
+
+---------------------------------------------------------------------------------------------------------------------------------------
+
+消息订阅
+p = r.pubsub()
+p.subscribe('my-first-channel')
+p.psubscribe('my-*')
+r.publish('my-first-channel', 'some data')
+print(p.get_message())
+print(p.get_message())
+print(p.get_message())
+print(p.get_message())
+print(p.get_message())
+r.publish('my-first-channel', 'some data')
+print(p.get_message())
+print(p.get_message())
+print(p.get_message())
+'''
+With [un]subscribe messages, this value will be the number of channels and patterns the connection is currently subscribed to.
+With [p]message messages, this value will be the actual published message.
+{'type': 'subscribe', 'pattern': None, 'channel': b'my-first-channel', 'data': 1}
+{'type': 'psubscribe', 'pattern': None, 'channel': b'my-*', 'data': 2}
+{'type': 'message', 'pattern': None, 'channel': b'my-first-channel', 'data': b'some data'}
+{'type': 'pmessage', 'pattern': b'my-*', 'channel': b'my-first-channel', 'data': b'some data'}
+None
+{'type': 'message', 'pattern': None, 'channel': b'my-first-channel', 'data': b'some data'}
+{'type': 'pmessage', 'pattern': b'my-*', 'channel': b'my-first-channel', 'data': b'some data'}
+None
+
+while True:
+    message = p.get_message()
+    if message:
+        # do something with the message
+    time.sleep(0.001)  # be nice to the system :)
+'''
+
+---------------------------------------------------------------------------------------------------------------------------------------
+
+持久化(推荐两种方案同时使用)
+快照(rdb)
+每隔N分钟或者N次写操作后从内存dump数据形成rdb文件,压缩放在备份目录(导入导出速度快,容易出现丢失几分钟的数据,可以通过aof弥补)
+快照配置选项
+save 900 1           # 900内,有1 条写入,则产生快照
+save 300 1000        # 如果300秒内有1000次写入,则产生快照(每300秒唤醒一次)
+save 60 10000        # 如果60秒内有10000次写入,则产生快照(每60秒唤醒一次,从下往上看,这3个选项都屏蔽,则rdb禁用)
+dir ./               # rdb的放置路径
+dbfilename dump.rdb  # 导出来的rdb文件名
+rdbcompression yes   # 导出的rdb文件是否压缩
+Rdbchecksum   yes    # 导入rbd恢复时数据时,要不要检验rdb的完整性
+
+日志(aof)
+appendonly no                   # 是否打开aof日志功能
+appendfsync always              # 每1个命令,都立即同步到aof,安全,速度慢
+appendfsync everysec            # 折衷方案,每秒写1次
+appendfilename /var/appendonly.aof
+appendfsync no                  # 写入工作交给操作系统,由操作系统判断缓冲区大小,统一写入到aof.同步频率低,速度快
+# 注意在导出rdb过程中,aof如果停止同步,所有的操作缓存在内存的队列里,dump完成后统一操作
+no-appendfsync-on-rewrite yes   # 正在导出rdb快照的过程中,要不要停止同步aof
+auto-aof-rewrite-percentage 100 # aof文件大小比起上次重写时的大小,增长率100%时重写
+auto-aof-rewrite-min-size 64mb  # aof文件至少超过64M时重写
+# aof重写是指把内存中的数据逆化成命令,写入到aof日志里,以解决aof日志过大的问题
+
+恢复时rdb比aof快,因为其是数据的内存映射,直接载入到内存,而aof是命令,需要逐条执行
+当rdb跟aof同时开启时,则只加载aof里面的数据
+主从关系中一般主开启aof,从开启一个rdb
+当执行shutdown命令时会自动将内存中数据写进rdb(之前与aof不一致的数据会被覆盖掉)
+
+---------------------------------------------------------------------------------------------------------------------------------------
+
+key设计原则
+1: 把表名转换为key前缀,如tag
+2: 放置用于区分key的字段,对应mysql中的主键的列名,如userid
+3: 放置主键值,如2,3,4...., a , b ,c
+4: 存储的列名
+
+create table book (bookid int,title char(20))engine myisam charset utf8;
+insert into book values(5 , 'PHP圣经'),(6 , 'ruby实战'),(7 , 'mysql运维')(8, 'ruby服务端编程');
+create table tags (tid int,bookid int,content char(20))engine myisam charset utf8;
+insert into tags values(10 , 5 , 'PHP'),(11 , 5 , 'WEB'),(12 , 6 , 'WEB'),(13 , 6 , 'ruby'),(14 , 7 , 'database'),(15 , 8 , 'ruby'),(16 , 8 , 'server';
+
+# 查询既有web标签又有PHP标签的书
+select * from tags join tags as t on tags.bookid=t.bookid where tags.content='PHP' and t.content='WEB';
+
+换成key-value存储
+set book:bookid:5:title 'PHP 圣经'
+set book:bookid:6:title 'ruby实战'
+set book:bookid:7:title 'mysql运难'
+set book:bookid:8:title 'ruby server'
+
+sadd tag:PHP 5
+sadd tag:WEB 5 6
+sadd tag:database 7
+sadd tag:ruby 6 8
+sadd tag:SERVER 8
+
+查:既有PHP又有WEB的书
+sinter tag:PHP tag:WEB  # 查集合的交集
+
+查:有PHP或有WEB标签的书
+sunin tag:PHP tag:WEB
+
+查:含有ruby不含WEB标签的书
+sdiff tag:ruby tag:WEB # 求差集
+
+注意:
+在关系型数据中,除主键外,还有可能其他列也步骤查询
+如上表中username也是极频繁查询的 ,往往这种列也是加了索引的
+转换到k-v数据中,则也要相应的生成一条按照该列为主的key-value
+set user:username:lisi:uid 9
+我们可以根据username:lisi:uid,查出userid=9
+再查user:9:password/email ...
+
+---------------------------------------------------------------------------------------------------------------------------------------
+
+sort
+lpush num 12 33 -13 45 90
+sort num asc  #默认升序,且按数值排序
+sort num desc
+
+lpush alp b c a test1 king ZendStudio
+sort apl alpha desc
+sort apl alpha asc limit 1 3
+
+lpush uid 1
+set user_1 admin
+set user_level_1 9999
+lpush uid 2
+set user_2 king
+set user_level_2 800
+lpush uid 3
+set user_3 queen
+set user_level_3 600
+127.0.0.1:6379> sort uid
+1) "1"
+2) "2"
+3) "3"
+127.0.0.1:6379> sort uid by user_level_* limit 1 2
+1) "2"
+2) "1"
+127.0.0.1:6379> sort uid get user_*
+1) "admin"
+2) "king"
+3) "queen"
+127.0.0.1:6379> sort uid by user_level_* get user_*
+1) "queen"
+2) "king"
+3) "admin"
+127.0.0.1:6379> sort uid by user_level_* get user_* get user_level_*
+1) "queen"
+2) "600"
+3) "king"
+4) "800"
+5) "admin"
+6) "9999"
+
+---------------------------------------------------------------------------------------------------------------------------------------
+
