@@ -23,6 +23,18 @@ in practical terms, what do you get with Redis Cluster?
 The ability to automatically split your dataset among multiple nodes.
 The ability to continue operations when a subset of the nodes are experiencing failures or are unable to communicate with the rest of the cluster.
 
+redis集群不支持事物
+In redis-py-cluster, pipelining is all about trying to achieve greater network efficiency. Transaction support is disabled in redis-py-cluster. 
+Use pipelines to avoid extra network round-trips, not to ensure atomicity.
+
+什么时候整个集群不可用(cluster_state:fail)?
+如果集群任意master挂掉,且当前master没有slave.集群进入fail状态,也可以理解成集群的slot映射[0-16383]不完整时进入fail状态
+如果集群超过半数以上master挂掉,无论是否有slave,集群进入fail状态
+
+Redis集群中内置了16384个哈希槽,当需要在Redis集群中放置一个key-value时,先对key使用crc16算法算出一个结果,然后把结果对16384求余数,
+这样每个key都会对应一个编号在0-16383之间的哈希槽,redis会根据节点数量大致均等的将哈希槽映射到不同的节点
+投票过程是集群中所有master参与,如果半数以上master节点与master节点通信超时(cluster-node-timeout),认为当前master节点挂掉.
+
 ---------------------------------------------------------------------------------------------------------------------------------------
 
 通用操作
