@@ -103,6 +103,7 @@ Thu Dec 15 16:55:22 CST 2016
 2016-12-14
 
 common
+iostat -x 1  # 实时查看磁盘IO使用情况
 du -s * | sort -n | tail  # 列出当前目录里最大的10个文件
 ps aux | sort -nk +4 | tail  #  列出头十个最耗内存的进程
 tail -f file.log | sed '/^Finished: SUCCESS$/ q'  # 当file.log里出现Finished: SUCCESS时候就退出tail,用于实时监控并过滤log是否出现了某条记录
