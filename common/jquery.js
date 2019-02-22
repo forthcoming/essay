@@ -9,6 +9,13 @@ var cr  = $cr[0];
 var cr = doucument.getElementById("cr");
 var $cr = $(cr);
 
+如果网页上某个标签无法被事件监听,可能是被其他元素的margin挡住了
+
+使用submit前提:
+必须由form的筛选器来调用submit
+必须有submit按钮或者input的type=submit来触发
+<input class='save' type="submit" data-value="0" value="保存">
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 <script>
