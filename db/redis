@@ -13,8 +13,8 @@ redis-cluster只支持db0
 客户端连接集群redis-cli需要带上-c,redis-cli -c -p port
 
 创建集群: 
-1. redis-server 7000[7001|7002|7003|7004|7005|].conf,手动开启每个节点
-2. redis-cli --cluster create 127.0.0.1:7000 127.0.0.1:7001 127.0.0.1:7002 127.0.0.1:7003 127.0.0.1:7004 127.0.0.1:7005 --cluster-replicas 1
+1. redis-server 8001[8002|8003|8004|8005|8006|].conf,手动开启每个节点
+2. redis-cli --cluster create 127.0.0.1:8001 127.0.0.1:8002 127.0.0.1:8003 127.0.0.1:8004 127.0.0.1:8005 127.0.0.1:8006 --cluster-replicas 1
 The option --cluster-replicas 1 means that we want a slave for every master created.(create a cluster with 3 masters and 3 slaves)
 The other arguments are the list of addresses of the instances I want to use to create the new cluster.
 集群中的主从是在创建集时分配,并不需要在每个节点的配置文件中设置
