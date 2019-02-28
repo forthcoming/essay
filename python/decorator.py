@@ -132,3 +132,35 @@ sayHello("say", "goodbye")
 the constructor is now used to capture the decorator arguments, but the object __call__() can no longer be used as the decorated function call,
 so you must instead use __call__() to perform the decoration --it is nonetheless surprising the first time you see it because it's acting so much differently than the no-argument case, and you must code the decorator very differently from the no-argument case.
 '''
+
+#########################################################################################################################
+
+def decorator_a(func):
+    print('Get in decorator_a')
+    def inner_a(*args, **kwargs):
+        print('Get in inner_a')
+        return func(*args, **kwargs)
+    return inner_a
+
+def decorator_b(func):
+    print('Get in decorator_b')
+    def inner_b(*args, **kwargs):
+        print('Get in inner_b')
+        return func(*args, **kwargs)
+    return inner_b
+
+@decorator_b
+@decorator_a
+def f(x):
+    print('Get in f')
+    return x * 2
+
+f(1)
+'''
+Get in decorator_a
+Get in decorator_b
+Get in inner_b
+Get in inner_a
+Get in f
+'''
+
