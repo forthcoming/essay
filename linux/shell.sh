@@ -103,6 +103,7 @@ Thu Dec 15 16:55:22 CST 2016
 2016-12-14
 
 common
+pip show flask  # 查看库安装信息(路径等)
 iostat -x 1  # 实时查看磁盘IO使用情况
 du -s * | sort -n | tail  # 列出当前目录里最大的10个文件
 ps aux | sort -nk +4 | tail  #  列出头十个最耗内存的进程
