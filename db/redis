@@ -18,6 +18,7 @@ redis-cluster只支持db0
 The option --cluster-replicas 1 means that we want a slave for every master created.(create a cluster with 3 masters and 3 slaves)
 The other arguments are the list of addresses of the instances I want to use to create the new cluster.
 集群中的主从是在创建集时分配,并不需要在每个节点的配置文件中设置
+手动杀死集群中的某个master,其slave会自动被晋选为master
 
 in practical terms, what do you get with Redis Cluster?
 The ability to automatically split your dataset among multiple nodes.
