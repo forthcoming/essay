@@ -47,7 +47,7 @@ type keyname:返回key的值类型 (eg:string,link,set,order set, hash)
 ttl keyname:返回key剩余的过期时间秒数(不过期的key返回-1,不存在的key返回-2)
 persist keyname:把指定key置为永久有效
 expire keyname 整型值:设置key的生命周期,以秒为单位(类似的还有pexpire,毫秒数,设置生命周期)
-move keyname db:将当前数据库的key移动到给定的数据库db当中。若与给定数据库key重名,或key不存在于当前数据库,则MOVE无任何效果
+move keyname db:将当前数据库的key移动到给定的数据库db当中,若与给定数据库key重名,或key不存在于当前数据库,则MOVE无任何效果
 scan:遍历所有键,类似的还有sscan,hscan,zscan,他们只遍历特定类型键里面的元素值
 redis-cli -h 10.1.138.63 -n 1 --bigkeys : 分析数据库中的大key
 
@@ -103,9 +103,9 @@ list常见命令(可以理解为链表)
 llen key: 计算key元素个数
 lindex key index :返回index索引上的值
 lrem key count value :从key列表里移除前count次出现的值为value的元素(count>0从头往尾,count<0从尾往头,count=0移除所有)
-lpush key value : 把值插入到list头部，值可以是多个
+lpush key value : 把值插入到list头部,值可以是多个
 rpop key :  移除并返回存于key的最后一个元素
-lrange key start stop: 返回链表中 [start ,stop]中的元素, 左数从0开始 ,右数从-1开始
+lrange key start stop: 返回链表中[start ,stop]中的元素,左数从0开始,右数从-1开始
 
 127.0.0.1:6379> lpush mylist a b 1
 (integer) 3
@@ -135,7 +135,7 @@ sdiff key1 key2 key3:求出key1与key2 key3的差集,即key1-key2-key3
 ---------------------------------------------------------------------------------------------------------------------------------------
 
 zset常见命令(有序集合,有序是指按照键score的大小顺序存放)
-zadd key score1 value1 score2 value2:如果添加的成员已经存在于有序集合中，则会更新成员的score并更新到正确的排序位置
+zadd key score1 value1 score2 value2:如果添加的成员已经存在于有序集合中,则会更新成员的score并更新到正确的排序位置
 zcard key:返回元素个数
 zrem key value1 value2: 删除集合中的元素
 zrank key member: 返回member的排名(升续0名开始)
@@ -143,7 +143,7 @@ zrevrank key memeber:查询member的排名(降续0名开始)
 zrange key start stop [withscores]:返回名次[start,stop]的元素,默认升续排列,Withscores是把score也打印出来(类似的还有zrevrange)
 zrangebyscore  key min max [withscores] limit m n: 取score在 [min,max]内的元素
 zcount key min max:返回[min,max] 区间内元素的数量
-zremrangebyrank key start end:按排名删除元素 ,删除名次在 [start,end]之间的
+zremrangebyrank key start end:按排名删除元素,删除名次在 [start,end]之间的
 zremrangebyscore key min max:按照socre来删除元素,删除 score在 [min,max]之间的
 
 ---------------------------------------------------------------------------------------------------------------------------------------
