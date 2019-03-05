@@ -115,3 +115,8 @@ http://zqktlwi4fecvo6ri.onion/wiki/index.php/Main_Page
 http://thehiddenwiki.org/
 https://check.torproject.org/?lang=en_US
 https://torcheck.xenobite.eu/
+
+内网地址
+A类: 10.0.0.0~10.255.255.255
+B类: 172.16.0.0~172.31.255.255
+C类: 192.168.0.0~192.168.255.255
