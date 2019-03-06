@@ -29,7 +29,7 @@ cat xyz >> access.log 2>> error.log
 
 df & du & fdisk
 df -h  # 查看磁盘使用状态
-du -ah /home/user  # 显示所有文件大小信息
+du -ah /home/user  # 显示所有文件大小信息(显示文件所占用的block大小,默认linux系统分区的block size是4k,即使文件只有1个字节也会占用4k)
 du -sh /home/user  # 显示指定目录占有空间总和,不循环显示子目录
 fdisk -l  # 查看磁盘分区信息
 
@@ -103,6 +103,7 @@ Thu Dec 15 16:55:22 CST 2016
 2016-12-14
 
 common
+watch -n 1 -d netstat -ant  # 每隔1s高亮显示网络链接数变化情况
 pip show flask  # 查看库安装信息(路径等)
 iostat -x 1  # 实时查看磁盘IO使用情况
 du -s * | sort -n | tail  # 列出当前目录里最大的10个文件
