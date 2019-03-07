@@ -9,7 +9,7 @@ cluster getkeysinslot <slot(num)> <count> # 返回count个slot槽中的键
 redis-cluster只支持db0
 10.1.140.179:8001> select 1
 (error) ERR SELECT is not allowed in cluster mode
-每个节点使用keys *查看时会发现键值个数不一样(主从数据个数是一样)
+"keys *"只会返回该节点的数据(主从数据一样),但StrictRedisCluster会返回集群中所有满足条件的数据
 客户端连接集群redis-cli需要带上-c,redis-cli -c -p port
 
 创建集群: 
