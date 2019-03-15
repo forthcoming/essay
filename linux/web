@@ -114,32 +114,17 @@ http {
 ---------------------------------------------------------------------------------------------------------------------------------
 
 [program:showstar_webapp]
-command     	= /data1/coolshot/bin/gunicorn show:app -c etc/gunicorn/gunicorn.py
-directory   	= /coolshot/sugar/
-numprocs    	= 1
+command         = /data1/coolshot/bin/gunicorn show:app -c etc/gunicorn/gunicorn.py
+directory       = /coolshot/sugar/
+numprocs        = 1
 process_name    = %(program_name)s-%(process_num)02d
-autostart   	= true
-autorestart 	= true
+autostart       = true
+autorestart     = true
 startretries    = 10
-stopsignal  	= TERM
-stopwaitsecs    = 10
-redirect_stderr = true
+stdout_logfile_backups=10
+stdout_logfile_maxbytes=4096MB
 stdout_logfile  = /logs/%(program_name)s.log
-stderr_logfile  = /logs/%(program_name)s.log
-
-[program:celery_jpush]
-command     	= /data1/coolshot/bin/celery worker -A show.celery.async_jpush.celery --loglevel=info --concurrency=4 -n=%(program_name)s-%(process_num)02d
-directory   	= /coolshot/sugar/
-numprocs    	= 1
-process_name    = %(program_name)s-%(process_num)%
-autostart   	= true
-autorestart 	= true
-startretries    = 10
-stopsignal  	= TERM
-stopwaitsecs    = 10
 redirect_stderr = true
-stdout_logfile  = /logs/%(program_name)s.log
-stderr_logfile  = /logs/%(program_name)s.log
 
 -----------------------------------------------------------------------------------------------------------------------------------------
 
@@ -154,6 +139,7 @@ supervisorctl stop all # 停止全部进程,start、restart、stop都不会载�
 
 服务端称为supervisord,主要负责在启动自身时启动管理的子进程(所有supervisord启动的进程都是其自身的子进程)
 客户端称为supervisorctl,它提供命令行来使用supervisord服务端提供的功能,当客户端和服务器位于同一台机器上时,客户端与服务器共用同一个配置文件supervisord.conf
+redirect_stderr=true意思是stderr重定向到stdout相应的log文件中,这时不用再配置stderr_logfile_backups,stderr_logfile_maxbytes,stderr_logfile
 
 nginx -t   #检测配置文件是否有效
 nginx -s reload 更改配置重启nginx
