@@ -138,29 +138,35 @@ so you must instead use __call__() to perform the decoration --it is nonetheless
 def decorator_a(func):
     print('Get in decorator_a')
     def inner_a(*args, **kwargs):
-        print('Get in inner_a')
-        return func(*args, **kwargs)
+        print('start in inner_a')
+        result = func(*args, **kwargs)
+        print('end in inner_a')
+        return result
     return inner_a
 
 def decorator_b(func):
     print('Get in decorator_b')
     def inner_b(*args, **kwargs):
-        print('Get in inner_b')
-        return func(*args, **kwargs)
+        print('start in inner_b')
+        result = func(*args, **kwargs)
+        print('end in inner_b')
+        return result
     return inner_b
 
 @decorator_b
 @decorator_a
 def f(x):
-    print('Get in f')
+    print('start in f')
     return x * 2
-
+     
 f(1)
 '''
 Get in decorator_a
 Get in decorator_b
-Get in inner_b
-Get in inner_a
-Get in f
+start in inner_b
+start in inner_a
+start in f
+end in inner_a
+end in inner_b
 '''
 
