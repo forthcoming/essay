@@ -1,3 +1,11 @@
+flask
+客户端以requests.get/post(json={...})形式提交(浏览器默认行为)时,服务端只能接受request.json(dict类型)和request.data(bytes类型)
+客户端以requests.get(params={...})形式提交时,服务端只能接受request.args(ImmutableMultiDict类型)
+客户端以requests.post(data={...})形式提交时,服务端只能接受request.form(ImmutableMultiDict类型)
+request.view_args(dict类型)用于接受地址栏形如<int:account_id>的变量,跟客户端如何提交无关
+
+----------------------------------------------------------------------------------------------------------------------
+
 vim conf.py
 bind = "127.0.0.1:7000"  # 只能通过127.0.0.1:7000访问
 workers = 3 # 进程数
