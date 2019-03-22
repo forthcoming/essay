@@ -156,6 +156,12 @@ def run():
     res1 = fun1()
     res2 = fun2()
 
+def run():
+    time.sleep(.5)
+    with lock:  # 此处只能使用递归锁
+        res1 = fun1()
+        res2 = fun2()
+        
 income,salary = 0,0
 # lock = Lock()  # error
 lock = RLock()
