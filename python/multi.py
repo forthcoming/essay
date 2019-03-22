@@ -56,7 +56,7 @@ def loop(n):
         deposit += n # 存
         deposit -= n # 取
 
-def loop_lock(lock,n):
+def loop_lock(n):
     global deposit
     for i in range(100000):
         with mutex:  # 加锁会使速度变慢
@@ -64,9 +64,9 @@ def loop_lock(lock,n):
             deposit -= n # 取
 
 for i in range(10):
-    deposit = 0 # 最终可能是0，5，8，-5，-8
-    # threadings=[Process(target=loop, args=(5,)),Process(target=loop, args=(8,))]
-    threadings=[Process(target=loop_lock, args=(lock,5)),Process(target=loop_lock, args=(lock,8))]
+    deposit = 0 
+    # threadings=[Process(target=loop, args=(5,)),Process(target=loop, args=(8,))]  # 最终可能是0,5,8,-5,-8
+    threadings=[Process(target=loop_lock, args=(5,)),Process(target=loop_lock, args=(8,))]
     for thread in threadings:
         thread.start()
     for thread in threadings:
