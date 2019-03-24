@@ -10,6 +10,12 @@ public class RedissonFairLock extends RedissonLock implements RLock {
         return pubSub.getEntry(getEntryName() + ":" + threadId);
     }
 
+    '''
+    带有waitTime的tryLock失败的清理,如果当前线程为队列中第一的线程,就将每个timeoutSetName中的过期时间戳减去threadWaitTime
+    KEYS[1]: threadsQueueName
+    KEYS[2]: timeoutSetName
+    ARGV[1]: 锁名
+    '''
     @Override
     protected RFuture<Void> acquireFailedAsync(long threadId) {
         return commandExecutor.evalWriteAsync(getName(), LongCodec.INSTANCE, RedisCommands.EVAL_VOID,
