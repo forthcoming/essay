@@ -1,43 +1,3 @@
-/**
- * Copyright (c) 2013-2019 Nikita Koksharov
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *    http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-package org.redisson;
-
-import java.util.Arrays;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.Condition;
-
-import org.redisson.api.RFuture;
-import org.redisson.api.RLock;
-import org.redisson.client.codec.LongCodec;
-import org.redisson.client.protocol.RedisCommands;
-import org.redisson.client.protocol.RedisStrictCommand;
-import org.redisson.command.CommandAsyncExecutor;
-import org.redisson.pubsub.LockPubSub;
-
-/**
- * Distributed implementation of {@link java.util.concurrent.locks.Lock}
- * Implements reentrant lock.<br>
- * Lock will be removed automatically if client disconnects.
- * <p>
- * Implements a <b>fair</b> locking so it guarantees an acquire order by threads.
- *
- * @author Nikita Koksharov
- *
- */
 public class RedissonFairLock extends RedissonLock implements RLock {
 
     private final long threadWaitTime = 5000;
@@ -45,28 +5,9 @@ public class RedissonFairLock extends RedissonLock implements RLock {
     private final String threadsQueueName;
     private final String timeoutSetName;
 
-    public RedissonFairLock(CommandAsyncExecutor commandExecutor, String name) {
-        super(commandExecutor, name);
-        this.commandExecutor = commandExecutor;
-        threadsQueueName = prefixName("redisson_lock_queue", name);
-        timeoutSetName = prefixName("redisson_lock_timeout", name);
-    }
-    
     @Override
     protected RedissonLockEntry getEntry(long threadId) {
         return pubSub.getEntry(getEntryName() + ":" + threadId);
-    }
-
-    @Override
-    protected RFuture<RedissonLockEntry> subscribe(long threadId) {
-        return pubSub.subscribe(getEntryName() + ":" + threadId, 
-                getChannelName() + ":" + getLockName(threadId));
-    }
-
-    @Override
-    protected void unsubscribe(RFuture<RedissonLockEntry> future, long threadId) {
-        pubSub.unsubscribe(future.getNow(), getEntryName() + ":" + threadId, 
-                getChannelName() + ":" + getLockName(threadId));
     }
 
     @Override
@@ -219,22 +160,6 @@ public class RedissonFairLock extends RedissonLock implements RLock {
                 "return 1; ",
                 Arrays.<Object>asList(getName(), threadsQueueName, timeoutSetName, getChannelName()), 
                 LockPubSub.UNLOCK_MESSAGE, internalLockLeaseTime, getLockName(threadId), System.currentTimeMillis());
-    }
-    
-    @Override
-    public Condition newCondition() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public RFuture<Boolean> deleteAsync() {
-        return commandExecutor.writeAsync(getName(), RedisCommands.DEL_OBJECTS, getName(), threadsQueueName, timeoutSetName);
-    }
-    
-    @Override
-    public RFuture<Long> sizeInMemoryAsync() {
-        List<Object> keys = Arrays.<Object>asList(getName(), threadsQueueName, timeoutSetName);
-        return super.sizeInMemoryAsync(keys);
     }
     
     @Override
