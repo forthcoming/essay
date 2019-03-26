@@ -1,3 +1,29 @@
+class Sample:
+    def __enter__(self):
+        print("In __enter__")
+        return self  # 返回的值赋值给with后面的as变量
+
+    def __exit__(self, type, value, trace):
+        '''
+        没有异常的情况下整个代码块运行完后触发__exit__,他的三个参数均为None
+        当有异常产生时,从异常出现的位置直接触发__exit__
+        __exit__运行完毕就代表整个with语句执行完毕
+        返回值为True代表吞掉了异常,并且结束代码块运行,但是代码块之外的代码会继续运行,否则代表抛出异常,结束所有代码的运行,包括代码块之外的代码
+        '''
+        print("In __exit__,type: {}, value: {}, trace: {}".format(type, value, trace))
+        return True 
+
+    def do_something(self):
+        1/0
+
+with Sample() as sample:  # 相当于s=Sample().__enter__(),但不等价
+    print(sample.__class__)  # <class '__main__.Sample'>
+    sample.do_something()
+    print('after do something')
+print('out of code block')
+
+#########################################################################################################################################
+
 __slots__
 实例的__dict__只保存实例变量,不保存类属性(变量和函数)
 __slots__限制实例的属性,阻止实例拥有__dict__属性,能达到更快的属性访问和更少的内存消耗
