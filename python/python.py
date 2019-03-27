@@ -1,3 +1,41 @@
+类变量 & 实例变量
+'''
+对象访问变量x,先在对象自身的__dict__中查找是否有x,如果有则返回,否则进入对象所属的类__dict__中进行查找,找不到则抛出异常
+类变量(class variable)是类的属性和方法,它们会被类的所有实例共享.而实例变量(instance variable)是实例对象所特有的数据,不能通过类名访问
+'''
+class Test:
+    class_var = [1]
+    def __init__(self):
+        self.i_var = 2
+        self.__secret = 3
+v1=Test()
+v2=Test()
+print(v1.__dict__)   # {'i_var': 2, '_Test__secret': 3},只包含实例属性,私有属性__secret被更改为_Test__secret 
+print(Test.__dict__) # {'class_var': [1], '__init__': <function Test.__init__ at 0x0000000003731D90>},除了实例属性以外的所有成员
+v1.class_var=[4]     # 当且仅当class_var是可变类属性并修改他时才会修改类属性,否则改变的是当前的实例属性
+print(v1.__dict__)   # {'i_var': 2, '_Test__secret': 3, 'class_var': [4]},新增class_var实例属性
+print(v2.__dict__)   # {'i_var': 2, '_Test__secret': 3},不包含v1新增的实例属性class_var
+print(Test.__dict__) # {'class_var': [1], '__init__': <function Test.__init__ at 0x0000000003731D90>},此时的class_var = [1]不变
+
+class A: a = []
+obj1 = A()
+obj2 = A()   
+obj1.a += [2]                                   # 等价于obj1.a.append(2);obj1.a=A.a   
+print(id(obj1.a), id(obj2.a), id(A.a))          #58584712 58584712 58584712
+print(obj1.a, obj2.a, A.a)                      #[2] [2] [2]
+print(obj1.__dict__, obj2.__dict__, A.__dict__) #{'a': [2]} {} {'fun': <function A.fun>, '__dict__': <attribute '__dict__' of 'A' objects>, 'a': [2]}
+
+class A: a = 10   
+obj1 = A()
+obj2 = A()   
+obj1.a += 2
+print(id(obj1.a), id(obj2.a), id(A.a))         #8790824644704 8790824644640 8790824644640
+print(obj1.a, obj2.a, A.a)                     #12 10 10
+print(obj1.__dict__, obj2.__dict__,A.__dict__) #{'a': 12} {} {'a': 10, '__dict__': <attribute '__dict__' of 'A'>, 'fun': <function A.fun>}
+
+
+#########################################################################################################################################
+
 class Sample:
     def __enter__(self):
         print("In __enter__")
