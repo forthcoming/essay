@@ -388,7 +388,7 @@ except:  # 匹配任何类型异常,必须放在最后(default 'except:' must be
     print('Handling other exceptions...')  
 else: # 必须放在所有except后面,当没有异常发生时执行
     print('no exception happen')
-finally: # 定义一些清理工作,异常发生/捕捉与否,都会执行
+finally: # 定义一些清理工作,异常发生/捕捉与否,是否有return都会执行
     print('Some clean-up actions!')
 
 #########################################################################################################################################
