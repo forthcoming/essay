@@ -39,19 +39,19 @@ Redis集群中内置了16384个哈希槽,当需要在Redis集群中放置一个k
 ---------------------------------------------------------------------------------------------------------------------------------------
 
 通用操作
-del key1 key2 ... Keyn:删除1个或多个键,不存在的key忽略掉,返回真正删除的key的数量
-unlink key1 key2 ... Keyn:删除1个或多个键,不存在的key忽略掉,return the number of keys that were unlinked,it is not blocking, while del is.
-rename oldkey newkey:给key赋一个新的key名, 如果newkey已存在 ,则 newkey的原值被覆盖 (类似的还有renamenx)
-randomkey:返回随机key
-exists keyname:判断key是否存在 ,返回 1/0
-type keyname:返回key的值类型 (eg:string,link,set,order set, hash)
-ttl keyname:返回key剩余的过期时间秒数(不过期的key返回-1,不存在的key返回-2)
-persist keyname:把指定key置为永久有效
-expire keyname 整型值:设置key的生命周期,以秒为单位(类似的还有pexpire,毫秒数,设置生命周期)
-move keyname db:将当前数据库的key移动到给定的数据库db当中,若与给定数据库key重名,或key不存在于当前数据库,则MOVE无任何效果
-scan:遍历所有键,类似的还有sscan,hscan,zscan,他们只遍历特定类型键里面的元素值
-redis-cli -h 10.1.138.63 -n 1 --bigkeys : 分析数据库中的大key
-
+del key1 key2 ... Keyn: 删除1个或多个键,不存在的key忽略掉,返回真正删除的key的数量
+unlink key1 key2 ... Keyn: 删除1个或多个键,不存在的key忽略掉,return the number of keys that were unlinked,it is not blocking, while del is.
+rename oldkey newkey: 给key赋一个新的key名, 如果newkey已存在 ,则 newkey的原值被覆盖 (类似的还有renamenx)
+randomkey: 返回随机key
+exists keyname: 判断key是否存在 ,返回 1/0
+type keyname: 返回key的值类型 (eg:string,link,set,order set, hash)
+ttl keyname: 返回key剩余的过期时间秒数(不过期的key返回-1,不存在的key返回-2)
+persist keyname: 把指定key置为永久有效
+expire keyname 整型值: 设置key的生命周期,以秒为单位(类似的还有pexpire,毫秒数,设置生命周期)
+move keyname db: 将当前数据库的key移动到给定的数据库db当中,若与给定数据库key重名,或key不存在于当前数据库,则MOVE无任何效果
+scan: 遍历所有键,类似的还有sscan,hscan,zscan,他们只遍历特定类型键里面的元素值
+redis-cli -h 10.1.138.63 -n 1 --bigkeys: 分析数据库中的大key
+monitor: streams back every command processed by the Redis server. It can help in understanding what is happening to the database
 ---------------------------------------------------------------------------------------------------------------------------------------
 
 keys pattern:查找所有符合给定模式pattern的key
