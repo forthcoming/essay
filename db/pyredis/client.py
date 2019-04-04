@@ -52,7 +52,8 @@ class Redis:
 
 class Pipeline(Redis):
     """
-    MULTI/EXEC: These are implemented as part of the Pipeline class. The pipeline is wrapped with the MULTI and EXEC statements by default when it is executed, which can be disabled by specifying transaction=False. 
+    MULTI/EXEC: These are implemented as part of the Pipeline class. 
+    The pipeline is wrapped with the MULTI and EXEC statements by default when it is executed, which can be disabled by specifying transaction=False. 
     Apart from making a group of operations atomic, pipelines are useful for reducing the back-and-forth overhead between the client and server.
     In addition, pipelines can also ensure the buffered commands are executed atomically as a group. This happens by default. 
     If you want to disable the atomic nature of a pipeline but still want to buffer commands, you can turn off transactions.
@@ -69,7 +70,8 @@ class Pipeline(Redis):
             while True:
                 try:
                     pipe.watch('OUR-SEQUENCE-KEY')  # put a WATCH on the key that holds our sequence value
-                    # after WATCHing, the pipeline is put into immediate execution mode until we tell it to start buffering commands again. this allows us to get the current value of our sequence
+                    # after WATCHing, the pipeline is put into immediate execution mode until we tell it to start buffering commands again. 
+                    # this allows us to get the current value of our sequence
                     current_value = pipe.get('OUR-SEQUENCE-KEY')
                     next_value = int(current_value) + 1
                     pipe.multi()  # now we can put the pipeline back into buffered mode with MULTI
