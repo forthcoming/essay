@@ -7,9 +7,12 @@ from redis.exceptions import ConnectionError,ExecAbortError,RedisError,ResponseE
 Starting an iteration with a cursor value of 0, and calling SCAN until the returned cursor is 0 again is called a full iteration.
 
 Redis client instances can safely be shared between threads. 
-Internally, connection instances are only retrieved from the connection pool during command execution, and returned to the pool directly after. Command execution never modifies state on the client instance.
-However, there is one caveat: the Redis SELECT command. The SELECT command allows you to switch the database currently in use by the connection. 
-That database remains selected until another is selected or until the connection is closed. This creates an issue in that connections could be returned to the pool that are connected to a different database.
+Internally, connection instances are only retrieved from the connection pool during command execution, and returned to the pool directly after. 
+Command execution never modifies state on the client instance.
+However, there is one caveat: the Redis SELECT command. 
+The SELECT command allows you to switch the database currently in use by the connection. 
+That database remains selected until another is selected or until the connection is closed. 
+This creates an issue in that connections could be returned to the pool that are connected to a different database.
 As a result, redis-py does not implement the SELECT command on client instances. 
 If you use multiple Redis databases within the same application, you should create a separate client instance (and possibly a separate connection pool) for each database.
 It is not safe to pass PubSub or Pipeline objects between threads.
