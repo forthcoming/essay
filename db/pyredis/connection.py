@@ -85,6 +85,7 @@ class BlockingConnectionPool(ConnectionPool):
     """
     def __init__(self, max_connections=50, timeout=20,connection_class=Connection, **connection_kwargs):
         self.timeout = timeout
+        # 调用父类构造函数,由于父类构造函数调用了reset,并且子类进行了重构,so子类的reset随后会被调用
         super(BlockingConnectionPool, self).__init__(connection_class=connection_class,max_connections=max_connections,**connection_kwargs)
 
     def reset(self):
