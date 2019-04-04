@@ -31,7 +31,7 @@ class ConnectionPool: # 连接池只有在进程里有多线程时才会发挥�
         self._created_connections += 1
         return self.connection_class(**self.connection_kwargs)
 
-    def get_connection(self, command_name, *keys, **options):
+    def get_connection(self, *keys, **options):
         "Get a connection from the pool"
         self._checkpid()
         try:
@@ -104,7 +104,7 @@ class BlockingConnectionPool(ConnectionPool):
         self._connections.append(connection)
         return connection
 
-    def get_connection(self, command_name, *keys, **options):
+    def get_connection(self, *keys, **options):
         """
         Get a connection, blocking for self.timeout until a connection is available from the pool.
         If the connection returned is None then creates a new connection.
