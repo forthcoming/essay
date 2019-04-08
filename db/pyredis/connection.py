@@ -19,7 +19,7 @@ class ConnectionPool: # 连接池只有在进程里有多线程时才会发挥�
 
     def _checkpid(self):  # 在多进程中传递redis实例会被重置,应为多进程下类实例变量(_in_use_connections等)并不能共享,多线程不受影响
         if self.pid != os.getpid():
-            with self._check_lock:  # 加锁没看懂
+            with self._check_lock:  # 如果一个进程有多个线程,一个线程关闭后,另外一个线程也可能执行关闭操作,所以此处使用了锁
                 if self.pid == os.getpid():
                     return
                 self.reset()
@@ -28,7 +28,7 @@ class ConnectionPool: # 连接池只有在进程里有多线程时才会发挥�
         "Create a new connection"
         if self._created_connections >= self.max_connections:
             raise ConnectionError("Too many connections")
-        self._created_connections += 1
+        self._created_connections += 1  # 非线程安全,不过这无关紧要,因为你不可能在极短时间内创建许多连接,即使不准,统计误差也不会有2个
         return self.connection_class(**self.connection_kwargs)
 
     def get_connection(self, *keys, **options):
