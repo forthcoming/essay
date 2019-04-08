@@ -13,7 +13,7 @@ class ConnectionPool: # 连接池只有在进程里有多线程时才会发挥�
     def reset(self):
         self.pid = os.getpid()
         self._created_connections = 0
-        self._available_connections = []  # 数据来自_in_use_connections,so不会重复
+        self._available_connections = []  # 数据来自_in_use_connections,so不会重复,append and pop operations are atomic
         self._in_use_connections = set()  # 去重,存在的意义仅仅是方便disconnect和统计用(比如查看当前有哪些连接正在被使用)
         self._check_lock = threading.Lock()
 
