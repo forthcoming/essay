@@ -66,22 +66,23 @@ class Pipeline(Redis):
     Enter the WATCH command. WATCH provides the ability to monitor one or more keys prior to starting a transaction. 
     If any of those keys change prior the execution of that transaction, the entire transaction will be canceled and a WatchError will be raised. 
     To implement our own client-side INCR command, we could do something like this:
-    >>> with r.pipeline() as pipe:
-            while True:
-                try:
-                    pipe.watch('OUR-SEQUENCE-KEY')  # put a WATCH on the key that holds our sequence value
-                    # after WATCHing, the pipeline is put into immediate execution mode until we tell it to start buffering commands again. 
-                    # this allows us to get the current value of our sequence
-                    current_value = pipe.get('OUR-SEQUENCE-KEY')
-                    next_value = int(current_value) + 1
-                    pipe.multi()  # now we can put the pipeline back into buffered mode with MULTI
-                    pipe.set('OUR-SEQUENCE-KEY', next_value)
-                    pipe.execute()  #  and finally, execute the pipeline (the set command)
-                    # if a WatchError wasn't raised during execution, everything we just did happened atomically.
-                    break
-               except WatchError:
-                    # another client must have changed 'OUR-SEQUENCE-KEY' between the time we started WATCHing it and the pipeline's execution. our best bet is to just retry.
-                    continue
+    with r.pipeline() as pipe:
+        while True:
+            try:
+                pipe.watch('OUR-SEQUENCE-KEY')  # put a WATCH on the key that holds our sequence value,跟redis客户端一致,watch必须出现在multi之前
+                # after WATCHing, the pipeline is put into immediate execution mode until we tell it to start buffering commands again. 
+                # this allows us to get the current value of our sequence
+                current_value = pipe.get('OUR-SEQUENCE-KEY')
+                next_value = int(current_value) + 1
+                time.sleep(7)  # 可以模拟在其他客户端更改OUR-SEQUENCE-KEY的值
+                pipe.multi()  # now we can put the pipeline back into buffered mode with MULTI
+                pipe.set('OUR-SEQUENCE-KEY', next_value)
+                pipe.execute()  #  and finally, execute the pipeline (the set command)
+                # if a WatchError wasn't raised during execution, everything we just did happened atomically.
+                break
+           except WatchError:
+                # another client must have changed 'OUR-SEQUENCE-KEY' between the time we started WATCHing it and the pipeline's execution. our best bet is to just retry.
+                continue
     """
 
     UNWATCH_COMMANDS = {'DISCARD', 'EXEC', 'UNWATCH'}
