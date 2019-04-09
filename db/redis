@@ -244,65 +244,6 @@ redis-server /root/redis/redis.conf    #指定启动时调用的配置文件
 
 ---------------------------------------------------------------------------------------------------------------------------------------
 
-事务
-import redis,time
-from redis.exceptions import WatchError
-
-r = redis.StrictRedis(host='localhost', port=6379, db=0)
-r.flushdb()
-'''
-MULTI/EXEC are implemented as part of the Pipeline class.
-The pipeline is wrapped with the MULTI and EXEC statements by default when it is executed, which can be disabled by specifying transaction=False.
-Apart from making a group of operations atomic, pipelines are useful for reducing the back-and-forth overhead between the client and server.
-'''
-pipe = r.pipeline(transaction=True) # The following SET commands are buffered
-pipe.set('bing', 'baz')
-pipe.set('foo', 'bar').get('bing')  # 所有缓冲到pipeline的命令返回pipeline对象本身,因此可以链式调用
-pipe.execute()  # returning a list of responses, one for each command.  [True, True, b'baz']
-
-with r.pipeline() as pipe:
-    while True:
-        try:
-            pipe.watch('OUR-SEQUENCE-KEY')  # 跟redis客户端一致,watch必须出现在multi之前
-            # after WATCHing, the pipeline is put into immediate execution mode until we tell it to start buffering commands again.
-            # this allows us to get the current value of our sequence
-            current_value = pipe.get('OUR-SEQUENCE-KEY') or 0
-            next_value = int(current_value) + 1
-            time.sleep(7)  # 可以模拟在其他客户端更改OUR-SEQUENCE-KEY的值
-            pipe.multi() # now we can put the pipeline back into buffered mode with MULTI
-            pipe.set('OUR-SEQUENCE-KEY', next_value)
-            pipe.execute()
-            # if a WatchError wasn't raised during execution, everything we just did happened atomically.
-            break
-        except WatchError as e:
-            print(e)
-            # another client must have changed 'OUR-SEQUENCE-KEY' between the time we started WATCHing it and the pipeline's execution.
-            # our best bet is to just retry.       
-# 因为在整个WATCH过程中,Pipeline必须绑定到一个连接,必须调用reset()方法确保连接返回连接池
-# 如果Pipeline用作Context Manager(如上面的例子所示),reset()会自动调用,当然也可以用手动的方式明确调用reset()
-
-'''
-multi
-It can never happen that a request issued by another client is served in the middle of the execution of a Redis transaction. 
-This guarantees that the commands are executed as a single isolated operation.
-Redis是单线程的服务,天生所有操作均具有原子性
-事务状态是以一个事务为单位,执行事务队列中的所有命令:除非当前事务执行完毕,否则服务器不会中断事务,也不会执行其他客户端的其他命令
-事物存在语法错误,则整个事务都不会执行
-事务存在逻辑错误,比如set a 1,lpop a则会跳过该命令,执行剩下的命令,不支持回滚
-exec
-开始顺序执行各条命令,之后终止watch命令
-discard
-中止事务运行
-watch
-要求所有受监控的键在执行exec前都没有被修改时才会执行事务(相同客户端在事务内部修改这些键不影响事务的运行)
-只能在客户端进入事务状态之前执行才有效
-
-当前客户端的事务执行失败,程序需要做的就是不断重试这个操作,直到没有发生碰撞为止
-这种形式的锁被称作乐观锁,它是一种非常强大的锁机制.因为大多数情况下不同的客户端会访问不同的键,碰撞的情况一般都很少,所以通常并不需要进行重试
-'''
-
----------------------------------------------------------------------------------------------------------------------------------------
-
 消息订阅
 p = r.pubsub()
 p.subscribe('my-first-channel')
@@ -334,6 +275,37 @@ while True:
     if message:
         # do something with the message
     time.sleep(0.001)  # be nice to the system :)
+'''
+
+---------------------------------------------------------------------------------------------------------------------------------------
+
+事务
+import redis
+r = redis.Redis(host='localhost', port=6379, db=0)
+r.flushdb()
+pipe = r.pipeline(transaction=True) # The following SET commands are buffered
+pipe.set('bing', 'baz')
+pipe.set('foo', 'bar').get('bing')  # 所有缓冲到pipeline的命令返回pipeline对象本身,因此可以链式调用
+pipe.execute()  # returning a list of responses, one for each command.  [True, True, b'baz']
+
+'''
+multi
+It can never happen that a request issued by another client is served in the middle of the execution of a Redis transaction. 
+This guarantees that the commands are executed as a single isolated operation.
+Redis是单线程的服务,天生所有操作均具有原子性
+事务状态是以一个事务为单位,执行事务队列中的所有命令:除非当前事务执行完毕,否则服务器不会中断事务,也不会执行其他客户端的其他命令
+事物存在语法错误,则整个事务都不会执行
+事务存在逻辑错误,比如set a 1,lpop a则会跳过该命令,执行剩下的命令,不支持回滚
+exec
+开始顺序执行各条命令,之后终止watch命令
+discard
+中止事务运行
+watch
+要求所有受监控的键在执行exec前都没有被修改时才会执行事务(相同客户端在事务内部修改这些键不影响事务的运行)
+只能在客户端进入事务状态之前执行才有效
+
+当前客户端的事务执行失败,程序需要做的就是不断重试这个操作,直到没有发生碰撞为止
+这种形式的锁被称作乐观锁,它是一种非常强大的锁机制.因为大多数情况下不同的客户端会访问不同的键,碰撞的情况一般都很少,所以通常并不需要进行重试
 '''
 
 ---------------------------------------------------------------------------------------------------------------------------------------
