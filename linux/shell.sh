@@ -125,6 +125,8 @@ wc a.txt  #行数  单词数  字节数  文件名, ls | wc
 last -n   # 显示最近n次用户登录信息
 如果shell脚本出现找不到路径或其他莫名错误,先用vim打开脚本,:set ff查看文件格式,如果是dos,应该为:set ff=unix
 curl ifconfig.me # 查看服务器公网IP,还可以通过curl cip.cc,ifconfig等方式获取
+chown ccktv -R data2/logs  # R代表递归下面所有目录
+chgrp ccktv -R /data2/logs
 
 Ubuntu
 launcher地址: /usr/share/applications/eclipse.desktop
