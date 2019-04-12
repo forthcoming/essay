@@ -1,3 +1,5 @@
+mongo监控
+mongostat -h 10.1.140.179:27017
 导出数据
 mongoexport -h rds.aliyuncs.com:3717 -u name -p M7webU -d Atlas -c category -o category.json --authenticationDatabase admin
 导入数据
