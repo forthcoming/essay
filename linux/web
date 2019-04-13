@@ -119,38 +119,7 @@ http {
     }
 }
 
----------------------------------------------------------------------------------------------------------------------------------
-
-[program:showstar_webapp]
-command         = /data1/coolshot/bin/gunicorn show:app -c etc/gunicorn/gunicorn.py
-directory       = /coolshot/sugar/
-numprocs        = 1
-process_name    = %(program_name)s-%(process_num)02d
-autostart       = true
-autorestart     = true
-startretries    = 10
-stdout_logfile_backups=10
-stdout_logfile_maxbytes=4096MB
-stdout_logfile  = /logs/%(program_name)s.log
-redirect_stderr = true
-
-[group:appgroup]
-programs=showstar_webapp
-
 -----------------------------------------------------------------------------------------------------------------------------------------
-
-supervisord -c /etc/supervisor/supervisord.conf  # 启动supervisor
-supervisorctl shutdown  # 停止supervisord服务
-supervisorctl tail -f 进程名 # 查看该进程的日志,进程名是[program:xx]中的xx
-supervisorctl reload # 修改完配置文件后重新启动supervisor
-supervisorctl status # 查看supervisor监管的进程状态
-supervisorctl start 进程名 # 启动进程
-supervisorctl stop 进程名 # 停止进程
-supervisorctl stop all # 停止全部进程,start、restart、stop都不会载入最新的配置文件
-
-服务端称为supervisord,主要负责在启动自身时启动管理的子进程(所有supervisord启动的进程都是其自身的子进程)
-客户端称为supervisorctl,它提供命令行来使用supervisord服务端提供的功能,当客户端和服务器位于同一台机器上时,客户端与服务器共用同一个配置文件supervisord.conf
-redirect_stderr=true意思是stderr重定向到stdout相应的log文件中,这时不用再配置stderr_logfile_backups,stderr_logfile_maxbytes,stderr_logfile
 
 nginx -t   #检测配置文件是否有效
 nginx -s reload 更改配置重启nginx
