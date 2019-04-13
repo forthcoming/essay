@@ -134,6 +134,9 @@ stdout_logfile_maxbytes=4096MB
 stdout_logfile  = /logs/%(program_name)s.log
 redirect_stderr = true
 
+[group:appgroup]
+programs=showstar_webapp
+
 -----------------------------------------------------------------------------------------------------------------------------------------
 
 supervisord -c /etc/supervisor/supervisord.conf  # 启动supervisor
