@@ -1,3 +1,17 @@
+crontab(minute hour day month week)
+43 21 * * *               # 每天21:43
+0 17 * * 1                # 每周一17:00
+0,10 17 * * 0,2,3         # 每周日,周二,周三的17:00和17:10
+0-10 17 1 * *             # 毎月1日从17:00到7:10毎隔1分钟
+42 4 1 * * 　 　          # 毎月1日的4:42分
+0 21 * * 1-6　　          # 周一到周六21:00
+*/10 * * * * 　　　　　　 # 每隔10分
+* 1 * * *　　　　　　　　 # 从1:0到1:59每隔1分钟
+0 1 * * *　　　　　　　　 # 1:00 执行
+0 * * * *　　　　　　　　 # 毎时0分每隔1小时
+2 8-20/3 * * *　　　　　　# 8:02,11:02,14:02,17:02,20:02
+30 5 1,15 * *　　　　　　 # 1日和5日的5:30
+
 alias #列出所有别名
 alias avatar='ls -al /home' #给命令起别名(命令带参数时要加引号)
 unalias [-a][别名] #删除别名,-a代表全部
@@ -125,8 +139,9 @@ wc a.txt  #行数  单词数  字节数  文件名, ls | wc
 last -n   # 显示最近n次用户登录信息
 如果shell脚本出现找不到路径或其他莫名错误,先用vim打开脚本,:set ff查看文件格式,如果是dos,应该为:set ff=unix
 curl ifconfig.me # 查看服务器公网IP,还可以通过curl cip.cc,ifconfig等方式获取
-chown ccktv -R data2/logs  # R代表递归下面所有目录
-chgrp ccktv -R /data2/logs
+chmod -R 777   /data2   # R代表递归下面所有目录
+chown -R ccktv /data2
+chgrp -R ccktv /data2
 
 Ubuntu
 launcher地址: /usr/share/applications/eclipse.desktop
