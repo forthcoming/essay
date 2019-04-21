@@ -144,6 +144,7 @@ chown -R root:ccktv /data2 # 改变文件所属的[用户]:[组信息]
 cat webapi.log | grep 'send_msg' | awk -F "\t" '{ if($8>5)  print $0  }'  # $0代表整行,$8代表分割后的第8列,$(NF-2)代表分割后的倒数第2列
 ln 源 目标    # 建立硬链接文件
 ln -s 源 目标 # 建立软链接文件(源文件必须写成绝对路径)
+ls -l `which touch` # 命令替换,注意与管道的区别
 
 Ubuntu
 launcher地址: /usr/share/applications/eclipse.desktop
