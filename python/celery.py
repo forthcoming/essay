@@ -1,4 +1,4 @@
-###      文件夹名称是Ticktock      ###
+###      文件夹名称是Tiktok      ###
 
 ### config.py
 from celery.schedules import crontab
@@ -29,7 +29,7 @@ enable_utc = True  # 默认为True,当前时间-8=utc时间
 
 beat_schedule = {
     'test_celery_beat': {  # 测试celery 定时任务
-        'task': 'Ticktock.celery.todo',
+        'task': 'Tiktok.celery.todo',
         #'schedule': crontab(hour=7, minute=30, day_of_week=1),  Executes every Monday morning at 7:30 a.m.
         'schedule': 10,
         'args': (3,5),
@@ -43,7 +43,7 @@ from celery import Celery
 import time
 
 app = Celery('task')
-app.config_from_object('Ticktock.config')
+app.config_from_object('Tiktok.config')
 
 @app.task(name='tobedone',ignore_result=False)
 def todo(x,y):
@@ -59,12 +59,12 @@ def test(sec):
 #-----------------------------------------------------------------------------------------------------------------------------#
 
 ### 开启服务
-celery -A Ticktock worker -l info -B --logfile=/root/Desktop/Ticktock/%n.log     # -B开启定时任务，-l显示日志信息
+celery -A Tiktok worker -l info -B --logfile=/root/Desktop/Tiktok/%n.log     # -B开启定时任务，-l显示日志信息
 
 #-----------------------------------------------------------------------------------------------------------------------------#
 
 ### 调用
-from Ticktock.celery import * 
+from Tiktok.celery import * 
 result=test.delay(20)
 # celery的broker,backend,task,调用task的项目,都可以在不同机器上
 # result=app.send_task('tobedone',[3,4],{})  # 任务名错了不报错,字典传param=param型参数,适于远程调用
