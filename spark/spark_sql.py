@@ -2,22 +2,9 @@ from pyspark.sql import SparkSession
 from pyspark.sql import Row
 from pyspark.sql.types import *
 
-# DataFrame的每一行类型是Row
-
-def json_string(spark):
-    # a DataFrame can be created for a JSON dataset represented by an RDD[String] storing one JSON object per string
-    jsonStrings = ['{"name":"Yin","address":{"city":"Columbus","state":"Ohio"}}']
-    otherPeopleRDD = spark.sparkContext.parallelize(jsonStrings)
-    otherPeople = spark.read.json(otherPeopleRDD)
-    otherPeople.show()
-    # +---------------+----+
-    # |        address|name|
-    # +---------------+----+
-    # |[Columbus,Ohio]| Yin|
-    # +---------------+----+
 
 def basic_df_example(spark):
-    df = spark.read.json("resources/people.json")
+    df = spark.read.json("resources/people.json")  # DataFrame,每行数据类型是Row,spark.read.text读txt文件也返回DataFrame对象
     # df.show()  # Displays the content of the DataFrame to stdout
     # +----+-------+
     # | age|   name|
@@ -95,18 +82,30 @@ def basic_df_example(spark):
     # |  19| Justin|
     # +----+-------+
 
-def schema_inference_example(spark):
+def rdd2df(spark):
+    # a DataFrame can be created for a JSON dataset represented by an RDD[String] storing one JSON object per string
+    json_strings = ['{"name":"Yin","address":{"city":"Columbus","state":"Ohio"}}']
+    rdd = spark.sparkContext.parallelize(json_strings)
+    df = spark.read.json(rdd)
+    df.show()
+    # +---------------+----+
+    # |        address|name|
+    # +---------------+----+
+    # |[Columbus,Ohio]| Yin|
+    # +---------------+----+
+
+def rdd2df2rdd(spark):
     sc = spark.sparkContext
-    lines = sc.textFile("resources/people.txt")     # Load a text file and convert each line to a Row.
+    lines = sc.textFile("resources/people.txt")     # rdd类型
     parts = lines.map(lambda l: l.split(","))
     people = parts.map(lambda p: Row(name=p[0], age=int(p[1])))
     schemaPeople = spark.createDataFrame(people)      # Infer the schema, and register the DataFrame as a table.
     schemaPeople.createOrReplaceTempView("people")
-    teenagers = spark.sql("SELECT name FROM people WHERE age >= 13 AND age <= 19")    # The results of SQL queries are Dataframe objects.
-    teenNames = teenagers.rdd.map(lambda p: "Name: " + p.name).collect()     # rdd returns the content as an :class:`pyspark.RDD` of :class:`Row`.
-    for name in teenNames:
-        print(name)
-    # Name: Justin
+    df_teenagers = spark.sql("SELECT name FROM people WHERE age >= 13 AND age <= 19")    # The results of SQL queries are Dataframe objects.
+    rdd = df_teenagers.rdd
+    teenNames = rdd.map(lambda p: "Name: " + p.name)
+    print(teenNames.collect())  # List类型 
+    # ['Name: Justin'] 
 
 
 def programmatic_schema_example(spark):
@@ -115,7 +114,6 @@ def programmatic_schema_example(spark):
     parts = lines.map(lambda l: l.split(","))
     # Each line is converted to a tuple.
     people = parts.map(lambda p: (p[0], p[1].strip()))
-
     # The schema is encoded in a string.
     schemaString = "name age"
 
@@ -124,13 +122,10 @@ def programmatic_schema_example(spark):
 
     # Apply the schema to the RDD.
     schemaPeople = spark.createDataFrame(people, schema)
-
     # Creates a temporary view using the DataFrame
     schemaPeople.createOrReplaceTempView("people")
-
     # SQL can be run over DataFrames that have been registered as a table.
     results = spark.sql("SELECT name FROM people")
-
     results.show()
     # +-------+
     # |   name|
@@ -142,7 +137,8 @@ def programmatic_schema_example(spark):
 
 if __name__ == "__main__":
     spark = SparkSession.builder.appName("Python Spark SQL basic example").config("spark.some.config.option", "some-value").getOrCreate()
-    basic_df_example(spark)
-    # schema_inference_example(spark)
+    # basic_df_example(spark)
+    # rdd2df(spark)
+    rdd2df2rdd(spark)
     # programmatic_schema_example(spark)
     spark.stop()
