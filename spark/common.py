@@ -20,10 +20,17 @@ def word_count(spark):
     for word,count in counts.collect():
         print(word,count)
 
+def sort(spark):
+    rdd = spark.sparkContext.textFile("resources/sort.txt")  # sort.txt格式必须满足要求
+    sortedCount = rdd.flatMap(lambda x: x.split(' ')).map(lambda x: (int(x), 1)).sortByKey()
+    for num, unitcount in sortedCount.collect():
+        print(num,unitcount)
+
 
 if __name__ == "__main__":
     spark = SparkSession.builder.appName("common").getOrCreate() # 交互式命令行中的spark
-    count_pi(spark)
-    word_count(spark)
+    # count_pi(spark)
+    # word_count(spark)
+    sort(spark)
     spark.stop()
 

@@ -3,9 +3,9 @@ from pyspark.sql import Row
 from pyspark.sql.types import *
 
 
-def basic_df_example(spark):
+def basic_df(spark):
     df = spark.read.json("resources/people.json")  # DataFrame,每行数据类型是Row,spark.read.text读txt文件也返回DataFrame对象
-    # df.show()  # Displays the content of the DataFrame to stdout
+    df.show()  # Displays the content of the DataFrame to stdout
     # +----+-------+
     # | age|   name|
     # +----+-------+
@@ -13,6 +13,10 @@ def basic_df_example(spark):
     # |  30|   Andy|
     # |  19| Justin|
     # +----+-------+
+    print(df.count())  # Number of rows in this DataFrame
+    print(df.first())  # First row in this DataFrame
+    print(df.collect()) 
+    count = df.filter(df['name'].contains("n")).count()
 
     # df.printSchema()  # Print the schema in a tree format
     # root
@@ -44,7 +48,7 @@ def basic_df_example(spark):
     # | 30|Andy|
     # +---+----+
 
-    df.groupBy(df["age"]).count().show()      # Count people by age
+    # df.groupBy(df["age"]).count().show()      # Count people by age
     # +----+-----+
     # | age|count|
     # +----+-----+
@@ -107,8 +111,37 @@ def rdd2df2rdd(spark):
     print(teenNames.collect())  # List类型 
     # ['Name: Justin'] 
 
+def parquet_schema_merging(spark):
+    sc = spark.sparkContext
+    squaresDF = spark.createDataFrame(sc.parallelize(range(1, 6)).map(lambda i: Row(single=i, double=i ** 2)))
+    squaresDF.write.parquet("data/test_table/key=1")
+    cubesDF = spark.createDataFrame(sc.parallelize(range(6, 11)).map(lambda i: Row(single=i, triple=i ** 3))) # adding a new column and dropping an existing column
+    cubesDF.write.parquet("data/test_table/key=2")
+    mergedDF.printSchema()
+    # The final schema consists of all 3 columns in the Parquet files together
+    # with the partitioning column appeared in the partition directory paths.
+    # root
+    #  |-- double: long (nullable = true)
+    #  |-- single: long (nullable = true)
+    #  |-- triple: long (nullable = true)
+    #  |-- key: integer (nullable = true)
+    mergedDF.show()
+    # +------+------+------+---+
+    # |double|single|triple|key|
+    # +------+------+------+---+
+    # |  null|     9|   729|  2|
+    # |  null|    10|  1000|  2|
+    # |    16|     4|  null|  1|
+    # |    25|     5|  null|  1|
+    # |  null|     7|   343|  2|
+    # |  null|     6|   216|  2|
+    # |  null|     8|   512|  2|
+    # |     9|     3|  null|  1|
+    # |     1|     1|  null|  1|
+    # |     4|     2|  null|  1|
+    # +------+------+------+---+
 
-def programmatic_schema_example(spark):
+def programmatic_schema(spark):
     sc = spark.sparkContext
     lines = sc.textFile("resources/people.txt")
     parts = lines.map(lambda l: l.split(","))
@@ -137,8 +170,8 @@ def programmatic_schema_example(spark):
 
 if __name__ == "__main__":
     spark = SparkSession.builder.appName("Python Spark SQL basic example").config("spark.some.config.option", "some-value").getOrCreate()
-    # basic_df_example(spark)
+    basic_df(spark)
     # rdd2df(spark)
-    rdd2df2rdd(spark)
-    # programmatic_schema_example(spark)
+    # rdd2df2rdd(spark)
+    # programmatic_schema(spark)
     spark.stop()
