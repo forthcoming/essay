@@ -117,6 +117,7 @@ def parquet_schema_merging(spark):
     squaresDF.write.parquet("data/test_table/key=1")
     cubesDF = spark.createDataFrame(sc.parallelize(range(6, 11)).map(lambda i: Row(single=i, triple=i ** 3))) # adding a new column and dropping an existing column
     cubesDF.write.parquet("data/test_table/key=2")
+    mergedDF = spark.read.option("mergeSchema", "true").parquet("data/test_table")     # Read the partitioned table
     mergedDF.printSchema()
     # The final schema consists of all 3 columns in the Parquet files together
     # with the partitioning column appeared in the partition directory paths.
@@ -170,8 +171,9 @@ def programmatic_schema(spark):
 
 if __name__ == "__main__":
     spark = SparkSession.builder.appName("Python Spark SQL basic example").config("spark.some.config.option", "some-value").getOrCreate()
-    basic_df(spark)
+    # basic_df(spark)
     # rdd2df(spark)
     # rdd2df2rdd(spark)
+    parquet_schema_merging(spark)
     # programmatic_schema(spark)
     spark.stop()
