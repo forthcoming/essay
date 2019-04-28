@@ -9,9 +9,10 @@ def count_pi(spark):
         return x*x + y*y < 1
     num_samples=200000
     sc = spark.sparkContext  # 交互式命令行中的sc
-    rdd = sc.parallelize(range(0, num_samples), 2)
-    count = rdd.map(f).reduce(add)
-    # count = rdd.filter(f).count()
+    rdd = sc.parallelize([1]*num_samples, 2)
+    # count = rdd.map(f).reduce(add)
+    # count = rdd.filter(f).reduce(add)   # 由于这里rdd的每一行都是1,所以这里可以用reduce
+    count = rdd.filter(f).count()
     print(f"Pi is roughly {4.0 * count / num_samples}")
 
 def word_count(spark):
@@ -21,9 +22,10 @@ def word_count(spark):
     #     print(word,count)
 
     df=spark.read.text("resources/people.txt") 
-    new_df=df.withColumn('word', f.explode(f.split(df['value'], ' '))).groupBy('word').count().sort('count',ascending=False)
+    # new_df=df.withColumn('word', f.explode(f.split(df['value'], ' '))).groupBy('word').count().sort('count',ascending=False)
+    new_df=df.select(f.explode(f.split(df['value'],' ')).alias('word')).groupBy('word').count().sort('count',ascending=False)
     new_df.show()
-
+    
 def sort(spark):
     rdd = spark.sparkContext.textFile("resources/sort.txt")  # sort.txt格式必须满足要求
     sortedCount = rdd.flatMap(lambda x: x.split(' ')).map(lambda x:int(x)).sortBy(ascending=False,keyfunc=lambda x:x)
