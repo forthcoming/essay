@@ -1,9 +1,34 @@
 from pyspark.sql import SparkSession
 from pyspark.sql import Row
 from pyspark.sql.types import *
-
+from pyspark.sql import functions as f
 
 def basic_df(spark):
+    data = [
+        ("2015-05-14 03:53:00", "WARRANT ARREST"),
+        ("2015-05-14 03:53:00", "TRAFFIC VIOLATION"),
+        ("2015-05-14 03:33:00", "TRAFFIC VIOLATION")
+    ]
+    df = spark.createDataFrame(data, ["date", "desc"])
+    df.show()
+    # +-------------------+-----------------+
+    # |               date|             desc|
+    # +-------------------+-----------------+
+    # |2015-05-14 03:53:00|   WARRANT ARREST|
+    # |2015-05-14 03:53:00|TRAFFIC VIOLATION|
+    # |2015-05-14 03:33:00|TRAFFIC VIOLATION|
+    # +-------------------+-----------------+
+    df = df.withColumn('wordCount', f.size(f.split(df['desc'], ' ')))
+    df.show()
+    # +-------------------+-----------------+---------+
+    # |               date|             desc|wordCount|
+    # +-------------------+-----------------+---------+
+    # |2015-05-14 03:53:00|   WARRANT ARREST|        2|
+    # |2015-05-14 03:53:00|TRAFFIC VIOLATION|        2|
+    # |2015-05-14 03:33:00|TRAFFIC VIOLATION|        2|
+    # +-------------------+-----------------+---------+
+    df.select(f.sum('wordCount')).show() # 6,count the total number of words in the column across the entire DataFrame
+    
     df = spark.read.json("resources/people.json")  # DataFrame,每行数据类型是Row,spark.read.text读txt文件也返回DataFrame对象
     df.show()  # Displays the content of the DataFrame to stdout
     # +----+-------+
