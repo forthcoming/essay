@@ -23,7 +23,7 @@ def word_count(spark):
 
     df=spark.read.text("resources/people.txt") 
     # new_df=df.withColumn('word', f.explode(f.split(df['value'], ' '))).groupBy('word').count().sort('count',ascending=False)
-    new_df=df.select(f.explode(f.split(df['value'],' ')).alias('word')).groupBy('word').count().sort('count',ascending=False)
+    new_df=df.select(f.explode(f.split(df['value'],r'\s+')).alias('word')).groupBy('word').count().sort('count',ascending=False)
     new_df.show()
     
 def sort(spark):
