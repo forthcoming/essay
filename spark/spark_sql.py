@@ -50,7 +50,12 @@ def basic_df(spark):
     print(df.count())  # Number of rows in this DataFrame
     print(df.first())  # First row in this DataFrame
     print(df.collect()) 
-    count = df.filter(df['name'].contains("n")).count()
+    df.filter(df['name'].contains("n")).filter(df['name'].like('%i%')).show()
+    # +---+------+
+    # |age|  name|
+    # +---+------+
+    # | 19|Justin|
+    # +---+------+
 
     # df.printSchema()  # Print the schema in a tree format
     # root
