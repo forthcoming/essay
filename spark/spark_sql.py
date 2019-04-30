@@ -28,6 +28,15 @@ def basic_df(spark):
     # |2015-05-14 03:33:00|TRAFFIC VIOLATION|        2|
     # +-------------------+-----------------+---------+
     df.select(f.sum('wordCount')).show() # 6,count the total number of words in the column across the entire DataFrame
+    '''
+    Aggregate function: 
+        max: returns the maximum value of the expression in a group
+        min: returns the minimum value of the expression in a group
+        count: returns the number of items in a group
+        sum: returns the sum of all values in the expression
+        avg: returns the average of the values in a group
+        mean: returns the average of the values in a group
+    '''
     
     df = spark.read.json("resources/people.json")  # DataFrame,每行数据类型是Row,spark.read.text读txt文件也返回DataFrame对象
     df.show()  # Displays the content of the DataFrame to stdout
