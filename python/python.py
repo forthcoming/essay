@@ -431,7 +431,7 @@ finally: # 定义一些清理工作,异常发生/捕捉与否,是否有return都
 ipdb
 whatis       Prints the type of the argument.
 enter        重复上次命令
-set_trace()  在该点打断点
+set_trace()  在该点打断(from ipdb import set_trace)
 c(ont(inue))   Continue execution, only stop when a breakpoint is encountered.执行到下个断点处
 l(ist) [first [,last]]   List source code for the current file.Without arguments, list 11 lines around the current line or continue the previous listing.
 j(ump)   程序跳到指定行
