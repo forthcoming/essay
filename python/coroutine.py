@@ -156,7 +156,7 @@ async def say_after(delay, what):
 
 async def main():
     print('hello')
-    await asyncio.sleep(1)
+    await asyncio.sleep(1) # 当遇到阻塞调用的函数的时使用await将控制权让出,以便loop调用其他协程
     print('world')
 # main()  # Nothing happens if we just call "main()". A coroutine object is created but not awaited, so it won't run at all.
 asyncio.run(main())  # 方式1,创建事件循环,运行一个协程,关闭事件循环
@@ -187,28 +187,6 @@ asyncio.run(main())  # 方式3
 # world
 # 5
 # finished at 16:06:32
-
-#################################################################################################################################
-
-import asyncio,time
-async def do_some_work(x):
-    print('Waiting: ', x)
-    await asyncio.sleep(x)  #在sleep的时候使用await让出控制权,即当遇到阻塞调用的函数的时使用await方法将协程的控制权让出,以便loop调用其他的协程
-    return 'Done after {}s'.format(x)
-
-start=time.time()
-coroutine=[do_some_work(2),do_some_work(3),do_some_work(4),do_some_work(5),]
-loop = asyncio.get_event_loop()
-tasks=loop.run_until_complete(asyncio.gather(*coroutine))
-for task in tasks:
-    print(task)
-print(time.time()-start) #总耗时5s,5s的阻塞时间，足够前面3个协程执行完毕。如果是同步顺序的任务，那么至少需要14s。
-
-start=time.time()
-tasks=loop.run_until_complete(asyncio.gather(do_some_work(3),do_some_work(6)))
-for task in tasks:
-    print(task)
-print(time.time()-start)  #总耗时6s
 
 #################################################################################################################################
 
