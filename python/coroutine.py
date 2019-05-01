@@ -137,10 +137,7 @@ end 508000 34113
 我们使用asyncio.sleep函数来模拟IO操作
 协程是运行在单线程中的并发,目的是让这些IO操作异步化
 asyncio实现并发,就需要多个协程来完成任务,每当有任务阻塞的时候就await,然后其他协程继续工作
-创建多个协程的列表,然后将这些协程注册到事件循环中。
-要让这个协程对象运行的话,有两种方式:
-* 在另一个已经运行的协程中用await等待它
-* 通过ensure_future函数计划它的执行
+创建多个协程的列表,然后将这些协程注册到事件循环中
 通常在Python中我们进行并发编程一般都是使用多线程或者多进程来实现的
 对于计算型任务由于GIL的存在我们通常使用多进程来实现
 而对与IO型任务我们可以通过线程调度来让线程在执行IO任务时让出GIL,从而实现表面上的并发
@@ -186,7 +183,7 @@ result=loop.run_until_complete(coroutine)  #将协程注册到事件循环,并�
 print(result)                #values
 
 coroutine = do_some_work(2)
-task = loop.create_task(coroutine)  #等价于asyncio.ensure_future(coroutine)
+task = loop.create_task(coroutine) 
 print(task)    #<Task pending coro=<do_some_work() running at C:\Users\root\Desktop\111.py:84>>
 loop.run_until_complete(task)
 print(task,task.result())  #<Task finished coro=<do_some_work() done, defined at C:\Users\root\Desktop\111.py:84> result='values'> values
