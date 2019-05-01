@@ -143,7 +143,7 @@ asyncio实现并发,就需要多个协程来完成任务,每当有任务阻塞�
 协程相比多线程一大优势就是省去了多线程之间的切换开销,获得了更大的运行效率
 
 如果一个对象可以在await语句中使用,那么它就是可等待对象,许多asyncio API都被设计为接受可等待对象
-可等待对象有三种主要类型: 协程,任务和Future
+可等待对象有三种主要类型: 协程,任务,Future
 Future是一种特殊的低层级可等待对象,表示一个异步操作的最终结果
 使用高层级的asyncio.create_task()函数来创建Task对象,也可用低层级的loop.create_task()或ensure_future()函数.不建议手动实例化Task对象
 要真正运行一个协程,asyncio提供了三种主要机制:
@@ -161,26 +161,24 @@ async def main():
 # main()  # Nothing happens if we just call "main()". A coroutine object is created but not awaited, so it won't run at all.
 asyncio.run(main())  # 方式1,创建事件循环,运行一个协程,关闭事件循环
 
-
-async def main():  # 等待一个协程.以下代码段会在等待1秒后打印"hello",然后再次等待2秒后打印"world"
+async def main():  # 以下代码段会在等待1秒后打印"hello",然后再次等待2秒后打印"world"
     print(f"started at {time.strftime('%X')}")
     await say_after(1, 'hello')
     await say_after(2, 'world')
     print(f"finished at {time.strftime('%X')}")
-asyncio.run(main())  # 方式2
+asyncio.run(main())  # 方式2,等待一个协程
 # started at 16:28:12
 # hello
 # world
 # finished at 16:28:15
 
-
-async def main():  # asyncio.create_task()函数用来并发运行多个协程
+async def main():
     tasks = [asyncio.create_task(say_after(3, 'hello')),asyncio.create_task(say_after(5, 'world'))]
     print(f"started at {time.strftime('%X')}")
     for task in tasks:       # Wait until both tasks are completed (should take around 2 seconds.)
         print(await task)
     print(f"finished at {time.strftime('%X')}")
-asyncio.run(main())  # 方式3
+asyncio.run(main())  # 方式3,asyncio.create_task()并发运行多个协程
 # started at 16:06:27
 # hello
 # 3
@@ -205,9 +203,9 @@ print(result)                #values
 
 coroutine = do_some_work(2)
 task = loop.create_task(coroutine) 
-print(task)    #<Task pending coro=<do_some_work() running at C:\Users\root\Desktop\111.py:84>>
+print(task)    #<Task pending coro=<do_some_work() running at root/Desktop/test.py:84>>
 loop.run_until_complete(task)
-print(task,task.result())  #<Task finished coro=<do_some_work() done, defined at C:\Users\root\Desktop\111.py:84> result='values'> values
+print(task,task.result())  #<Task finished coro=<do_some_work() done, defined at root/Desktop/test.py:84> result='values'> values
 
 coroutine = do_some_work(2)
 task = loop.create_task(coroutine)
@@ -231,7 +229,7 @@ async def main():
 if __name__ == '__main__':
     task = main()
     print(asyncio.iscoroutinefunction(main))  # True
-       print(asyncio.iscoroutine(task))          # True  
+    print(asyncio.iscoroutine(task))          # True  
     # start=time.time()
     # loop = asyncio.get_event_loop()
     # loop.run_until_complete(main())
