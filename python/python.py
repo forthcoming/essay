@@ -750,7 +750,7 @@ for i,j,k in zip(*matrix):  # <class 'zip'>
 # 2 4 6
 
 #矩阵置换
-map(list,zip(*matrix))   #[[1, 3, 5], [2, 4, 6]]
+[list(_) for _ in zip(*matrix)] # [[1, 3, 5], [2, 4, 6]]
 [[row[i] for row in matrix] for i in range(2)]
 [[matrix[j][i] for j in range(3)] for i in range(2)]
 [row[i] for i in range(2) for row in matrix]
