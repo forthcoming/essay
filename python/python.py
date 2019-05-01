@@ -367,7 +367,8 @@ print(Node(1))
 
 #########################################################################################################################################
 
-isinstance(object, class): 判断对象object是不是类class或其派生类的实例,既可以用在内置数据类型如str、list、dict,也可以用在我们自定义的类
+isinstance(object, class):   判断对象object是不是类class或其派生类的实例
+issubclass(class,baseclass): 判断一个类是否是另一个类的子类
 class Person():
   def __init__(self, name, gender):
     self.name = name
@@ -383,11 +384,11 @@ s = Student('Bob', 'Male', 88)
 
 isinstance(p, Person)  #True
 isinstance(p, Student) #False
-#这说明在继承链上,一个父类的实例不能是子类类型,因为子类比父类多了一些属性和方法
+# 父类实例不能是子类类型,因为子类比父类多了一些属性和方法
 
 isinstance(s, Person)  #True
 isinstance(s, Student) #True
-#这说明在一条继承链上,一个实例可以看成它本身的类型,也可以看成它父类的类型
+# 子类实例可以看成它本身的类型,也可以看成它父类的类型
 
 #########################################################################################################################################
 
