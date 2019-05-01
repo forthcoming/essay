@@ -133,17 +133,60 @@ end 508000 34113
 
 #################################################################################################################################
 
-耗时的操作一般是一些IO操作,例如网络请求,文件读取等
 我们使用asyncio.sleep函数来模拟IO操作
 协程是运行在单线程中的并发,目的是让这些IO操作异步化
 asyncio实现并发,就需要多个协程来完成任务,每当有任务阻塞的时候就await,然后其他协程继续工作
 创建多个协程的列表,然后将这些协程注册到事件循环中
-通常在Python中我们进行并发编程一般都是使用多线程或者多进程来实现的
 对于计算型任务由于GIL的存在我们通常使用多进程来实现
 而对与IO型任务我们可以通过线程调度来让线程在执行IO任务时让出GIL,从而实现表面上的并发
-其实对于IO型任务我们还有一种选择就是协程，协程是运行在单线程当中的"并发"
+其实对于IO型任务我们还有一种选择就是协程,协程是运行在单线程当中的"并发"
 协程相比多线程一大优势就是省去了多线程之间的切换开销,获得了更大的运行效率
-Python中的asyncio也是基于协程来进行实现的
+
+如果一个对象可以在await语句中使用,那么它就是可等待对象,许多asyncio API都被设计为接受可等待对象
+可等待对象有三种主要类型: 协程,任务和Future
+Future是一种特殊的低层级可等待对象,表示一个异步操作的最终结果
+使用高层级的asyncio.create_task()函数来创建Task对象,也可用低层级的loop.create_task()或ensure_future()函数.不建议手动实例化Task对象
+要真正运行一个协程,asyncio提供了三种主要机制:
+import asyncio
+import time
+async def say_after(delay, what):
+    await asyncio.sleep(delay)
+    print(what)
+    return delay
+
+async def main():
+    print('hello')
+    await asyncio.sleep(1)
+    print('world')
+# main()  # Nothing happens if we just call "main()". A coroutine object is created but not awaited, so it won't run at all.
+asyncio.run(main())  # 方式1,创建事件循环,运行一个协程,关闭事件循环
+
+
+async def main():  # 等待一个协程.以下代码段会在等待1秒后打印"hello",然后再次等待2秒后打印"world"
+    print(f"started at {time.strftime('%X')}")
+    await say_after(1, 'hello')
+    await say_after(2, 'world')
+    print(f"finished at {time.strftime('%X')}")
+asyncio.run(main())  # 方式2
+# started at 16:28:12
+# hello
+# world
+# finished at 16:28:15
+
+
+async def main():  # asyncio.create_task()函数用来并发运行多个协程
+    tasks = [asyncio.create_task(say_after(3, 'hello')),asyncio.create_task(say_after(5, 'world'))]
+    print(f"started at {time.strftime('%X')}")
+    for task in tasks:       # Wait until both tasks are completed (should take around 2 seconds.)
+        print(await task)
+    print(f"finished at {time.strftime('%X')}")
+asyncio.run(main())  # 方式3
+# started at 16:06:27
+# hello
+# 3
+# world
+# 5
+# finished at 16:06:32
 
 #################################################################################################################################
 
