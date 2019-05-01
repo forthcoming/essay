@@ -1,3 +1,17 @@
+sort
+# if you don’t need the original list, list.sort is slightly more efficient than sorted.
+# By default the sort and the sorted built-in function notices that the items are tuples so it sorts on the first element first and on the second element second.
+items = [(1, 'B'), (1, 'A'), (2, 'A'), (0, 'B'), (0, 'a')]
+sorted(items)                                       # [(0, 'B'), (0, 'a'), (1, 'A'), (1, 'B'), (2, 'A')]
+sorted(items, key=lambda x: (x[0], x[1].lower()))   # [(0, 'a'), (0, 'B'), (1, 'A'), (1, 'B'), (2, 'A')]
+
+peeps = [{'name': 'Bill', 'salary': 1000}, {'name': 'Bill', 'salary': 500}, {'name': 'Ted', 'salary': 500}]
+sorted(peeps, key=lambda x: (x['name'], x['salary']))   # [{'salary': 500, 'name': 'Bill'}, {'salary': 1000, 'name': 'Bill'}, {'salary': 500, 'name': 'Ted'}]
+# Bill comes before Ted and 500 comes before 1000. But how do you sort it like that on the name but reverse on the salary?
+sorted(peeps, key=lambda x: (x['name'], -x['salary']))  # [{'salary': 1000, 'name': 'Bill'}, {'salary': 500, 'name': 'Bill'}, {'salary': 500, 'name': 'Ted'}]
+
+#########################################################################################################################################
+
 What kinds of global value mutation are thread-safe?
 A global interpreter lock (GIL) is used internally to ensure that only one thread runs in the Python VM at a time. 
 In general, Python offers to switch among threads only between bytecode instructions; how frequently it switches can be set via sys.setswitchinterval(). 
