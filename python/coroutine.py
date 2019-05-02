@@ -8,7 +8,6 @@ def coroutine(func):
     
 #################################################################################################################################
     
-# next等价于send(None),生成器一开始只能send(None)
 from inspect import getgeneratorstate
 def gen(a):
     print(f'start a={a}')
@@ -16,30 +15,22 @@ def gen(a):
     print(f'received b={b}')
     c=yield a+b
     print(f'received c={c}')
-
-coro=gen(14)
+coro=gen(14)  # next等价于send(None),生成器一开始只能send(None)
 
 print(getgeneratorstate(coro))  # GEN_CREATED
-
 print(next(coro))
-'''
-start a=14
-14
-'''
+# start a=14
+# 14
 
 print(getgeneratorstate(coro))  # GEN_SUSPENDED,该状态会出现很多次
-
 print(coro.send(28))
-'''
-received b=28
-42
-'''
+# received b=28
+# 42
 
 try:
     coro.send(99)   # received c=99
 except StopIteration:
     pass
-    
 print(getgeneratorstate(coro))  # GEN_CLOSED
 
 #################################################################################################################################
