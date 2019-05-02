@@ -1,3 +1,79 @@
+# Iterable
+# 定义了__iter__或__getitem__方法的对象
+# 可作用于for循环的对象都是Iterable类型
+
+#################################################################################################################################
+
+# Iterator
+# 可通过自定义__next__和__iter__方法生成,或iter(Iterable)方式生成
+# 可作用于next(),它们表示一个惰性计算的序列,迭代器都是Iterable对象
+class Iterator:  
+    def __init__(self, data):  
+        self.data = data  
+        self.index = len(data)  
+    def __iter__(self):  # 保证iter(Iterator)如for循环等操作返回其自身
+        return self  
+    def __next__(self):  
+        if self.index:  
+             self.index -= 1  
+             return self.data[self.index]  
+        raise StopIteration  
+
+iterator=Iterator('maps')
+print(iterator) # <class '__main__.Iterator'>
+for it in iterator:
+  print(it,end=' ')  # s p a m 
+
+#################################################################################################################################
+
+# Generator
+# 可通过yield关键字或列表推导式生成
+# 可通过send接受外部传入的一个变量,并根据变量计算结果后返回,这是协程实现的基础
+# 自动创建__iter__和__next__方法,当生成器终结时,还会自动抛出StopIteration异常,生成器都是Iterator对象
+# 每次执行迭代器的next()方法后,该方法的上下文(变量)环境便消失
+# 每次执行生成器的next()方法后,代码会执行到yield关键字处,并将yield后的参数值返回,同时当前生成器函数的上下文(挂起位置,变量等)会被保留
+# 生成器特有的send,close等方法,迭代器没有
+def libs():
+  a,b=0,1
+  while True:
+    a,b=b,a+b
+    yield a
+generator_f=libs()
+generator_l=(_ for _ in range(3))
+
+print(libs)         # <class 'function'>
+print(generator_l)  # <class 'generator'>
+print(generator_f)  # <class 'generator'>
+
+for it in generator_f:
+  print(it,end=' ') # 1 1 2 3
+  if it>=3:
+    break
+
+#################################################################################################################################
+
+from collections.abc import Iterable,Iterator,Generator
+isinstance([], Iterable)                      # True
+isinstance([], Iterator)                      # False
+isinstance((x for x in range(10)), Iterable)  # True
+isinstance((x for x in range(10)), Iterator)  # True
+isinstance((x for x in range(10)), Generator) # True
+isinstance(100, Iterable)                     # False
+
+#################################################################################################################################
+
+# for本质
+for x in [1, 2, 3, 4, 5]:pass
+# 等价于
+it = iter([1, 2, 3, 4, 5]) 
+while True:
+    try:
+        x = next(it) # 获得下一个值
+    except StopIteration:
+        break
+
+#################################################################################################################################
+
 # 预激活协程的装饰器
 def coroutine(func):  
     def primer(*args,**kwargs):
