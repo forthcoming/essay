@@ -7,7 +7,9 @@ def coroutine(func):
     return primer
     
 #################################################################################################################################
-    
+
+# send: Resumes the generator and "sends" a value that becomes the result of the current yield-expression
+# next: next等价于send(None),生成器一开始只能send(None)
 from inspect import getgeneratorstate
 def gen(a):
     print(f'start a={a}')
@@ -16,7 +18,7 @@ def gen(a):
     getgeneratorstate(coro)  # GEN_RUNNING
     c=yield a+b
     print(f'received c={c}')
-coro=gen(14)  # next等价于send(None),生成器一开始只能send(None)
+coro=gen(14)
 
 print(getgeneratorstate(coro))  # GEN_CREATED
 print(next(coro))
