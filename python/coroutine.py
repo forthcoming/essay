@@ -13,6 +13,7 @@ def gen(a):
     print(f'start a={a}')
     b=yield a
     print(f'received b={b}')
+    getgeneratorstate(coro)  # GEN_RUNNING
     c=yield a+b
     print(f'received c={c}')
 coro=gen(14)  # next等价于send(None),生成器一开始只能send(None)
