@@ -6,7 +6,7 @@
 
 # Iterator
 # 可通过自定义__next__和__iter__方法生成,或iter(Iterable)方式生成
-# 可作用于next(),它们表示一个惰性计算的序列,迭代器都是Iterable对象
+# 可作用于next(),它们表示一个惰性计算的序列,无法重复迭代,迭代器都是Iterable对象
 class Iterator:  
     def __init__(self, data):  
         self.data = data  
