@@ -1,7 +1,7 @@
-函数调用
+函数调用(引用传参)
 # 关键字参数/解包参数调用函数(可通过keyword=value形式调用函数,参数顺序无所谓)
 def fun(name, age, gender):  
-    print('Name:',name,'Age:',age,'Gender:',gender)  
+    print('name:',name,'age:',age,'gender:',gender)  
 fun(gender='man', name='Jack', age=20)  
 fun(*['Jack',20,'man'])
 fun(**{'gender':'man', 'name':'Jack', 'age':20}) # 解包字典,会得到一系列key=value,本质上是使用关键字参数调用函数
