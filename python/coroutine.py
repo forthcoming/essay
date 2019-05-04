@@ -323,3 +323,22 @@ if __name__ == '__main__':
         for response in executor.map(requests.get, ['http://www.baidu.com']*100)
             print(status.status_code)
     print(time.time()-start)
+
+#################################################################################################################################
+
+gevent         
+from gevent import monkey,pool,joinall,spawn; monkey.patch_all()
+import requests
+
+urls=['https://baidu.com/']*50+['https://ilovefishc.com/']*50
+def get(url):
+    print(f'GET: {url}')
+    res = requests.get(url,timeout=5)
+    print(f'{res.status_code} bytes received from {url}')
+
+jobs=[spawn(get,url) for url in urls]
+joinall(jobs)  # 阻塞
+
+# gevent_pool = pool.Pool(100)
+# gevent_pool.map(get,urls)
+# gevent_pool.join()
