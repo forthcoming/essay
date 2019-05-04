@@ -1,3 +1,28 @@
+函数调用
+# 关键字参数/解包参数调用函数(可通过keyword=value形式调用函数,参数顺序无所谓)
+def fun(name, age, gender):  
+    print('Name:',name,'Age:',age,'Gender:',gender)  
+fun(gender='man', name='Jack', age=20)  
+fun(*['Jack',20,'man'])
+fun(**{'gender':'man', 'name':'Jack', 'age':20}) # 解包字典,会得到一系列key=value,本质上是使用关键字参数调用函数
+fun(**{'Gender':'man', 'name':'Jack', 'age':20}) # Error,键必须与参数名相同
+
+# 默认实参调用函数(默认值只被计算一次,如果默认值是一个可变对象如列表,字典,大多类对象时,函数在随后调用中会累积参数值)
+def fun(a, L=[]):  
+    L.append(a)  
+    print(L)  
+fun(1)  # 输出[1]  
+fun(2)  # 输出[1, 2]  
+
+# 可变参数调用函数(在形参前加一个*或**来指定函数可以接收任意数量的实参,关键字参数必须跟随在位置参数后面)
+def fun(a,*args,**kwargs):  
+    print(a,end='\t')
+    print(type(args),args,end='\t')    
+    print(type(kwargs),kwargs)    
+fun(1,2,3,c=4,d=5)   # 1	<class 'tuple'> (2, 3)	<class 'dict'> {'c': 4, 'd': 5}
+
+#########################################################################################################################################
+
 作用域
 # 变量引用顺序: 当前作用域局部变量->外层作用域变量->当前模块中的全局变量->python内置变量
 # global: 在局部作用域中修改全局变量
@@ -834,22 +859,6 @@ test(3)
 {'z': 1, 'arg': 3}
 {'__loader__': <_frozen_importlib_external.SourceFileLoader object at 0x000001FDBDCC8940>, '__package__': None, '__name__': '__main__', 'a': 5, '__doc__': None, '__file__': 'C:\\Users\\root\\Desktop\\zzzz.py', 'test': <function test at 0x000001FDBDBD7F28>, '__spec__': None, '__cached__': None, '__builtins__': <module 'builtins' (built-in)>}
 '''
-
-#########################################################################################################################################
-
-*args, **kwargs用法
-def foo(*args, **kwargs):
-  print(args,kwargs )
-foo('a', 1, None, a=1, b='2', c=3)  # ('a', 1, None) {'a': 1, 'b': '2', 'c': 3}
-foo({'1':2,'a':'b'})                # ({'1': 2, 'a': 'b'},) {}
-foo(*['1','a'])                     # ('1', 'a') {}
-foo(x='y',**{'1':2,'a':'b'})        # () {'x': 'y', '1': 2, 'a': 'b'}  
-
-def func(a,b):
-  print(a,b)
-func(*[2,3])                        # (2, 3)
-func(**{'a':4,'b':6})               # (4, 6)  
-#func(**{'c':4,'b':6})              # Error,键值必须与参数名相同
 
 #########################################################################################################################################
 
