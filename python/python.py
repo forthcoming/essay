@@ -1,3 +1,33 @@
+作用域
+# 变量引用顺序: 当前作用域局部变量->外层作用域变量->当前模块中的全局变量->python内置变量
+# global: 在局部作用域中修改全局变量
+# nonlocal: 在局部作用域中修改外层非全局变量
+def make_counter():
+    count = 0
+    def counter():
+        nonlocal count
+        count += 1
+        return count
+    return counter
+mc = make_counter()
+print(mc(),mc(),mc())   # 1,2,3
+
+x = 0
+def outer():
+    x = 1
+    def inner():
+        # nonlocal x  # inner: 8	outer: 8	global: 0
+        # global x    # inner: 7	outer: 1	global: 7
+        x = 2         # inner: 9	outer: 1	global: 0
+        x += 7 
+        print("inner:", x,end='\t')
+    inner()
+    print("outer:", x,end='\t')
+outer()
+print("global:", x)
+
+#########################################################################################################################################
+
 sort
 # if you don’t need the original list, list.sort is slightly more efficient than sorted.
 # By default the sort and the sorted built-in function notices that the items are tuples so it sorts on the first element first and on the second element second.
