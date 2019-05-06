@@ -1,3 +1,10 @@
+环境变量(~/.bashrc作用于当前用户,/etc/profile作用于所有用户,写错后可能导致系统登不进去)
+REDIS=/root/redis/bin
+PYCHARM=/root/pycharm/bin
+CONDA=/root/miniconda3/bin
+export PATH=$PATH:$REDIS:$PYCHARM:$CONDA
+export PYSPARK_PYTHON=/usr/local/bin/python3
+
 crontab(minute hour day month week)
 43 21 * * *          # 每天21:43
 0 17 * * 1           # 每周一17:00
