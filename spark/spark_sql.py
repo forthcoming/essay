@@ -44,90 +44,46 @@ def basic_df(spark):
     
     df = spark.read.json("resources/people.json")  # DataFrame,每行数据类型是Row,spark.read.text读txt文件也返回DataFrame对象
     df.show()  # Displays the content of the DataFrame to stdout
-    # +----+-------+
-    # | age|   name|
-    # +----+-------+
-    # |null|Michael|
-    # |  30|   Andy|
-    # |  19| Justin|
-    # +----+-------+
+    # +----+--------+-----+
+    # | age|    name|score|
+    # +----+--------+-----+
+    # |null|Akatsuki|  1.0|
+    # |  30|    Andy|  1.5|
+    # |  19|  Justin|  2.0|
+    # |  19|  Avatar|  2.5|
+    # |  19|  Avatar|  4.0|
+    # +----+--------+-----+
     print(df.count())  # Number of rows in this DataFrame
     print(df.first())  # First row in this DataFrame
     print(df.collect()) 
-    df[df['name'].contains("n") & df['name'].like('%i%')].show()
-    # +---+------+
-    # |age|  name|
-    # +---+------+
-    # | 19|Justin|
-    # +---+------+
+    # df[df['name'].contains("t") & df['name'].like('%i%') & (df['age'] > 10)].show()
+    # df.select("name").show()  # Select only the "name" column
+    # df.select(df['name'], df['age'] + 1).show()      # Select everybody, but increment the age by 1
 
     # df.printSchema()  # Print the schema in a tree format
     # root
     # |-- age: long (nullable = true)
     # |-- name: string (nullable = true)
+    # |-- score: double (nullable = true)
 
-    # df.select("name").show()  # Select only the "name" column
-    # +-------+
-    # |   name|
-    # +-------+
-    # |Michael|
-    # |   Andy|
-    # | Justin|
-    # +-------+
-
-    # df.select(df['name'], df['age'] + 1).show()      # Select everybody, but increment the age by 1
-    # +-------+---------+
-    # |   name|(age + 1)|
-    # +-------+---------+
-    # |Michael|     null|
-    # |   Andy|       31|
-    # | Justin|       20|
-    # +-------+---------+
-
-    # df[df['age'] > 21].show()      # Select people older than 21
-    # +---+----+
-    # |age|name|
-    # +---+----+
-    # | 30|Andy|
-    # +---+----+
-
-    # df.groupBy(df["age"]).count().show()      # Count people by age
-    # +----+-----+
-    # | age|count|
-    # +----+-----+
-    # |  19|    1|
-    # |null|    1|
-    # |  30|    1|
-    # +----+-----+
+    # df.groupBy(df["age"]).count().show()  # Count people by age
+    # df.groupBy(['name','age']).agg({'age':'count','score':'mean'}).show() 
+    # +--------+----+----------+----------+
+    # |    name| age|avg(score)|count(age)|
+    # +--------+----+----------+----------+
+    # |    Andy|  30|       1.5|         1|
+    # |Akatsuki|null|       1.0|         0|
+    # |  Justin|  19|       2.0|         1|
+    # |  Avatar|  19|      3.25|         2|
+    # +--------+----+----------+----------+
 
     df.createOrReplaceTempView("people")      # Register the DataFrame as a SQL temporary view
     sqlDF = spark.sql("SELECT * FROM people where age is not null")  # 结尾不要有分号
     # sqlDF.show()
-    # +----+-------+
-    # | age|   name|
-    # +----+-------+
-    # |  30|   Andy|
-    # |  19| Justin|
-    # +----+-------+
 
     df.createGlobalTempView("people")      # Register the DataFrame as a global temporary view
     # spark.sql("SELECT * FROM global_temp.people").show()   # Global temporary view is tied to a system preserved database `global_temp`
-    # +----+-------+
-    # | age|   name|
-    # +----+-------+
-    # |null|Michael|
-    # |  30|   Andy|
-    # |  19| Justin|
-    # +----+-------+
-
     # spark.newSession().sql("SELECT * FROM global_temp.people").show()   # Global temporary view is cross-session
-    # +----+-------+
-    # | age|   name|
-    # +----+-------+
-    # |null|Michael|
-    # |  30|   Andy|
-    # |  19| Justin|
-    # +----+-------+
 
 def rdd2df(spark):
     # a DataFrame can be created for a JSON dataset represented by an RDD[String] storing one JSON object per string
