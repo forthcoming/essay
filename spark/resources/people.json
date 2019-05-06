@@ -1,3 +1,5 @@
-{"name":"Michael"}
-{"name":"Andy", "age":30}
-{"name":"Justin", "age":19}
+{"name":"Akatsuki","score":1}
+{"name":"Andy", "age":30,"score":1.5}
+{"name":"Justin", "age":19,"score":2}
+{"name":"Avatar", "age":19,"score":2.5}
+{"name":"Avatar", "age":19,"score":4}
