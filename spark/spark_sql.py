@@ -4,6 +4,16 @@ from pyspark.sql.types import *
 from pyspark.sql import functions as f
 
 def basic_df(spark):
+    # host='localhost'
+    # port=3306
+    # db='test'
+    # user='root'
+    # pwd='root'
+    # pushdown_query = "(select * from employee limit 10) tmp"
+    # jdbc_url = f"jdbc:mysql://{host}:{port}/{db}?user={user}&password={pwd}"
+    # df = spark.read.jdbc(url=jdbc_url, table=pushdown_query)
+    # df.show()
+
     data = [
         ("2015-05-14 03:53:00", "WARRANT ARREST"),
         ("2015-05-14 03:53:00", "TRAFFIC VIOLATION"),

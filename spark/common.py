@@ -1,7 +1,6 @@
 from random import random
 from operator import add
-from pyspark.sql import SparkSession
-from pyspark.sql import functions as f
+from pyspark.sql import SparkSession,functions as F
 
 def count_pi(spark):
     def f(_):
@@ -22,10 +21,10 @@ def word_count(spark):
     #     print(word,count)
 
     df=spark.read.text("resources/people.txt") 
-    # new_df=df.withColumn('word', f.explode(f.split(df['value'], ' '))).groupBy('word').count().sort('count',ascending=False)
-    new_df=df.select(f.explode(f.split(df['value'],r'\s+')).alias('word')).groupBy('word').count().sort('count',ascending=False)
+    # new_df=df.withColumn('word', F.explode(F.split(df['value'], ' '))).groupBy('word').count().sort('count',ascending=False)
+    new_df=df.select(F.explode(F.split(df['value'],r'\s+')).alias('word')).groupBy('word').count().sort('count',ascending=False)
     new_df.show()
-    
+
 def sort(spark):
     rdd = spark.sparkContext.textFile("resources/sort.txt")  # sort.txt格式必须满足要求
     sortedCount = rdd.flatMap(lambda x: x.split(' ')).map(lambda x:int(x)).sortBy(ascending=False,keyfunc=lambda x:x)
