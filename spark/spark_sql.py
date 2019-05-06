@@ -13,6 +13,7 @@ def basic_df(spark):
     # jdbc_url = f"jdbc:mysql://{host}:{port}/{db}?user={user}&password={pwd}"
     # df = spark.read.jdbc(url=jdbc_url, table=pushdown_query)
     # df.show()
+    # df.write.jdbc(url=jdbc_url, table='teacher',mode='append')
 
     data = [
         ("2015-05-14 03:53:00", "WARRANT ARREST"),
