@@ -37,6 +37,10 @@ def basic_df(spark):
         avg: returns the average of the values in a group
         mean: returns the average of the values in a group
     '''
+    print(df.columns)        # ['date', 'desc', 'wordCount']
+    print(df.dtypes)         # [('date', 'string'), ('desc', 'string'), ('wordCount', 'int')]
+    df=df.drop('wordCount')  # drop some column
+    df.show()                # show first 10 lines
     
     df = spark.read.json("resources/people.json")  # DataFrame,每行数据类型是Row,spark.read.text读txt文件也返回DataFrame对象
     df.show()  # Displays the content of the DataFrame to stdout
@@ -50,7 +54,7 @@ def basic_df(spark):
     print(df.count())  # Number of rows in this DataFrame
     print(df.first())  # First row in this DataFrame
     print(df.collect()) 
-    df.filter(df['name'].contains("n")).filter(df['name'].like('%i%')).show()
+    df[df['name'].contains("n") & df['name'].like('%i%')].show()
     # +---+------+
     # |age|  name|
     # +---+------+
@@ -80,7 +84,7 @@ def basic_df(spark):
     # | Justin|       20|
     # +-------+---------+
 
-    # df.filter(df['age'] > 21).show()      # Select people older than 21
+    # df[df['age'] > 21].show()      # Select people older than 21
     # +---+----+
     # |age|name|
     # +---+----+
