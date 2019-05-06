@@ -235,19 +235,10 @@ ll ~/redis/bin
 lrwxrwxrwx. 1 root root      12 Jan 31 01:10 redis-sentinel -> redis-server
 -rwxr-xr-x. 1 root root 4358017 Jan 31 01:10 redis-server
 
-redis-benchmark：redis性能测试工具
-redis-check-aof：检查aof日志的工具
-redis-check-dump：检查rbd日志的工具
-添加redis到环境变量(/etc/profile作用于所有用户,写错后会导致系统登不进去)
-vim ~/.bashrc
-
-REDIS=/root/redis/bin
-PYCHARM=/root/pycharm/bin
-CONDA=/root/miniconda3/bin
-export PATH=$PATH:$REDIS:$PYCHARM:$CONDA
-
-启动redis
-redis-server /root/redis/redis.conf    #指定启动时调用的配置文件
+redis-benchmark: redis性能测试工具
+redis-check-aof: 检查aof日志的工具
+redis-check-dump: 检查rbd日志的工具
+redis-server /root/redis/redis.conf    # 指定启动redis时的配置文件
 
 ---------------------------------------------------------------------------------------------------------------------------------------
 
