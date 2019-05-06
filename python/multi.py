@@ -9,14 +9,52 @@ parallel:
 子线程可以访问程序的全局变量,而且改变变量本身
 子进程or子进程中的子线程可以访问程序的全局变量,但是该变量的一份拷贝,并不能修改他,只不过值是一样而已
 线程池中出现错误,程序不会报错,需要手动捕捉异常
-python中的多线程其实并不是真正的多线程,如果想要充分地使用多核CPU的资源,在python中大部分情况需要使用多进程
-对于CPU密集型,python的多线程表现不如单线程好，但多进程效率更高,进程数不是越大越好,默认进程数等于电脑核数
-一般情况下多线程是无法通过ctrl c结束掉的
-如果分不清任务是CPU密集型还是IO密集型,我就用如下2个方法分别试
-from concurrent.futures import ProcessPoolExecutor as Pool
-from concurrent.futures import ThreadPoolExecutor as Pool
-哪个速度快就用那个,从此以后我都尽量在写兼容的方式,这样在多线程/多进程之间切换非常方便
+对于CPU密集型,python的多线程表现不如单线程好,但多进程效率更高,进程数不是越大越好,默认进程数等于电脑核数
 技巧:如果一个任务拿不准是CPU密集还是I/O密集型(宜用多线程),且没有其它不能选择多进程方式的因素,都统一直接上多进程模式
+
+###########################################################################################################################
+
+# 进程之间的派生拥有父子关系
+# 线程之间的派生是对等关系,都隶属于主进程的子线程
+# 线程进程交互派生时,进程隶属于上个进程的子进程,线程隶属于上个进程的子线程
+from multiprocessing.dummy import Process as Thread
+from multiprocessing import Process 
+import time,os
+
+def start(programs):
+    for program in programs:
+        program.start()
+    for program in programs:
+        program.join()
+
+def main():
+    print('in main',os.getpid(),os.getppid())
+    programs=[Thread(target=kid1)]
+    start(programs)
+    time.sleep(100)
+    
+def kid1():
+    print('in kid1',os.getpid(),os.getppid())
+    programs=[Process(target=kid2)]
+    start(programs)
+    time.sleep(100)
+
+def kid2():
+    print('in kid2',os.getpid(),os.getppid())
+    programs=[Thread(target=kid3),Process(target=kid3)]
+    start(programs)
+    time.sleep(100)
+
+def kid3():
+    print('in kid3',os.getpid(),os.getppid())
+    time.sleep(100)
+
+main()
+# in main 15944 13085
+# in kid1 15944 13085
+# in kid2 15948 15944
+# in kid3 15948 15944
+# in kid3 15950 15948
 
 ###########################################################################################################################
 
