@@ -57,6 +57,7 @@ def basic_df(spark):
     # df[df['name'].contains("t") & df['name'].like('%i%') & (df['age'] > 10)].show()
     # df.select("name").show()  # Select only the "name" column
     # df.select(df['name'], df['age'] + 1).show()      # Select everybody, but increment the age by 1
+    # df.select(F.when(df['score']<2,11).when(df['score'] < 3, 22).otherwise(33).alias('new_score')).show()
 
     # df.printSchema()  # Print the schema in a tree format
     # root
