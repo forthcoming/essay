@@ -1,7 +1,5 @@
-from pyspark.sql import SparkSession
-from pyspark.sql import Row
+from pyspark.sql import SparkSession,Row,functions as F
 from pyspark.sql.types import *
-from pyspark.sql import functions as f
 
 def basic_df(spark):
     # host='localhost'
@@ -21,16 +19,8 @@ def basic_df(spark):
         ("2015-05-14 03:33:00", "TRAFFIC VIOLATION")
     ]
     df = spark.createDataFrame(data, ["date", "desc"])
-    df.show()
-    # +-------------------+-----------------+
-    # |               date|             desc|
-    # +-------------------+-----------------+
-    # |2015-05-14 03:53:00|   WARRANT ARREST|
-    # |2015-05-14 03:53:00|TRAFFIC VIOLATION|
-    # |2015-05-14 03:33:00|TRAFFIC VIOLATION|
-    # +-------------------+-----------------+
-    df = df.withColumn('wordCount', f.size(f.split(df['desc'], ' ')))
-    df.show()
+    df = df.withColumn('wordCount', F.size(F.split(df['desc'], ' ')))
+    df.show(10)  # show first 10 lines
     # +-------------------+-----------------+---------+
     # |               date|             desc|wordCount|
     # +-------------------+-----------------+---------+
@@ -38,11 +28,10 @@ def basic_df(spark):
     # |2015-05-14 03:53:00|TRAFFIC VIOLATION|        2|
     # |2015-05-14 03:33:00|TRAFFIC VIOLATION|        2|
     # +-------------------+-----------------+---------+
-    df.select(f.sum('wordCount')).show() # 6,count the total number of words in the column across the entire DataFrame
+    df.select(F.sum('wordCount')).show() # 6,count the total number of words in the column across the entire DataFrame
     print(df.columns)        # ['date', 'desc', 'wordCount']
     print(df.dtypes)         # [('date', 'string'), ('desc', 'string'), ('wordCount', 'int')]
     df=df.drop('wordCount')  # drop some column
-    df.show()                # show first 10 lines
     
     # data = [
     #     ("2015-05-14 03:10:00", "Sunshine"),
@@ -76,16 +65,16 @@ def basic_df(spark):
     # |-- score: double (nullable = true)
 
     # df.groupBy(df["age"]).count().show()  # Count people by age
-    # df.groupBy(['name','age']).agg({'age':'count','score':'mean'}).show() 
-    # +--------+----+----------+----------+
-    # |    name| age|avg(score)|count(age)|
-    # +--------+----+----------+----------+
-    # |    Andy|  30|       1.5|         1|
-    # |Akatsuki|null|       1.0|         0|
-    # |  Justin|  19|       2.0|         1|
-    # |  Avatar|  19|      3.25|         2|
-    # +--------+----+----------+----------+
-
+    df.groupBy(['name','age']).agg(F.count('age'),F.countDistinct('age'),F.mean('score').alias('mean_score')).show() 
+    # +--------+----+----------+-------------------+----------+
+    # |    name| age|count(age)|count(DISTINCT age)|mean_score|
+    # +--------+----+----------+-------------------+----------+
+    # |  Justin|  19|         1|                  1|       2.0|
+    # |    Andy|  30|         1|                  1|       1.5|
+    # |Akatsuki|null|         0|                  0|       1.0|
+    # |  Avatar|  19|         2|                  1|      3.25|
+    # +--------+----+----------+-------------------+----------+
+    
     df.createOrReplaceTempView("people")      # Register the DataFrame as a SQL temporary view
     sqlDF = spark.sql("SELECT * FROM people where age is not null")  # 结尾不要有分号
     # sqlDF.show()
@@ -179,9 +168,9 @@ def programmatic_schema(spark):
 
 if __name__ == "__main__":
     spark = SparkSession.builder.appName("Python Spark SQL basic example").config("spark.some.config.option", "some-value").getOrCreate()
-    # basic_df(spark)
+    basic_df(spark)
     # rdd2df(spark)
     # rdd2df2rdd(spark)
-    parquet_schema_merging(spark)
+    # parquet_schema_merging(spark)
     # programmatic_schema(spark)
     spark.stop()
