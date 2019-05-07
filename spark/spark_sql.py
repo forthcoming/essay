@@ -1,6 +1,11 @@
 from pyspark.sql import SparkSession,Row,functions as F
 from pyspark.sql.types import *
 
+# @F.udf(LongType())
+# def squared(s):
+#   return s * s
+squared=F.udf(lambda s:s*s,LongType())
+
 def basic_df(spark):
     # host='localhost'
     # port=3306
@@ -29,6 +34,7 @@ def basic_df(spark):
     # |2015-05-14 03:33:00|TRAFFIC VIOLATION|        2|
     # +-------------------+-----------------+---------+
     df.select(F.sum('wordCount')).show() # 6,count the total number of words in the column across the entire DataFrame
+    # df.select(squared('wordCount')).show()
     print(df.columns)        # ['date', 'desc', 'wordCount']
     print(df.dtypes)         # [('date', 'string'), ('desc', 'string'), ('wordCount', 'int')]
     df=df.drop('wordCount')  # drop some column
