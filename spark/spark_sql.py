@@ -1,11 +1,6 @@
 from pyspark.sql import SparkSession,Row,functions as F
 from pyspark.sql.types import *
 
-# @F.udf(LongType())
-# def squared(s):
-#   return s * s
-squared=F.udf(lambda s:s*s,LongType())
-
 def basic_df(spark):
     # host='localhost'
     # port=3306
@@ -34,6 +29,7 @@ def basic_df(spark):
     # |2015-05-14 03:33:00|TRAFFIC VIOLATION|        2|
     # +-------------------+-----------------+---------+
     df.select(F.sum('wordCount')).show() # 6,count the total number of words in the column across the entire DataFrame
+    # squared=F.udf(lambda s:s*s,LongType())
     # df.select(squared('wordCount')).show()
     print(df.columns)        # ['date', 'desc', 'wordCount']
     print(df.dtypes)         # [('date', 'string'), ('desc', 'string'), ('wordCount', 'int')]
@@ -71,7 +67,8 @@ def basic_df(spark):
     # |-- name: string (nullable = true)
     # |-- score: double (nullable = true)
 
-    # df.groupBy(df["age"]).count().show()  # Count people by age
+    # df.groupBy(["age"]).count().show()       # Count people by age
+    # df.groupBy(['name','age']).avg().show()  # Computes average values for each numeric columns for each group
     df.groupBy(['name','age']).agg(F.count('age'),F.countDistinct('age'),F.mean('score').alias('mean_score')).show() 
     # +--------+----+----------+-------------------+----------+
     # |    name| age|count(age)|count(DISTINCT age)|mean_score|
@@ -174,7 +171,7 @@ def programmatic_schema(spark):
     # +-------+
 
 if __name__ == "__main__":
-    spark = SparkSession.builder.appName("Python Spark SQL basic example").config("spark.some.config.option", "some-value").getOrCreate()
+    spark = SparkSession.builder.appName("SparkSQL basic example").config("spark.some.config.option", "some-value").getOrCreate()
     basic_df(spark)
     # rdd2df(spark)
     # rdd2df2rdd(spark)
