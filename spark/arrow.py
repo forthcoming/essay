@@ -23,13 +23,18 @@ def scalar_pandas_udf(spark):
     # |             9|
     # +--------------+
 
-def grouped_map_pandas_udf(spark):
+'''
+调用模式是df.groupBy(field).apply(udf)
+A grouped map UDF defines transformation: A pandas.DataFrame -> A pandas.DataFrame
+Grouped map UDFs are used with pyspark.sql.GroupedData.apply
+'''
+def grouped_map_pandas_udf(spark): 
     @pandas_udf("id long, v double", functionType=PandasUDFType.GROUPED_MAP)  # functionType: an enum value in pyspark.sql.functions.PandasUDFType, Default SCALAR
     def subtract_mean(pdf):
-        v = pdf.v          # pdf is a pandas.DataFrame
+        v = pdf.v                          # pdf is a pandas.DataFrame
         return pdf.assign(v=v - v.mean())  # 添加新的列或者覆盖原有的列
 
-    @pandas_udf("id long, v double", PandasUDFType.GROUPED_MAP)
+    @pandas_udf(returnType="id long, v double", PandasUDFType.GROUPED_MAP)
     def mean_udf(key, pdf):
         # key is a tuple of one numpy.int64, which is the value of 'id' for the current group
         return pd.DataFrame([key + (pdf['v'].mean(),)])
@@ -59,7 +64,7 @@ def grouped_map_pandas_udf(spark):
     # |  2|6.0|
     # +---+---+
 
-    df.groupBy('id', ceil(df['v'] / 2)).apply(sum_udf).show()
+    df.groupBy('id', ceil(df['v'] / 2)).apply(sum_udf).show()  # ceil返回大于或者等于指定表达式的最小整数
     # +---+-----------+----+
     # | id|ceil(v / 2)|   v|
     # +---+-----------+----+
@@ -69,15 +74,12 @@ def grouped_map_pandas_udf(spark):
     # |  2|          2| 3.0|
     # +---+-----------+----+
 
-def grouped_agg_pandas_udf(spark):
+def grouped_agg_pandas_udf(spark):  #  A grouped aggregate UDF defines a transformation: One or more pandas.Series -> A scalar
+    mean_udf = pandas_udf(lambda v: v.mean(),"double", PandasUDFType.GROUPED_AGG)
     df = spark.createDataFrame([(1, 1.0), (1, 2.0), (2, 3.0), (2, 5.0), (2, 10.0)],("id", "v"))
-
-    @pandas_udf("double", PandasUDFType.GROUPED_AGG)
-    def mean_udf(v):
-        return v.mean()
     df.groupBy("id").agg(mean_udf(df['v'])).show()
     # +---+-----------+
-    # | id|mean_udf(v)|
+    # | id|<lambda>(v)|
     # +---+-----------+
     # |  1|        1.5|
     # |  2|        6.0|
