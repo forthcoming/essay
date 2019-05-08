@@ -34,14 +34,14 @@ def grouped_map_pandas_udf(spark):
     @pandas_udf("id long, v double", functionType=PandasUDFType.GROUPED_MAP)  # functionType: an enum value in pyspark.sql.functions.PandasUDFType, Default SCALAR
     def subtract_mean(pdf):
         v = pdf.v                          # pdf is a pandas.DataFrame
-        return pdf.assign(v=v - v.mean())  # 添加新的列或者覆盖原有的列
+        return pdf.assign(v=v - v.mean())  # 添加新的列或者覆盖原有的列,这里需要理解一下
 
-    @pandas_udf(returnType="id long, v double", PandasUDFType.GROUPED_MAP)
+    @pandas_udf(returnType="id long, v double", PandasUDFType.GROUPED_MAP) # id,v是自定义的列名
     def mean_udf(key, pdf):
         # key is a tuple of one numpy.int64, which is the value of 'id' for the current group
         return pd.DataFrame([key + (pdf['v'].mean(),)])
 
-    @pandas_udf("id long, `ceil(v / 2)` long, v double",PandasUDFType.GROUPED_MAP)
+    @pandas_udf("id long, `ceil(v / 2)` long, v double",PandasUDFType.GROUPED_MAP) 
     def sum_udf(key, pdf):
         # key is a tuple of two numpy.int64s, which is the values of 'id' and 'ceil(df.v / 2)' for the current group
         return pd.DataFrame([key + (pdf['v'].sum(),)])
