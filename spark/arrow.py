@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 from pyspark.sql import SparkSession,Window
-from pyspark.sql.functions import pandas_udf,PandasUDFType
+from pyspark.sql.functions import pandas_udf,PandasUDFType,ceil
 from pyspark.sql.types import LongType
 
 def dataframe_with_arrow(spark):
@@ -24,11 +24,22 @@ def scalar_pandas_udf(spark):
     # +--------------+
 
 def grouped_map_pandas_udf(spark):
-    df = spark.createDataFrame([(1, 1.0), (1, 2.0), (2, 3.0), (2, 5.0), (2, 10.0)],("id", "v"))
     @pandas_udf("id long, v double", functionType=PandasUDFType.GROUPED_MAP)  # functionType: an enum value in pyspark.sql.functions.PandasUDFType, Default SCALAR
     def subtract_mean(pdf):
         v = pdf.v          # pdf is a pandas.DataFrame
-        return pdf.assign(v=v - v.mean())
+        return pdf.assign(v=v - v.mean())  # 添加新的列或者覆盖原有的列
+
+    @pandas_udf("id long, v double", PandasUDFType.GROUPED_MAP)
+    def mean_udf(key, pdf):
+        # key is a tuple of one numpy.int64, which is the value of 'id' for the current group
+        return pd.DataFrame([key + (pdf['v'].mean(),)])
+
+    @pandas_udf("id long, `ceil(v / 2)` long, v double",PandasUDFType.GROUPED_MAP)
+    def sum_udf(key, pdf):
+        # key is a tuple of two numpy.int64s, which is the values of 'id' and 'ceil(df.v / 2)' for the current group
+        return pd.DataFrame([key + (pdf['v'].sum(),)])
+
+    df = spark.createDataFrame([(1, 1.0), (1, 2.0), (2, 3.0), (2, 5.0), (2, 10.0)],("id", "v"))
     df.groupBy("id").apply(subtract_mean).show()
     # +---+----+
     # | id|   v|
@@ -39,6 +50,24 @@ def grouped_map_pandas_udf(spark):
     # |  2|-1.0|
     # |  2| 4.0|
     # +---+----+
+
+    df.groupBy('id').apply(mean_udf).show()
+    # +---+---+
+    # | id|  v|
+    # +---+---+
+    # |  1|1.5|
+    # |  2|6.0|
+    # +---+---+
+
+    df.groupBy('id', ceil(df['v'] / 2)).apply(sum_udf).show()
+    # +---+-----------+----+
+    # | id|ceil(v / 2)|   v|
+    # +---+-----------+----+
+    # |  2|          5|10.0|
+    # |  1|          1| 3.0|
+    # |  2|          3| 5.0|
+    # |  2|          2| 3.0|
+    # +---+-----------+----+
 
 def grouped_agg_pandas_udf(spark):
     df = spark.createDataFrame([(1, 1.0), (1, 2.0), (2, 3.0), (2, 5.0), (2, 10.0)],("id", "v"))
@@ -68,8 +97,8 @@ def grouped_agg_pandas_udf(spark):
 
 if __name__ == "__main__":
     spark = SparkSession.builder.appName("Python Arrow-in-Spark example").getOrCreate()
-    dataframe_with_arrow(spark)
-    scalar_pandas_udf(spark)
+    # dataframe_with_arrow(spark)
+    # scalar_pandas_udf(spark)
     grouped_map_pandas_udf(spark)
-    grouped_agg_pandas_udf(spark)
+    # grouped_agg_pandas_udf(spark)
     spark.stop()
