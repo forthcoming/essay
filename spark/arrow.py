@@ -31,12 +31,12 @@ A grouped map UDF defines transformation: A pandas.DataFrame -> A pandas.DataFra
 Grouped map UDFs are used with pyspark.sql.GroupedData.apply
 '''
 def grouped_map_pandas_udf(spark): 
-    @pandas_udf("id long, v double", functionType=PandasUDFType.GROUPED_MAP)  # functionType: an enum value in pyspark.sql.functions.PandasUDFType, Default SCALAR
+    @pandas_udf(returnType="id long, v double", functionType=PandasUDFType.GROUPED_MAP)  # functionType: an enum value in pyspark.sql.functions.PandasUDFType, Default SCALAR
     def subtract_mean(pdf):
         v = pdf.v                          # pdf is a pandas.DataFrame
         return pdf.assign(v=v - v.mean())  # 添加新的列或者覆盖原有的列,这里需要理解一下
 
-    @pandas_udf(returnType="id long, v double", PandasUDFType.GROUPED_MAP) # id,v是自定义的列名
+    @pandas_udf("id long, v double", PandasUDFType.GROUPED_MAP) # id,v是自定义的列名
     def mean_udf(key, pdf):
         # key is a tuple of one numpy.int64, which is the value of 'id' for the current group
         return pd.DataFrame([key + (pdf['v'].mean(),)])
@@ -101,8 +101,8 @@ def grouped_agg_pandas_udf(spark):  #  A grouped aggregate UDF defines a transfo
 
 if __name__ == "__main__":
     spark = SparkSession.builder.appName("Python Arrow-in-Spark example").getOrCreate()
-    # dataframe_with_arrow(spark)
-    # scalar_pandas_udf(spark)
+    dataframe_with_arrow(spark)
+    scalar_pandas_udf(spark)
     grouped_map_pandas_udf(spark)
-    # grouped_agg_pandas_udf(spark)
+    grouped_agg_pandas_udf(spark)
     spark.stop()
