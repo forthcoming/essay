@@ -11,6 +11,7 @@ def dataframe_with_arrow(spark):
     result_pdf = df.select("*").toPandas()                       # Convert the Spark DataFrame back to a Pandas DataFrame using Arrow
     print(f"Pandas DataFrame result statistics:\n{result_pdf.describe()}\n")
 
+# 入参和出参类型都是pandas.Series,无聚合语义,返回大小与输入一致
 def scalar_pandas_udf(spark):
     multiply = pandas_udf(lambda a,b: a * b, returnType=LongType())
     df = spark.createDataFrame(pd.DataFrame(pd.Series([1, 2, 3]), columns=["x"]))
@@ -25,6 +26,7 @@ def scalar_pandas_udf(spark):
 
 '''
 调用模式是df.groupBy(field).apply(udf)
+入参和出参类型都是pandas.DataFrame,聚合语义是groupBy子句,返回数据rows和columns都可以和入参不同
 A grouped map UDF defines transformation: A pandas.DataFrame -> A pandas.DataFrame
 Grouped map UDFs are used with pyspark.sql.GroupedData.apply
 '''
