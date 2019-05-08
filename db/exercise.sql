@@ -332,39 +332,31 @@ call item();
 -------------------------------------------------------------------------------------------------------------------------------------
 
 行列互换
-create table t1(
-    num int,
-    subject varchar(10),
-    grade int 
-);
+create table student(class int,course varchar(10),score int);
+                                                          
+insert into student values(1,'Chinese',80);
+insert into student values(1,'Math',90);
+insert into student values(1,'English',100);
+insert into student values(2,'Chinese',70);
+insert into student values(2,'Math',80);
+insert into student values(2,'Chinese',90);
+insert into student values(3,'English',60);
+insert into student values(3,'Math',75);
+insert into student values(3,'English',80);
+insert into student values(3,'Chinese',95);
+                                                          
+select * from student;
 
-insert into t1 values(1,'语文',80);
-insert into t1 values(1,'数学',82);
-insert into t1 values(1,'英语',84);
-insert into t1 values(2,'语文',70);
-insert into t1 values(2,'数学',74);
-insert into t1 values(2,'英语',76);
-insert into t1 values(3,'语文',90);
-insert into t1 values(3,'数学',93);
-insert into t1 values(3,'英语',94);
-
-select
-     num,
-     sum(decode(subject , '语文', grade)) '语文',
-     sum(case subject
-          when '数学' then grade
-         end
-        ) '数学',
-     sum(case
-           when subject = '英语' then grade
-         end
-        ) '英语'
-from t1 group by num;
-
-num   语    数    英
-1    80    82    84
-2    70    74    76
-3    90    93    94
+SELECT
+	class,
+	sum( CASE course WHEN 'Chinese' THEN score END ) '语文',
+	sum( CASE course WHEN 'Math' THEN score END ) '数学',
+	sum( CASE course WHEN 'English' THEN score END ) '英语' 
+FROM student GROUP BY class;
+-- class	语文	数学	英语
+-- 1	    80	 90	   100
+-- 2	    160	 80	   NULL
+-- 3	    95	 75	   140                                      
 
 -------------------------------------------------------------------------------------------------------------------------------------
 
