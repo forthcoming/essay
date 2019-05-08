@@ -346,18 +346,19 @@ insert into student values(3,'English',80);
 insert into student values(3,'Chinese',95);
                                                           
 select * from student;
-
+							  
 SELECT
-	class,
-	sum( CASE course WHEN 'Chinese' THEN score END ) '语文',
-	sum( CASE course WHEN 'Math' THEN score END ) '数学',
-	sum( CASE course WHEN 'English' THEN score END ) '英语' 
-FROM student GROUP BY class;
--- class	语文	数学	英语
--- 1	    80	 90	   100
--- 2	    160	 80	   NULL
--- 3	    95	 75	   140                                      
-
+    class,
+    sum( CASE course WHEN 'Chinese' THEN score ELSE 0 END ) '语文',
+    sum( CASE course WHEN 'Math' THEN score ELSE 0 END ) '数学',
+    sum( CASE course WHEN 'English' THEN score ELSE 0 END ) '英语' 
+    FROM student GROUP BY class;
+	
+class	语文     数学     英语
+1	80	90	100
+2	160	80	0
+3	95	75	140
+							  
 -------------------------------------------------------------------------------------------------------------------------------------
 
 分析函数之rank
