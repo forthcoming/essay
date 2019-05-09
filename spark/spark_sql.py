@@ -87,18 +87,6 @@ def basic_df(spark):
     # spark.sql("SELECT * FROM global_temp.people").show()   # Global temporary view is tied to a system preserved database `global_temp`
     # spark.newSession().sql("SELECT * FROM global_temp.people").show()   # Global temporary view is cross-session
 
-def rdd2df(spark):
-    # a DataFrame can be created for a JSON dataset represented by an RDD[String] storing one JSON object per string
-    json_strings = ['{"name":"Yin","address":{"city":"Columbus","state":"Ohio"}}']
-    rdd = spark.sparkContext.parallelize(json_strings)
-    df = spark.read.json(rdd)
-    df.show()
-    # +---------------+----+
-    # |        address|name|
-    # +---------------+----+
-    # |[Columbus,Ohio]| Yin|
-    # +---------------+----+
-
 def rdd2df2rdd(spark):
     sc = spark.sparkContext
     lines = sc.textFile("resources/people.txt")     # rdd类型
@@ -193,7 +181,6 @@ def pivot(spark):
 if __name__ == "__main__":
     spark = SparkSession.builder.appName("SparkSQL basic example").config("spark.some.config.option", "some-value").getOrCreate()
     basic_df(spark)
-    # rdd2df(spark)
     # rdd2df2rdd(spark)
     # parquet_schema_merging(spark)
     # programmatic_schema(spark)
