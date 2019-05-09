@@ -3,7 +3,7 @@ from operator import add
 from pyspark.sql import SparkSession,functions as F
 
 def count_pi(spark):
-    def f(_):
+    def f(_): # rdd中的udf不需要像dataframe那样注册
         x, y = random(), random()
         return x*x + y*y < 1
     num_samples=200000
