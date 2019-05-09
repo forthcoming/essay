@@ -103,8 +103,7 @@ def rdd2df2rdd(spark):
     sc = spark.sparkContext
     lines = sc.textFile("resources/people.txt")     # rdd类型
     parts = lines.map(lambda l: l.split(","))
-    people = parts.map(lambda p: Row(name=p[0], age=int(p[1])))
-    schemaPeople = spark.createDataFrame(people)      # Infer the schema, and register the DataFrame as a table.
+    schemaPeople = spark.createDataFrame(parts,['name','age']) # Infer the schema, and register the DataFrame as a table.
     schemaPeople.createOrReplaceTempView("people")
     df_teenagers = spark.sql("SELECT name FROM people WHERE age >= 13 AND age <= 19")    # The results of SQL queries are Dataframe objects.
     rdd = df_teenagers.rdd
