@@ -170,6 +170,27 @@ def programmatic_schema(spark):
     # | Justin|
     # +-------+
 
+def pivot(spark):
+    data = [
+        (1,'Chinese',80),
+        (1,'Math',90),
+        (1,'English',100),
+        (2,'Chinese',70),
+        (2,'Math',80),
+        (2,'Chinese',90),
+        (3,'English',60),
+        (3,'Math',75),
+        (3,'English',80),
+        (3,'Chinese',95),
+    ]
+    df = spark.createDataFrame(data,['class','course','score'])
+    '''
+    There are two versions of pivot function: 
+    one that requires the caller to specify the list of distinct values to pivot on, and one that does not. 
+    The latter is more concise but less efficient, because Spark needs to first compute the list of distinct values internally.
+    '''
+    df.groupBy(["class"]).pivot("course",['Chinese','Math','English','11']).sum("score").show()
+    
 if __name__ == "__main__":
     spark = SparkSession.builder.appName("SparkSQL basic example").config("spark.some.config.option", "some-value").getOrCreate()
     basic_df(spark)
