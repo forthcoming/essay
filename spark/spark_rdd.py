@@ -16,7 +16,12 @@ def count_pi(spark):
 
 def word_count(spark):
     # rdd = spark.sparkContext.textFile("resources/people.txt")
-    # counts = rdd.flatMap(lambda x: x.split(' ')).map(lambda x: (x, 1)).reduceByKey(add)  # rdd类型,reduceByKey对key相同的数据集,都使用指定的函数聚合到一起
+    # counts = rdd.flatMap(lambda x: x.split(' ')).map(lambda x: (x, 1)).reduceByKey(add)  
+    '''
+    counts是rdd类型,reduceByKey对key相同的数据集,都使用指定的函数聚合到一起
+    add这里相当于"lambda x,y:x+y",注意自己定义聚合函数的格式
+    reduceByKey相当于dataframe里面的groupBy
+    '''
     # for word,count in counts.collect():
     #     print(word,count)
 
