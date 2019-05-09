@@ -28,18 +28,18 @@ create database [dname];
 create table t_name as select * from t1_name;  // 不完全复制表结构(只包含基本的字段信息),并插入数据
 create table t_name like t1_name;  // 完全复制表结构(包括主键,分区等)
 drop database [dname];
-drop table [tname];       //删除
+drop table [tname];  
 use [dname];
 desc [tname];
-truncate [tname];         //清空
+truncate [tname];     
 insert into [tname] values(...),(...);
 insert into t_name(...,...,...) select ...,...,... from t1_name;
 delete from [tname] where .... and...;
 update [tname] set ... , ... where ... and ...;
-select [distinct] * from [tname] where ... and ...;  //distinct:去重
-select count(1) from (SELECT * FROM mysql.user) tt;  //子查询一定要给临时表加别名
-select * from article where (title,content,uid) = (select title,content,uid from blog where bid=2);  //行子查询
-select * from article where (title,content,uid) in (select title,content,uid from blog);  //表子查询
+select [distinct] * from [tname] where ... and ...; 
+select count(1) from (SELECT * FROM mysql.user) tt;                                                  // from子查询,临时表需要加别名
+select * from article where (title,content,uid) = (select title,content,uid from blog where bid=2);  // where子查询
+select * from article where (title,content,uid) in (select title,content,uid from blog);             // where子查询
 show variables;  //显示各种变量(配置文件参数)
 show triggers;
 show tables;
@@ -220,7 +220,7 @@ create view view_name as select * from star where name like '张%' with check op
 with check option是对视图里面所有的name首字符必须是以"张"字打头,不管是修改前还是修改后都必须服从此规则
 update view_name set name='刘家辉' where name='张家辉'; //Error
 update view_name set name='张家界' where name='张家辉'; //OK
-1.对于update/insert,有with check option，要保证更新后的数据能被视图查询出来
+1.对于update/insert,有with check option,要保证更新后的数据能被视图查询出来
 2.对于delete,有无with check option都一样
 
 
