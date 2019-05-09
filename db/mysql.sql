@@ -1,6 +1,6 @@
 login
 mysql.user表具有全局性,控制着用户的登录信息和登录后的权限
-mysql_secure_installation  // 设置root密码，是否允许远程登录等信息
+mysql_secure_installation  // 设置root密码是否允许远程登录等信息
 指定哪些IP可以连入:
 update user set host='192.168.8.%' where host='::1';
 flush privileges;
