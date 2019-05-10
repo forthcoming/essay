@@ -348,16 +348,30 @@ insert into student values(3,'Chinese',95);
 select * from student;
 							  
 SELECT
+  class,
+  SUM_C,
+  SUM_M,
+  SUM_E,
+  SUM_C / COUNT_C AVG_C,
+  SUM_M / COUNT_M AVG_M,
+  SUM_E / COUNT_E AVG_E 
+FROM(
+  SELECT
     class,
-    sum( CASE course WHEN 'Chinese' THEN score ELSE 0 END ) '语文',
-    sum( CASE course WHEN 'Math' THEN score ELSE 0 END ) '数学',
-    sum( CASE course WHEN 'English' THEN score ELSE 0 END ) '英语' 
-    FROM student GROUP BY class;
+    sum( CASE course WHEN 'Chinese' THEN score ELSE 0 END ) SUM_C,
+    sum( CASE course WHEN 'Math' THEN score ELSE 0 END ) SUM_M,
+    sum( CASE course WHEN 'English' THEN score ELSE 0 END ) SUM_E,
+    sum( CASE course WHEN 'Chinese' THEN 1 ELSE 0 END ) COUNT_C,
+    sum( CASE course WHEN 'Math' THEN 1 ELSE 0 END ) COUNT_M,
+    sum( CASE course WHEN 'English' THEN 1 ELSE 0 END ) COUNT_E 
+  FROM student 
+  GROUP BY class 
+) tmp;
 	
-class	语文     数学     英语
-1	80	90	100
-2	160	80	0
-3	95	75	140
+class	SUM_C	SUM_M	SUM_E	AVG_C	  AVG_M	    AVG_E
+1	80	90	100	80.0000	  90.0000   100.0000
+2	160	80	0	80.0000	  80.0000	
+3	95	75	140	95.0000	  75.0000   70.0000
 							  
 -------------------------------------------------------------------------------------------------------------------------------------
 
