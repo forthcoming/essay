@@ -83,7 +83,8 @@ def df2rdd(spark):
         StructField('name', StringType(), True),
         StructField('age', LongType(), False)
     ])
-    # human = spark.createDataFrame(data,['name','age']) # 此方式spark会自动识别列类型
+    # human = spark.createDataFrame(data,"name: string, age: int") # Creates a class DataFrame from RDD,list or pandas.DataFrame
+    # human = spark.createDataFrame(data,['name','age']) # When schema is a list of column names, the type of each column will be inferred from data
     human = spark.createDataFrame(data,schema)
     human.printSchema()
     # root
