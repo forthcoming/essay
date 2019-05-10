@@ -13,7 +13,7 @@ cluster keyslot key # 计算键key被放置在哪个槽上
 cluster countkeysinslot <slot(num)>  # 计算槽上有多少个键值对
 cluster getkeysinslot <slot(num)> <count> # 返回count个slot槽中的键
 
-redis-cluster只支持db0
+redis-cluster只支持db0,不支持mget
 10.1.140.179:8001> select 1
 (error) ERR SELECT is not allowed in cluster mode
 "keys *"只会返回该节点的数据(主从数据一样),但StrictRedisCluster会返回集群中所有满足条件的数据
