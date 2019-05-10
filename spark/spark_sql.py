@@ -61,12 +61,6 @@ def basic_df(spark):
     # df.select(df['name'], df['age'] + 1).show()      # Select everybody, but increment the age by 1
     # df.select(F.when(df['score']<2,11).when(df['score'] < 3, 22).otherwise(33).alias('new_score')).show()
 
-    # df.printSchema()  # Print the schema in a tree format
-    # root
-    # |-- age: long (nullable = true)
-    # |-- name: string (nullable = true)
-    # |-- score: double (nullable = true)
-
     # df.groupBy(["age"]).count().show()       # Count people by age
     # df.groupBy(['name','age']).avg().show()  # Computes average values for each numeric columns for each group
     df.groupBy(['name','age']).agg(F.count('age'),F.countDistinct('age'),F.mean('score').alias('mean_score')).show() 
@@ -89,6 +83,7 @@ def df2rdd(spark):
         StructField('name', StringType(), True),
         StructField('age', LongType(), False)
     ])
+    # human = spark.createDataFrame(data,['name','age']) # 此方式spark会自动识别列类型
     human = spark.createDataFrame(data,schema)
     human.printSchema()
     # root
@@ -155,8 +150,15 @@ def pivot(spark):
     one that requires the caller to specify the list of distinct values to pivot on, and one that does not. 
     The latter is more concise but less efficient, because Spark needs to first compute the list of distinct values internally.
     '''
-    df.groupBy(["class"]).pivot("course",['Chinese','Math','English','11']).sum("score").show()
-    
+    df.groupBy(["class"]).pivot("course",['Chinese','Math','English']).agg(F.sum('score'),F.mean('score')).show()
+    # +-----+------------------+------------------+---------------+---------------+------------------+------------------+
+    # |class|Chinese_sum(score)|Chinese_avg(score)|Math_sum(score)|Math_avg(score)|English_sum(score)|English_avg(score)|
+    # +-----+------------------+------------------+---------------+---------------+------------------+------------------+
+    # |    1|                80|              80.0|             90|           90.0|               100|             100.0|
+    # |    3|                95|              95.0|             75|           75.0|               140|              70.0|
+    # |    2|               160|              80.0|             80|           80.0|              null|              null|
+    # +-----+------------------+------------------+---------------+---------------+------------------+------------------+
+   
 if __name__ == "__main__":
     spark = SparkSession.builder.appName("SparkSQL basic example").config("spark.some.config.option", "some-value").getOrCreate()
     basic_df(spark)
