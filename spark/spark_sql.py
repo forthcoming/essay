@@ -78,26 +78,32 @@ def basic_df(spark):
     # |Akatsuki|null|         0|                  0|       1.0|
     # |  Avatar|  19|         2|                  1|      3.25|
     # +--------+----+----------+-------------------+----------+
-    
-    df.createOrReplaceTempView("people")      # Register the DataFrame as a SQL temporary view
-    sqlDF = spark.sql("SELECT * FROM people where age is not null")  # 结尾不要有分号
-    # sqlDF.show()
 
     df.createGlobalTempView("people")      # Register the DataFrame as a global temporary view
     # spark.sql("SELECT * FROM global_temp.people").show()   # Global temporary view is tied to a system preserved database `global_temp`
     # spark.newSession().sql("SELECT * FROM global_temp.people").show()   # Global temporary view is cross-session
 
-def rdd2df2rdd(spark):
-    sc = spark.sparkContext
-    lines = sc.textFile("resources/people.txt")     # rdd类型
-    parts = lines.map(lambda l: l.split(","))
-    schemaPeople = spark.createDataFrame(parts,['name','age']) # Infer the schema, and register the DataFrame as a table.
-    schemaPeople.createOrReplaceTempView("people")
+def df2rdd(spark):
+    data=[('Michael',29),('Andy',30),('Justin',19)]
+    schema = StructType([
+        StructField('name', StringType(), True),
+        StructField('age', LongType(), False)
+    ])
+    human = spark.createDataFrame(data,schema)
+    human.printSchema()
+    # root
+    # |-- name: string (nullable = true)
+    # |-- age: long (nullable = false)
+    human.createOrReplaceTempView("people")  # Register the DataFrame as a SQL temporary view
     df_teenagers = spark.sql("SELECT name FROM people WHERE age >= 13 AND age <= 19")    # The results of SQL queries are Dataframe objects.
-    rdd = df_teenagers.rdd
-    teenNames = rdd.map(lambda p: "Name: " + p.name)
-    print(teenNames.collect())  # List类型 
-    # ['Name: Justin'] 
+    df_teenagers.show()
+    # +------+
+    # |  name|
+    # +------+
+    # |Justin|
+    # +------+
+    rdd = df_teenagers.rdd  # dataframe => rdd
+    print(rdd.collect())    # [Row(name='Justin')]
 
 def parquet_schema_merging(spark):
     sc = spark.sparkContext
@@ -130,33 +136,6 @@ def parquet_schema_merging(spark):
     # |     4|     2|  null|  1|
     # +------+------+------+---+
 
-def programmatic_schema(spark):
-    sc = spark.sparkContext
-    lines = sc.textFile("resources/people.txt")
-    parts = lines.map(lambda l: l.split(","))
-    # Each line is converted to a tuple.
-    people = parts.map(lambda p: (p[0], p[1].strip()))
-    # The schema is encoded in a string.
-    schemaString = "name age"
-
-    fields = [StructField(field_name, StringType(), True) for field_name in schemaString.split()]
-    schema = StructType(fields)
-
-    # Apply the schema to the RDD.
-    schemaPeople = spark.createDataFrame(people, schema)
-    # Creates a temporary view using the DataFrame
-    schemaPeople.createOrReplaceTempView("people")
-    # SQL can be run over DataFrames that have been registered as a table.
-    results = spark.sql("SELECT name FROM people")
-    results.show()
-    # +-------+
-    # |   name|
-    # +-------+
-    # |Michael|
-    # |   Andy|
-    # | Justin|
-    # +-------+
-
 def pivot(spark):
     data = [
         (1,'Chinese',80),
@@ -181,7 +160,6 @@ def pivot(spark):
 if __name__ == "__main__":
     spark = SparkSession.builder.appName("SparkSQL basic example").config("spark.some.config.option", "some-value").getOrCreate()
     basic_df(spark)
-    # rdd2df2rdd(spark)
+    # df2rdd(spark)
     # parquet_schema_merging(spark)
-    # programmatic_schema(spark)
     spark.stop()
