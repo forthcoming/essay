@@ -143,5 +143,12 @@ E(X)=1/λ ; D(X)=1/λ^2 (λ>0且是常数)
 由数学期望和方差性质可知C1X1+C2X2+...CnXn ~ N(∑Ciμi,∑Ci^2σi^2)  
 n维正态分布的边缘分布仍然是正态分布,不依赖于参数ρ  
  
+---
+##### 二项分布(离散型随机变量分布)
+重复n次独立的伯努利试验,是n个独立的是/非试验中成功的次数的离散概率分布,其中每次试验的成功概率为p  
+n次独立重复试验中发生k次的概率P(ξ=k)= C(k,n) * p^k * (1-p)^(n-k)   
+期望: Eξ=np,可以转化为n个相互独立的0-1分布来做,Xi表示第i次试验成功与否的随机变量  
+方差: Dξ=np(1-p),证明见下图  
+![Image](https://github.com/forthcoming/essay/blob/master/ml/source/binomial_distribution.png)  
 
 
