@@ -21,10 +21,4 @@ P(A)=1-P(B)
 当P(B)>0,P(A|B)=P(AB)/P(B)
 
 
-```math
-e^{i\pi} + 1 = 0
-```
-
-$\color{red}{red}$
-
-$\color{red}{sdjfksd 沈德符}$
+<font color=gray size=5>color=gray</font>
