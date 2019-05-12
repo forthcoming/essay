@@ -21,4 +21,9 @@ P(A)=1-P(B)
 当P(B)>0,P(A|B)=P(AB)/P(B)
 
 
-<font color=gray size=5>color=gray</font>
+<script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=default"></script>
+
+大大
+$$x=\frac{-b\pm\sqrt{b^2-4ac}}{2a}$$
+\\(x=\frac{-b\pm\sqrt{b^2-4ac}}{2a}\\)
+洒大地
