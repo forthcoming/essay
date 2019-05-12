@@ -23,7 +23,9 @@ P(A)=1-P(B)
 
 <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=default"></script>
 
-大大
-$$x=\frac{-b\pm\sqrt{b^2-4ac}}{2a}$$
-\\(x=\frac{-b\pm\sqrt{b^2-4ac}}{2a}\\)
-洒大地
+
+
+$$x=\frac{-b\pm\sqrt{b^2-4ac}}{2a}$$   
+\\(x=\frac{-b\pm\sqrt{b^2-4ac}}{2a}\\)   
+
+
