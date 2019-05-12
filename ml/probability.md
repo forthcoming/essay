@@ -153,8 +153,8 @@ E(X)=1/λ ; D(X)=1/λ^2 (λ>0且是常数)
 
 ---
 ##### 正态分布(连续型随机变量分布)
-<pre>
-若连续型随机变量X服从参数为μ、σ的概率分布,且其概率密度函数为  
+```
+若连续型随机变量X服从参数为μ、σ的概率分布,且其概率密度函数为 
 ![Image](https://github.com/forthcoming/essay/blob/master/ml/source/normal_distribution.jpg '标准正太分布函数')  
 则这个随机变量就称为正态随机变量,正态随机变量服从的分布就称为正态分布  
 正态分布有两个参数,即期望μ和标准差σ  
@@ -165,8 +165,8 @@ E(X)=1/λ ; D(X)=1/λ^2 (λ>0且是常数)
 有限个相互独立的正态随机变量的线性组合C1X1+C2X2+...CnXn仍然服从正态分布  
 由数学期望和方差性质可知C1X1+C2X2+...CnXn ~ N(∑Ciμi,∑Ci^2σi^2)  
 n维正态分布的边缘分布仍然是正态分布,不依赖于参数ρ  
-</pre>
- 
+```
+
 ---
 ##### 二项分布(离散型随机变量分布)
 <pre>
@@ -174,8 +174,8 @@ n维正态分布的边缘分布仍然是正态分布,不依赖于参数ρ
 n次独立重复试验中发生k次的概率P(ξ=k)= C(k,n) * p^k * (1-p)^(n-k)   
 期望: Eξ=np,可以转化为n个相互独立的0-1分布来做,Xi表示第i次试验成功与否的随机变量  
 方差: Dξ=np(1-p),证明见下图  
-![Image](https://github.com/forthcoming/essay/blob/master/ml/source/binomial_distribution.png)  
 </pre>
+![Image](https://github.com/forthcoming/essay/blob/master/ml/source/binomial_distribution.png)  
 
 ---
 ##### 分布函数
