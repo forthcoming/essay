@@ -19,3 +19,12 @@ P(A)=1-P(B)
 ##### 条件概率: 已知事件B出现的条件下A出现的概率称为条件概率,记作P(A|B)
 当P(A)>0,P(B|A)=P(AB)/P(A)
 当P(B)>0,P(A|B)=P(AB)/P(B)
+
+
+```math
+e^{i\pi} + 1 = 0
+```
+
+$\color{red}{red}$
+
+$\color{red}{sdjfksd 沈德符}$
