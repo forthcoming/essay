@@ -1,8 +1,8 @@
 ##### 相互独立事件: 事件A(或B)是否发生对事件B(A发生的概率没有影响,则{a,B} {A,b} {a,b}都是相互独立事件
-P(A∪B)=P(A)+P(B)－P(A)P(B)=1-p(a)p(b)
-P(AB)=P(A)P(B)
-P(B|A)=P(B)
-P(A|B)=P(A)
+P(A∪B)=P(A)+P(B)－P(A)P(B)=1-p(a)p(b)  
+P(AB)=P(A)P(B)  
+P(B|A)=P(B)  
+P(A|B)=P(A)  
 
 ---
 ##### 互斥事件: 事件A和B不可能同时发生即A∩B=Φ
