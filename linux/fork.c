@@ -102,10 +102,15 @@ void sig_int(int signo)
     printf("pid:%d,当在终端上按下ctrl+c后会产生SIGINT信号\n",getpid());
 }
 
-int main()  // 当子进程退出的时候,内核都会给父进程一个SIGCHLD信号,如果父进程不关心子进程什么时候结束,可以用signal(SIGCHLD,SIG_IGN)通知内核,当子进程结束后内核会回收
+/*
+当子进程退出的时候,内核都会给父进程一个SIGCHLD信号,如果父进程不关心子进程什么时候结束,可以用signal(SIGCHLD,SIG_IGN)通知内核,当子进程结束后内核会回收
+默认采用SIG_DFL,代表默认的处理方式为不会理会这个信号,但是也不会丢弃该信号量,如果系统不调用wait/waitpid,则会变成僵尸进程
+通过fork两次的方式也可以消除僵尸进程,即"主进程 => 儿子进程"修改为"主进程 => 爸爸进程 => 儿子进程",爸爸进程就是初始化儿子进程,然后结束,注意要在主进程中调用join()回收爸爸进程
+*/
+int main()  
 {
     int x=1;
-    signal(SIGCHLD,SIG_IGN);  //SIGCHLD 子进程终止信号
+    signal(SIGCHLD,SIG_IGN);  // 第二个参数可以自定义,如将SIG_IGN修改为自定义sig_int方法,专门用来处理对应的信号
     pid_t pid = fork();
     if(pid == 0){
         x+=3;
