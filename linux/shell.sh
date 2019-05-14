@@ -155,8 +155,8 @@ time find . -name "*.c"  # 执行命令并计算执行时间
 mkdir -p project/{lib/ext,bin,src/com/bjhee/{web,dao,service},test}
 mkdir -p /1/2 # 创建目录树
 grep -v "^$" test.txt  # 匹配test文件中的非空行,v意思是反向查找
-sudo su - ccktv  # 输入的密码是执行sudo命令的用户密码
-su – [root]	     # 用户切换命令(默认切换到root),输入的是root的密码,该命令是通过sudo权限进行角色切换
+sudo su ccktv  # 输入的密码是执行sudo命令的用户密码,环境变量会一起被切换
+sudo -s ccktv  # 输入的密码是执行sudo命令的用户密码,不切换环境变量
 
 Ubuntu
 launcher地址: /usr/share/applications/eclipse.desktop
