@@ -1,3 +1,12 @@
+conda
+conda create -n scrapy # 创建虚拟环境
+conda env list
+source activate scrapy #激活
+source deactivate #停用
+conda install -n scrapy python=3.6
+conda install /root/Desktop/软件名
+conda remove -n scrapy --all
+
 环境变量(~/.bashrc作用于当前用户,/etc/profile作用于所有用户,写错后可能导致系统登不进去)
 REDIS=/root/redis/bin
 PYCHARM=/root/pycharm/bin
