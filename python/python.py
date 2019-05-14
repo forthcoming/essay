@@ -1,3 +1,29 @@
+# thread local
+from multiprocessing.dummy import Process
+from threading import local
+import time
+from os import urandom
+
+class ThreadLocal:
+    def __init__(self):
+        self.token=local()  # 保证同一个实例在不同线程中拥有不同的token值,redis分布式锁利用该性质达到线程安全
+        # self.token=type('dummy',(),{})
+
+    def show(self,timeout):
+        self.token.value=urandom(16)
+        time.sleep(timeout)
+        print(self.token.value)
+
+thread_local=ThreadLocal()
+
+processes=[Process(target=lambda thread_local,timeout:thread_local.show(timeout),args=(thread_local,idx)) for idx in range(1,4)]
+for process in processes:
+    process.start()
+for process in processes:
+    process.join()
+
+##################################################################################################################################
+    
 函数调用(引用传参)
 # 关键字参数/解包参数调用函数(可通过keyword=value形式调用函数,参数顺序无所谓)
 def fun(name, age, gender):  
