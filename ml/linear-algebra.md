@@ -2,7 +2,7 @@
 ```python
 c=a×b
 c是一个向量,垂直于a、b,方向遵守右手定则
-|c|=|a||b|·sinθ,几何意义是等于以a和b为邻边的平行四边形的面积
+|c|=|a|*|b|*sinθ,几何意义是等于以a和b为邻边的平行四边形的面积
 坐标运算
 a×b=|i,j,k;ax,ay,az;bx,by,bz|
 四则运算
@@ -17,7 +17,7 @@ a×(b+c) =a×b+a×c
 ##### 向量点积
 ```python
 c=a·b
-c是一个标量,大小等于ax*bx+ay*by+az*bz,也等于|a||b|·cosθ
+c是一个标量,大小等于ax*bx+ay*by+az*bz,也等于|a|*|b|*cosθ
 ```
 
 ---
