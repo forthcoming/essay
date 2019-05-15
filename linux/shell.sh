@@ -1,3 +1,12 @@
+download & upload
+ssh -p port user@ip     # 远程连接
+scp file1 user@ip:file2 # 上传or下载文件(file1 -> file2),文件夹需要在scp后加-r参数
+rz -y # 上传文件,y代表覆(默认不覆盖)
+sz filename  # 下载文件
+rsync -a 源文件 user@目标IP:路径 # -a表示递归方式传输文件,并保持所有文件属性,rsync默认只对差异文件做更新,也可以全量(优于scp),使用时需要目标服务器开启sshd
+1. apt install openssh-server
+2. /etc/init.d/ssh start
+
 pip
 pip show flask  # 查看库安装信息(路径等)
 pip freeze > requirements.txt
@@ -85,9 +94,6 @@ tar(打包压缩目录或文件,压缩后文件格式为*.tar.gz)
 tar czf new.tar.gz old1 old2 #压缩文件夹生成new.tar.gz
 tar xzf new.tar.gz #解压缩*.tar.gz格式的文件
 
-ssh & scp
-ssh -p port user@ip     远程连接
-scp file1 user@ip:file2  上传or下载文件(file1 -> file2),文件夹需要在scp后加-r参数
 -----------------------------------------------------------------------------------------------------------------------
 ssh -C -f -N -g -L 12450:10.1.138.93:3306 coolshot@10.1.138.64     # 端口转发
 该命令一般在跳板机(10.16.2.46)中执行
@@ -152,8 +158,6 @@ uname -a     #  -n: 显示主机名 -r: 显示内核版本 -a: 显示所有信�
 touch file.txt    # 创建一个空文件
 uptime    # 统计系统从启动到现在运行了多久
 ls -lrt   # 最近访问的文件会出现在最下方
-rz -y # 上传文件,y代表覆(默认不覆盖)
-sz filename  # 下载文件
 mv #移动文件(夹)or改文件(夹)名,不需用-r
 cp -a #复制整个文件夹/目录,并保持属性不变,相当于cp -pdr
 cd - #返回到上个目录
