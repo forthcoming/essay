@@ -1,3 +1,11 @@
+pip
+pip show flask  # 查看库安装信息(路径等)
+pip freeze > requirements.txt
+pip install -r requirements.txt
+pip install --proxy=http://127.0.0.1:8118 scrapy==1.4.0
+pip install --proxy=socks5://127.0.0.1:1080 scrapy==1.4.0
+pip uninstall
+
 conda
 conda create -n scrapy # 创建虚拟环境
 conda env list
@@ -134,7 +142,6 @@ Thu Dec 15 16:55:22 CST 2016
 
 common
 watch -n 1 -d netstat -ant  # 每隔1s高亮显示网络链接数变化情况
-pip show flask  # 查看库安装信息(路径等)
 iostat -x 1  # 实时查看磁盘IO使用情况
 du -s * | sort -n | tail  # 列出当前目录里最大的10个文件
 ps aux | sort -nk +4 | tail  #  列出头十个最耗内存的进程
