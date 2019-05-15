@@ -18,6 +18,7 @@ a×(b+c) =a×b+a×c
 ```python
 c=a·b
 c是一个标量,大小等于ax*bx+ay*by+az*bz,也等于|a||b|·cosθ
+```
 
 ---
 ##### 线性方程组
