@@ -114,6 +114,7 @@ lrem key count value :从key列表里移除前count次出现的值为value的元
 lpush key value : 把值插入到list头部,值可以是多个
 rpop key :  移除并返回存于key的最后一个元素
 lrange key start stop: 返回链表中[start ,stop]中的元素,左数从0开始,右数从-1开始
+ltrim key start stop: 使列表只存储[start,stop]范围内的数据,支持负索引
 
 127.0.0.1:6379> lpush mylist a b 1
 (integer) 3
