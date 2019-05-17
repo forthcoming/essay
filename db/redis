@@ -1,4 +1,7 @@
 lua script
+Redis uses the same Lua interpreter to run all the commands. Also Redis guarantees that a script is executed in an atomic way:
+no other script or Redis command will be executed while a script is being executed. This semantic is similar to the one of MULTI EXEC. 
+From the point of view of all the other clients the effects of a script are either still not visible or already completed.
 eval "return redis.call('get', KEYS[1])" 1 zgt          # 执行脚本,返回脚本的值,并注册脚本的sha值到redis
 evalsha 4e6d8fc8bb01276962cce5371fa795a7763657ae 1 zgt  # 前提是sha已被注册
 script exists 4e6d8fc8bb01276962cce5371fa795a7763657ae
