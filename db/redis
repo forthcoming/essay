@@ -5,7 +5,7 @@ From the point of view of all the other clients the effects of a script are eith
 eval "return redis.call('get', KEYS[1])" 1 zgt          # 执行脚本,返回脚本的值,并注册脚本的sha值到redis
 evalsha 4e6d8fc8bb01276962cce5371fa795a7763657ae 1 zgt  # 前提是sha已被注册
 script exists 4e6d8fc8bb01276962cce5371fa795a7763657ae
-script flush                                            # Flush all scripts from the script cache
+script flush                                            # Flush all scripts from the script cache,redis重启or关闭也会触发该命令
 script load "return redis.call('get', KEYS[1])"         # 注册脚本的sha值并返回sha,不执行脚本(sha1(b'lua script').hexdigest())
 
 cluster
