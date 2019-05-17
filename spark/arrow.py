@@ -14,7 +14,8 @@ def dataframe_with_arrow(spark):
 # 入参和出参类型都是pandas.Series,无聚合语义,返回大小与输入一致
 def scalar_pandas_udf(spark):
     multiply = pandas_udf(lambda a,b: a * b, returnType=LongType())
-    df = spark.createDataFrame(pd.DataFrame(pd.Series([1, 2, 3]), columns=["x"]))
+    # df = spark.createDataFrame(pd.DataFrame(pd.Series([1, 2, 3]), columns=["x"]))
+    df = spark.createDataFrame([(1,), (2,), (3,)],["x"])
     df.select(multiply("x", "x")).show()  # Execute function as a Spark vectorized UDF
     # +--------------+
     # |<lambda>(x, x)|
