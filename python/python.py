@@ -1,3 +1,21 @@
+from functools import lru_cache
+@lru_cache(maxsize=512)  # maxsize代表能缓存几个函数执行结果;typed代表参数类型改变时是否重新缓存
+def fib(number: int) -> int:
+    print(number,end='\t')
+    if number < 2:
+        return number
+    return fib(number-1) + fib(number-2)
+
+print(fib.cache_info())      # CacheInfo(hits=0, misses=0, maxsize=512, currsize=0)
+print(f'answer: {fib(10)}')
+print(fib.cache_info())      # CacheInfo(hits=8, misses=11, maxsize=512, currsize=11) hits表示缓存命中次数
+print(f'answer: {fib(10)}')
+print(fib.cache_info())      # CacheInfo(hits=9, misses=11, maxsize=512, currsize=11)
+fib.cache_clear()
+print(fib.cache_info())      # CacheInfo(hits=0, misses=0, maxsize=512, currsize=0)
+
+##################################################################################################################################
+
 # Type hinting
 from typing import List
 
