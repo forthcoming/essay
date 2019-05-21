@@ -1,5 +1,8 @@
 from functools import lru_cache
-@lru_cache(maxsize=512)  # maxsize代表能缓存几个函数执行结果;typed代表参数类型改变时是否重新缓存;记忆确定性的函数,因为它总是会为相同的参数返回相同的结果
+# maxsize代表能缓存几个函数执行结果,当超过限制时会删除最久一次未使用的元素
+# typed代表参数类型改变时是否重新缓存;
+# 记忆确定性的函数,因为它总是会为相同的参数返回相同的结果
+@lru_cache(maxsize=100)  
 def fib(number: int) -> int:
     print(number,end='\t')
     if number < 2:
