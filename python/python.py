@@ -1,3 +1,15 @@
+# Type hinting
+from typing import List
+
+def greater(a: int, b: int) -> bool:
+    return a > b
+a: int = 123
+b: str = 'hello'
+l: List[int] = [1, 2, 3]  # 指明一个全部由整数组成的列表
+print(greater.__annotations__) # {'a': <class 'int'>, 'b': <class 'int'>, 'return': <class 'bool'>}
+
+##################################################################################################################################
+
 # thread local
 from multiprocessing.dummy import Process
 from threading import local
@@ -565,7 +577,7 @@ finally: # 定义一些清理工作,异常发生/捕捉与否,是否有return都
 ipdb
 whatis       Prints the type of the argument.
 enter        重复上次命令
-set_trace()  在该点打断(from ipdb import set_trace)
+set_trace()  在该点打断(from ipdb import set_trace,或者直接在该处使用breakpoint(),不需要使用set_trace()函数)
 c(ont(inue))   Continue execution, only stop when a breakpoint is encountered.执行到下个断点处
 l(ist) [first [,last]]   List source code for the current file.Without arguments, list 11 lines around the current line or continue the previous listing.
 j(ump)   程序跳到指定行
@@ -714,6 +726,9 @@ a, *b, c = [1, 2, 3, 4, 5]
 
 a, b = 1, 2
 a, b = b, a   #使用拆箱进行变量交换
+                                       
+first, _, third, *_ = range(10)
+print(first, third,_)  # 0 2 [3, 4, 5, 6, 7, 8, 9]
 
 #########################################################################################################################################
 
