@@ -437,7 +437,7 @@ if __name__ == "__main__":
     r = Rectangle()
     r.width = 3              # 调用__setattr__    out, 等价于setattr(r,'width',3)
     r.length = 4             # 调用__setattr__    out
-    print(r.size)            # 调用__getattr__ (3, 4)
+    print(r.size)            # 调用__getattr__ (3, 4), 等价于getattr(r,'size')
     print(r.area)            # 调用__getattr__  default
     r.size = 30,40           # 调用__setattr__ in
     print(r.width,r.length)  # (30,40),不会调用__setattr__和__getattr__
