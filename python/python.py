@@ -441,17 +441,12 @@ if __name__ == "__main__":
 
 #########################################################################################################################################
 
-getattr & __base__ & __name__ & __class__
-class Tests:   
-a = '10'     
-def test(self):
-   return 20
+__base__ & __name__ & __class__
+class Tests: 
+    a = '10'     
+    def test(self):
+       return 20
 t = Tests()
-
-snap1 = getattr(t, 'test')()         #获取对象中test方法并执行
-snap2 = getattr(t, 'a' ,'default' )  #获取对象中相应的值,如果没有则调用__getattr__,使用default(或者__getattr__规定的值)
-snap3 = getattr(t,' c', 'default' )  #获取对象中相应的值,如果没有则使用default
-print(snap1,snap2,snap3)             #20 10 default
 
 print(Tests,type(t),t.__class__)     #<class '__main__.Tests'> <class '__main__.Tests'> <class '__main__.Tests'>  完全等价   
 #print(t.__base__ ,t.__name__)       #实例t无此属性
