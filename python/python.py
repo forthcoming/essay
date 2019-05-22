@@ -396,6 +396,7 @@ del c.x       # 相当于c.delx()
 
 __getattr__ & __setattr__
 class Rectangle:
+    keys = 'keys'
     def __init__(self):
         self.width = 0  # 调用__setattr__
         self.length = 0 # 调用__setattr__
@@ -406,38 +407,46 @@ class Rectangle:
         当在__setattr__方法内对属性进行赋值時,不可使用self.attr = value,因为他会再次调用self.__setattr__("attr", value)形成无穷递归循环,最后导致堆栈溢出异常
         应该通过对属性字典做索引运算来赋值任何实例属性,也就是使用self.__dict__['name']= value
         '''
-        print('__setattr__')
+        print('调用__setattr__',end='\t')
         if name == "size":
-            print('in name')
+            print('in')
             self.width, self.length = value  # 调用__setattr__
         else:
-            print('out name')
+            print('out')
             self.__dict__[name] = value
 
-    def __getattr__(self, name):   #  # 使用实例直接访问实例不存在的属性时,会调用__getattr__方法
-        print('__getattr__')
+    def __getattr__(self, name):   # 使用实例直接访问实例不存在的属性时,会调用__getattr__方法
+        print('调用__getattr__',end='\t')
         if name == "size":
             return self.width, self.length
         else:
-            raise AttributeError
+            return 'default'
 
     def __getitem__(self,key):
-        print('__getitem__')
+        print('调用__getitem__',end='\t')
         return self.width
 
     def __setitem__(self,key,value):
-        print('__setitem__')
+        print('调用__setitem__')
         self.__dict__[key]=value
+    
+    def test(self):
+        return 20
 
 if __name__ == "__main__":
     r = Rectangle()
-    r.width = 3  # 调用__setattr__
-    r.length = 4 # 调用__setattr__
-    print(r.size)   #(3, 4)
-    r.size = 30,40  # 调用__setattr__
-    print(r.width,r.length)  #(30,40)
-    print(r['width'])
-    r['q']=9  # 相当于r.q=9
+    r.width = 3              # 调用__setattr__    out, 等价于setattr(r,'width',3)
+    r.length = 4             # 调用__setattr__    out
+    print(r.size)            # 调用__getattr__ (3, 4)
+    print(r.area)            # 调用__getattr__  default
+    r.size = 30,40           # 调用__setattr__ in
+    print(r.width,r.length)  # (30,40),不会调用__setattr__和__getattr__
+    print(r['width'])        # 调用__getitem__ 30
+    r['q']=9                 # 调用__setitem__, 相当于r.q=9
+
+    print( getattr(r, 'test')() )              # 获取对象中test方法并执行,不调用__getattr__
+    print( getattr(r, 'avatar','akatsuki') )   # 调用__getattr__   default, 由于定义了__getattr__,所以这里的默认值akatsuki不会生效
+    print( getattr(r, 'keys') )                # keys
 
 #########################################################################################################################################
 
