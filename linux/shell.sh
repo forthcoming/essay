@@ -1,3 +1,39 @@
+ab
+sudo apt install apache2-utils
+Usage: ab [options] [http[s]://]hostname[:port]/path    # 注意命令要加单引号,-T和-p要一起使用
+Options are:
+    -n requests     Number of requests to perform
+    -c concurrency  Number of multiple requests to make at a time
+    -t timelimit    Seconds to max. to spend on benchmarking This implies -n 50000
+    -s timeout      Seconds to max. wait for each response Default is 30 seconds
+    -T content-type Content-type header to use for POST/PUT data, eg.'application/x-www-form-urlencoded' Default is 'text/plain'
+    -p postfile     File containing data to POST. Remember also to set -T
+    -X proxy:port   Proxyserver and port number to use
+    -C attribute    Add cookie, eg. 'Apache=1234'. (repeatable)
+    -H attribute    Add Arbitrary header line, eg. 'Accept-Encoding: gzip',Inserted after all normal header lines. (repeatable)
+ab -c 30 -n 5000 -H 'admin:sz_xlp' -X '127.0.0.1:80' 'http://apitest.ring.kugou.com/ccktv/v1/ktv_room/room/get_room_list?birthday=1990&app_agent=ccktv-ios&page_index=0&page_size=50'
+data.json  => {"user_ids": "1,2","room_ids":"1,2","app_agent":"ccktv-ios"}  # 必须是双引号
+ab -c 30 -n 5000 -H 'admin:sz_xlp' -T 'application/json' -X '127.0.0.1:80' -p /home/ccktv/data.json 'http://apitest.ring.kugou.com/ccktv/v1/ktv_room/room/get_batch_stream'
+Server Hostname:        apitest.ring.kugou.com
+Server Port:            80
+Document Path:          /ccktv/v1/ktv_room/room/get_batch_stream
+Document Length:        825 bytes                                          (供测试的URL返回的文档大小)
+Non-2xx responses:      0                                                  (非200状态码次数,n次请求中失败的次数,只有失败了才会出现该项)
+Concurrency Level:      30                                                 (c参数)
+Time taken for tests:   8.192 seconds                                      (压力测试消耗的总时间)
+Complete requests:      5000                                               (压测总次数)
+Failed requests:        0                                                  (失败的请求数)
+Write errors:           0
+Total transferred:      4805000 bytes
+Total POSTed:           1430000
+HTML transferred:       4125000 bytes
+Requests per second:    610.34 [#/sec] (mean)                              (平均每秒的请求数,Complete requests/Time taken for tests)
+Time per request:       49.153 [ms] (mean)                                 (所有并发用户(这里是30)都请求一次的平均时间)
+Time per request:       1.638 [ms] (mean, across all concurrent requests)  (单个用户请求一次的平均时间,Time per request/Concurrency Level)
+Transfer rate:          572.79 [Kbytes/sec] received
+                        170.47 kb/s sent
+                        743.26 kb/s total
+                        
 download & upload
 ssh -p port user@ip     # 远程连接
 scp file1 user@ip:file2 # 上传or下载文件(file1 -> file2),文件夹需要在scp后加-r参数
