@@ -105,17 +105,20 @@ with tmp as (select avg(score) avg_score,class from student group by class) sele
 with tmp as (select student.*, avg(score) over(partition by class) avg_score from student) select * from tmp where score<avg_score;
 
 5) 查出每个班分数最高的前两名学生信息
-mysql> select a.*,count(1) num from student a join student b on a.class=b.class and a.score<=b.score group by a.class,a.score having num<=2;
-+--------+-------+-------+----------+
-| name   | class | score | count(1) |
-+--------+-------+-------+----------+
-| 下贱   |     1 |    22 |        2 |
-| 张三   |     1 |    54 |        1 |
-| 胖三   |     2 |    34 |        2 |
-| 锚机吧 |     2 |    64 |        1 |
-| 赵六   |     3 |    54 |        2 |
-| 王五   |     3 |    79 |        1 |
-+--------+-------+-------+----------
+select a.*,count(1) num from student a join student b 
+on a.class=b.class and a.score<=b.score    # 这里必须包含"=", ">="则表示最小的某几项
+group by a.class,a.score,a.name 
+having num<=2;
++-----------+-------+-------+-----+
+| name      | class | score | num |
++-----------+-------+-------+-----+
+| 张三      |     1 |    54 |   1 |
+| 下贱      |     1 |    22 |   2 |
+| 王五      |     3 |    79 |   1 |
+| 赵六      |     3 |    54 |   2 |
+| 锚机吧    |     2 |    64 |   1 |
+| 胖三      |     2 |    34 |   2 |
++-----------+-------+-------+-----+
 
 -------------------------------------------------------------------------------------------------------------------------------------
 
