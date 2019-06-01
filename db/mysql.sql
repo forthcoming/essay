@@ -4,7 +4,7 @@ mysql_secure_installation  // 设置root密码是否允许远程登录等信息
 指定哪些IP可以连入:
 update user set host='192.168.8.%' where host='::1';
 flush privileges;
-验证:
+验证(当同一台服务器启动了多个mysqld,用mysql命令登录时需要明确指定-h[ip],不能是localhost,否则登录的都是默认的3306端口):
 mysql -h192.168.9.6 -uroot -p
 创建用户/密码,并赋予该用户可以用192.168.1网段登陆:
 GRANT ALL PRIVILEGES ON *.* TO 'avatar'@'192.168.1.%' IDENTIFIED BY 'avatar' WITH GRANT OPTION;
