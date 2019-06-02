@@ -1,5 +1,6 @@
 ##### 任意两个事件A与B
 P(A∪B)=P(A)+P(B)－P(AB)=1-p(ab)   #事件A与B的和事件,当A或B至少有一个发生则认为和事件发生
+P(A-B)=P(A)-P(AB)=p(Ab) 
 P(A∪B|C)=P(A|C)+P(B|C)－P(AB|C)  
 P(A∪B∪C)=P(A)+P(B)+P(C)－P(AB)－P(AC)－P(BC)+P(ABC)  
 P(AB)=P(A)*P(B|A)=P(B)*P(A|B)  
