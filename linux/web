@@ -19,6 +19,7 @@ threads = 2 # 指定每个进程开启的线程数
 
 [root@local mysite]# nohup gunicorn web:app -c conf.py  # 导入了app的文件web.py所在目录
 [root@local mysite]# kill -HUP `cat /run/gunicorn.pid`
+注意: 如果gunicorn配置了daemon=True或者有类似nohup &之类命令启动时,会看不到print输出信息
 
 ---------------------------------------------------------------------------------------------------------------------
 
