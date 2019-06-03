@@ -4,6 +4,13 @@ flask
 客户端以requests.post(data={...})形式提交时,服务端只能接受request.form(ImmutableMultiDict类型)
 request.view_args(dict类型)用于接受地址栏形如<int:account_id>的变量,跟客户端如何提交无关
 
+post
+request.path       /select
+request.full_path  /select?
+get
+request.path       /select
+request.full_path  /select?name=avatar&product_id=540554959138
+
 ----------------------------------------------------------------------------------------------------------------------
 
 vim conf.py
