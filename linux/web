@@ -17,6 +17,7 @@ vim conf.py
 bind = "127.0.0.1:7000"  # 只能通过127.0.0.1:7000访问
 # bind = ['10.1.2.143:7600','127.0.0.1:7600']
 workers = 3 # 进程数
+max_requests=1000 # The maximum number of requests a worker will process before restarting.This is a simple method to help limit the damage of memory leaks.
 errorlog='/var/log/gunicorn/error.log'  #提前建好目录
 accesslog='/var/log/gunicorn/access.log'
 loglevel='debug'
