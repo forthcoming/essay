@@ -375,7 +375,7 @@ C(0,n)+C(1,n)+...+C(n,n)=2^n
 
 ---
 ![Image](https://github.com/forthcoming/essay/blob/master/ml/source/exercise1.png)               
-生日问题正确做法是A(50,365)/365^50
+生日问题正确做法是1-A(50,365)/365^50
 
 
 
