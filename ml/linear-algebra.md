@@ -185,9 +185,9 @@ B=(aa.T/a.Ta)b可以看作A只由一个向量组成的特殊投影
 ```python
 将线性无关向量组a,b,c化为等价的正交向量组
 A=a
-B=b-(A.Tb/A.TA)A                # b减去其在A上的分量
-C=c-(A.Tc/A.TA)A-(B.Tc/B.TB)B   # c减去其在A,B上的分量,前提是A,B必须保证已正交
-C=c- T(T.TT ).-1T.Tc            # 其中T=(a,b)或者T=(A,B)均可,即不要求a,b正交
+B=b-(A.Tb/A.TA)A               # b减去其在A上的分量
+C=c-(A.Tc/A.TA)A-(B.Tc/B.TB)B  # c减去其在A,B上的分量,前提是A,B必须保证已正交
+C=c-X(X.TX).-1X.Tc             # 其中X=(a,b)或者X=(A,B)均可,即不要求a,b正交
 
 a=np.array([[1],[-1],[1],[-1]])
 b=np.array([[-1],[0],[1],[0]])
