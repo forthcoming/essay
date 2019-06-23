@@ -190,7 +190,7 @@ C=c-(A.Tc/A.TA)A-(B.Tc/B.TB)B  # c减去其在A,B上的分量,前提是A,B必须
 C=c-X(X.TX).-1X.Tc             # 其中X=(a,b)或者X=(A,B)均可,即不要求a,b正交
 
 a=np.array([[1],[-1],[1],[-1]])
-b=np.array([[-1],[0],[1],[0]])
+b=np.array([[-1],[0],[1],[0]])         # 此处a与b垂直
 c=np.array([1,0,0,0]).reshape(4,1)     # 与上面写法等价
 A=np.hstack((a,b))
 print(c-A@np.linalg.inv(A.T@A)@A.T@c)  # 不需要保证a,b正交,比如将b换成[-1,0,1,1]即可验证
