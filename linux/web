@@ -49,7 +49,7 @@ pid /run/nginx.pid;
 include /usr/share/nginx/modules/*.conf;
 
 events {
-    worker_connections 1024;  #一个子进程最大能同时连接多少个
+    worker_connections 1024;  #一个子进程最大能同时连接多少个,gunicorn的该参数是指所有进程总的最大并发数
 }
 
 http {
