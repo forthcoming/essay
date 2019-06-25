@@ -144,7 +144,9 @@ ps -ef | grep httpd # 查看httpd进程,第二列显示的是进程ID,可配合k
 -ef: 标准格式输出,注意"-"不能省
 aux: BSD格式输出
 netstat -apn | grep 27017 # 查看27017端口使用情况(包括进程名,pid,port等信息),dos下用-abn
-ps -efL: 查看线程,用LWP表示
+ps -efL|grep pid # 查看某个进程下的所有线程,用LWP表示
+pstree -p pid    # 查看某个进程下的所有线程
+top -p pid       # 然后按H,查看某个进程下的所有线程
 
 top(动态显示进程列表)
 top -d n: 每n秒刷新一次,默认设置每3秒钟刷新一次,按CPU占有率降序排列
