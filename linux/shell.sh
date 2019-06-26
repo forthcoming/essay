@@ -55,8 +55,10 @@ conda
 conda create -n scrapy # 创建虚拟环境
 conda env list
 source activate scrapy #激活
+# 进入到虚拟环境后,如果该环境没有python2,pip等之类包的话会自动识别到base虚拟环境中的包
+# 建议进入到新的虚拟环境后首先conda install pip安装本环境下的pip,或者直接在本环境下通过conda install安装python包
 source deactivate #停用
-conda install -n scrapy python=3.6
+conda install -n scrapy python=3.6  # 也可以先进到对应虚拟环境,再conda install python=3.6
 conda install /root/Desktop/软件名
 conda remove -n scrapy --all
 
