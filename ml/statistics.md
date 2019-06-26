@@ -26,3 +26,9 @@ E(χ2)=n   D(χ2)=2n
 E(Xi^2)=D(Xi)=1
 D(Xi^2)=E(Xi^4)-E(Xi^2)^2=3-1=2   # 注意E(Xi^4)直接根据期望定义可得到4/√π*Γ(2.5)=3
 ```
+
+---
+##### t分布
+![Image](https://github.com/forthcoming/essay/blob/master/ml/source/t分布.png)          
+```python
+```
