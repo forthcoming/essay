@@ -33,4 +33,4 @@ D(Xi^2)=E(Xi^4)-E(Xi^2)^2=3-1=2   # 注意E(Xi^4)直接根据期望定义可得�
 
 ---
 ##### F分布
-![Image](https://github.com/forthcoming/essay/blob/master/ml/source/F分布.jpg)          
+![Image](https://github.com/forthcoming/essay/blob/master/ml/source/F分布.png)          
