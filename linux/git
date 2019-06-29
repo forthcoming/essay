@@ -44,8 +44,10 @@ git add -A
 git log  #查看提交历史
 git log  --oneline   #查看提交历史
 git log -p  #查看提交历史,显示每次提交的内容差异
-git reflog       #查看历史记录的版本号id
-git merge dev   #合并dev分支到当前分支上,注意区别于git merge --no-ff -m'--no-ff' dev
+git reflog    #查看历史记录的版本号id
+git merge dev #合并dev分支到当前分支,优先使用Fast-forward模式(直接把当前分支指向dev的当前提交,如果当前分支和dev各自都有新提交,则无法使用该模式)
+git merge --no-ff -m'--no-ff' dev #合并dev分支到当前分支,--no-ff表示禁用Fast-forward模式,合并后的历史有分支
+git merge --abort  #取消某次合并
 git reset HEAD filename   #git add的反向操作,使其从Changes to be committed 到 Changes not staged for commit
 git reset 47902f     #就像是这些提交从来没有发生过,会保留工作目录,修改内容还在磁盘上
 git reset --hard 47902f   #回到之前某次提交状态,不保留工作目录
@@ -86,7 +88,7 @@ git配置文件如下,每一个级别覆盖上一级别的配置
 
 fork + pull requests用以贡献开源代码
 
-[root@local github]# git status
+[root@local github]# git status  # 可以标记冲突文件
 # On branch master
 #
 # Initial commit
@@ -114,3 +116,4 @@ Changes not staged for commit:
 要暂存这次更新,需要运行git add命令
 这是个多功能命令: 可以用它开始跟踪新文件,或者把已跟踪的文件放到暂存区,还能用于合并时把有冲突的文件标记为已解决状态等
 将这个命令理解为"添加内容到下一次提交中"而不是"将一个文件添加到项目中"要更加合适
+merge冲突时git用<<<<<<<,=======,>>>>>>>标记出不同分支的内容,解决冲突就是把git合并失败的文件手动编辑为我们希望的内容,再提交
