@@ -63,9 +63,10 @@ git clone -b gh-pages https://github.com/xxoome/collector.git  #克隆指定分�
 git clone -c http.proxy=socks5://127.0.0.1:1080 https://chromium.googlesource.com/chromium/tools/depot_tools
 git branch    #列出所有分支,分支前的 * 字符代表当前所在分支(HEAD指针所指向的分支)
 git branch branchname   #创建分支
-git branch -d iss53   #删除分支
 git checkout branchname  #切换分支,对应的工作目录也切换了
 git checkout -b iss53   #等价于git branch iss53 && git checkout iss53
+git push origin --delete test #删除远程分支test 
+git branch -d iss53   #删除本地分支
 git checkout -- <file>   #把file在工作区的修改全部撤销
 1. file自动修改后,还没有放到暂存区,使用撤销修改就回到和版本库一模一样的状态
 2. file已经放入暂存区了,接着又作了修改,撤销修改就回到添加暂存区后的状态
