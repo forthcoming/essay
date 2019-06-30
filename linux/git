@@ -58,8 +58,7 @@ git branch -d iss53   #删除本地分支
 git checkout -- <file>   #把file在工作区的修改全部撤销
 1. file自动修改后,还没有放到暂存区,使用撤销修改就回到和版本库一模一样的状态
 2. file已经放入暂存区了,接着又作了修改,撤销修改就回到添加暂存区后的状态
-注意:—很重要,如果没有 — 的话,那么命令变成创建分支了
-git config --global core.editor gedit    #配置git commit时使用的编辑器
+注意:—很重要,如果没有 — 的话,那么命令变成创建分支
 git commit -m 'add two files'
 
 删除README.md文件及其历史提交记录
