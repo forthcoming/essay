@@ -1,20 +1,7 @@
-.gitignore     让git忽略末某些文件无需纳入git的管理,也不希望它们总出现在未跟踪文件列表
-# no .a files
-*.a
-# but do track lib.a, even though you're ignoring .a files above
-!lib.a
-# only ignore the TODO file in the current directory, not subdir/TODO
-/TODO
-# ignore all files in the build/ directory
-build/
-# ignore doc/notes.txt, but not doc/server/arch.txt
-doc/*.txt
-# ignore all .pdf files in the doc/ directory
-doc/**/*.pdf
-                    
 git remote -v  #显示需要读写远程仓库的简写与其对应的URL
 origin    https://github.com/xxoome/Spiders.git (fetch)
 origin    https://github.com/xxoome/Spiders.git (push)
+git remote add <shortname> <url>
 git diff              #比较工作区与暂存区
 git diff --staged     #比较暂存区跟已提交的文件
 git tag # 在控制台打印出当前仓库的所有tag
@@ -33,28 +20,27 @@ git reflog    #查看历史记录的版本号id
 git merge dev #合并dev分支到当前分支,优先使用Fast-forward模式(直接把当前分支指向dev的当前提交,如果当前分支和dev各自都有新提交,则无法使用该模式)
 git merge --no-ff -m'--no-ff' dev #合并dev分支到当前分支,--no-ff表示禁用Fast-forward模式,合并后的历史有分支
 git merge --abort  #取消某次合并
-git reset HEAD filename   #git add的反向操作,使其从Changes to be committed 到 Changes not staged for commit
-git reset 47902f     #就像是这些提交从来没有发生过,会保留工作目录,修改内容还在磁盘上
-git reset --hard 47902f   #回到之前某次提交状态,不保留工作目录
+git reset HEAD filename  #git add的反向操作,使其从Changes to be committed 到 Changes not staged for commit
+git reset 47902f         #就像是这些提交从来没有发生过,会保留工作目录,修改内容还在磁盘上
+git reset --hard 47902f  #回到之前某次提交状态,不保留工作目录
 git reset  –hard HEAD^   #回到上次提交状态
-git reset  –hard HEAD^^   #回到上上次提交状态
+git reset  –hard HEAD^^  #回到上上次提交状态
 git push --force  #撤销之前错误的提交(在团队协作中危险,慎用)
 git commit --amend -m "***"
 用一个新的commit更新并替换上一次的commit
 这个新的commit会把任何修改内容和上一个commit的内容结合起来
 如果当前没有提出任何修改,这个操作就只会把上次的commit消息重写一遍
 git revert commit_id  #逆操作之前的某个操作(历史记录仍然在,版本向前推进)
-git remote add <shortname> <url>
 git push [remote-name] [branch-name]   # 将master分支推送到origin服务器(git clone时通常会自动帮你设置好那两个名字)
 git clone -b gh-pages https://github.com/xxoome/collector.git  #克隆指定分支,默认为master分支
 git clone -c http.proxy=socks5://127.0.0.1:1080 https://chromium.googlesource.com/chromium/tools/depot_tools
 git branch    #列出本地分支,分支前的 * 字符代表当前所在分支(HEAD指针所指向的分支)
 git branch -a #列出本地分支和远程分支(远程分支用红色表示)
 git branch branchname   #创建分支
+git branch -d iss53   #删除本地分支
+git push origin --delete test #删除远程分支test 
 git checkout branchname  #切换分支,对应的工作目录也切换了
 git checkout -b iss53   #等价于git branch iss53 && git checkout iss53
-git push origin --delete test #删除远程分支test 
-git branch -d iss53   #删除本地分支
 git checkout -- <file>   #把file在工作区的修改全部撤销
 1. file自动修改后,还没有放到暂存区,使用撤销修改就回到和版本库一模一样的状态
 2. file已经放入暂存区了,接着又作了修改,撤销修改就回到添加暂存区后的状态
@@ -64,13 +50,6 @@ git commit -m 'add two files'
 删除README.md文件及其历史提交记录
 git filter-branch --force --index-filter 'git rm --cached --ignore-unmatch README.md' --prune-empty --tag-name-filter cat -- --all
 git push origin --force --all
-
-git配置文件如下,每一个级别覆盖上一级别的配置
-/root/miniconda3/etc/gitconfig   git config --system读写该配置,作用域全局(yum安装对应/etc/gitconfig)
-~/.gitconfig        git config --global读写该配置,只针对当前用户
-.git/config         只针对当前仓库有效
-
-fork + pull requests用以贡献开源代码
 
 [root@local github]# git status  # 可以标记冲突文件
 # On branch master
@@ -104,3 +83,23 @@ Changes not staged for commit:
 merge冲突时git用<<<<<<<,=======,>>>>>>>标记出不同分支的内容,解决冲突就是把git合并失败的文件手动编辑为我们希望的内容,再提交
 conda install git  #推荐,版本更新
 github网页上按t即可按关键字查找文件,可以配置ssh免密码登录
+fork + pull requests用以贡献开源代码
+
+git配置文件如下,每一个级别覆盖上一级别的配置
+/root/miniconda3/etc/gitconfig   git config --system读写该配置,作用域全局(yum安装对应/etc/gitconfig)
+~/.gitconfig        git config --global读写该配置,只针对当前用户
+.git/config         只针对当前仓库有效
+
+.gitignore     让git忽略末某些文件无需纳入git的管理,也不希望它们总出现在未跟踪文件列表
+# no .a files
+*.a
+# but do track lib.a, even though you're ignoring .a files above
+!lib.a
+# only ignore the TODO file in the current directory, not subdir/TODO
+/TODO
+# ignore all files in the build/ directory
+build/
+# ignore doc/notes.txt, but not doc/server/arch.txt
+doc/*.txt
+# ignore all .pdf files in the doc/ directory
+doc/**/*.pdf
