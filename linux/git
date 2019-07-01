@@ -16,6 +16,7 @@ git add -A
 git log  #查看提交历史
 git log  --oneline   #查看提交历史
 git log -p  #查看提交历史,显示每次提交的内容差异
+git log --oneline --decorate --graph --all  #输出你的提交历史、各个分支的指向以及项目的分支分叉情况
 git reflog    #查看历史记录的版本号id
 git merge dev #合并dev分支到当前分支,优先使用Fast-forward模式(直接把当前分支指向dev的当前提交,如果当前分支和dev各自都有新提交,则无法使用该模式)
 git merge --no-ff -m'--no-ff' dev #合并dev分支到当前分支,--no-ff表示禁用Fast-forward模式,合并后的历史有分支
@@ -39,7 +40,7 @@ git branch -a #列出本地分支和远程分支(远程分支用红色表示)
 git branch branchname   #创建分支
 git branch -d iss53   #删除本地分支
 git push origin --delete test #删除远程分支test 
-git push origin --tags #一次推送所有本地新增的标签
+git push --tags #一次推送所有本地新增的标签,标签对应的版本如果未push到origin,则会连同标签一起被push,其他分支和标签仍看不到该版本
 git checkout branchname  #切换分支,对应的工作目录也切换了
 git checkout -b iss53   #等价于git branch iss53 && git checkout iss53
 git checkout -- <file>   #把file在工作区的修改全部撤销
@@ -82,6 +83,9 @@ Changes not staged for commit:
 将这个命令理解为"添加内容到下一次提交中"而不是"将一个文件添加到项目中"要更加合适
 
 merge冲突时git用<<<<<<<,=======,>>>>>>>标记出不同分支的内容,解决冲突就是把git合并失败的文件手动编辑为我们希望的内容,再提交
+merge时含有大量的未commit文件将使你在冲突中难以回退
+建议使用stash命令将这些未commit文件暂存起来,并在解决冲突以后使用git stash pop把这些未commit文件还原出来
+
 conda install git  #推荐,版本更新
 github网页上按t即可按关键字查找文件,可以配置ssh免密码登录
 fork + pull requests用以贡献开源代码
