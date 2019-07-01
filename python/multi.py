@@ -86,7 +86,7 @@ if __name__=='__main__':
 
 # lock
 from multiprocessing.dummy import Process,Lock
-mutex=Lock()
+mutex=Lock()  
 
 def loop(n):
     global deposit
@@ -97,7 +97,7 @@ def loop(n):
 def loop_lock(n):
     global deposit
     for i in range(100000):
-        with mutex:  # 加锁会使速度变慢
+        with mutex:  # 加锁会使速度变慢,注意这里不能写作with Lock(),mutex必须共享
             deposit += n # 存
             deposit -= n # 取
 
