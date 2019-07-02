@@ -8,7 +8,6 @@ parallel:
 线程 & 进程
 子线程可以访问程序的全局变量,而且改变变量本身
 子进程or子进程中的子线程可以访问程序的全局变量,但是该变量的一份拷贝,并不能修改他,只不过值是一样而已
-线程池中出现错误,程序不会报错,需要手动捕捉异常
 对于CPU密集型,python的多线程表现不如单线程好,但多进程效率更高,进程数不是越大越好,默认进程数等于电脑核数
 技巧:如果一个任务拿不准是CPU密集还是I/O密集型(宜用多线程),且没有其它不能选择多进程方式的因素,都统一直接上多进程模式
 
@@ -124,6 +123,8 @@ from concurrent.futures import ThreadPoolExecutor
 import time,random
 
 def consumer(item,mutex,_result):
+    # 1/(int(time.time())&1)  # 线程池中出现错误,程序不会报错,需要手动捕捉异常  
+
     # time.sleep(random.uniform(0,.01))
     # with mutex:
     #     if item in result:
@@ -132,8 +133,8 @@ def consumer(item,mutex,_result):
     #     else:
     #         time.sleep(.01)
     #         result[item]=1
-
-    with mutex:
+    
+    with mutex:  
         while True:
             if item in _result:
                 time.sleep(.001)
