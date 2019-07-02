@@ -59,7 +59,10 @@ def test(sec):
 #-----------------------------------------------------------------------------------------------------------------------------#
 
 ### 开启服务
-celery -A Tiktok worker -l info -B --logfile=/root/Desktop/Tiktok/%n.log     # -B开启定时任务，-l显示日志信息
+celery -A Tiktok worker -l info -B --logfile=/root/Desktop/Tiktok/%n.log    
+# -B 开启定时任务,Please note that there must only be one instance of this service.
+# -l 显示日志信息
+# -c Number of child processes processing the queue. The default is the number of CPUs available on your system.
 
 #-----------------------------------------------------------------------------------------------------------------------------#
 
