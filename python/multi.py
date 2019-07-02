@@ -397,13 +397,12 @@ if __name__=='__main__':
     get page 4s finished
     in main: get page 4s success
     '''
-
     # executor = Pool(max_workers=2)
     # urls = [3, 2, 4]
     # futures = [executor.submit(get_html, url) for url in urls]
     # for future in as_completed(futures):
-       #  for future in futures:  # 结果有序输出(类似与map)
-    #     print("in main: get page {}s success".format(future.result()))
+    #     for future in futures:  # 结果有序输出(类似与map)
+    #         print("in main: get page {}s success".format(future.result()))
     '''
     ProcessPoolExecutor
     in main: get page 2s success
