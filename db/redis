@@ -167,8 +167,9 @@ hdel key field : 删除key中field域
 hlen key : 返回key中元素的数量
 hexists key field : 判断key中有没有field域
 hinrby float key field value : 把key中的field域的值增长浮点值value
-hkeys key : 返回key中所有的 field
-hvals key : 返回key中所有的 value
+hkeys key : 返回key中所有的field
+hvals key : 返回key中所有的value
+hgetall key : 返回key中所有得field-value
 
 ---------------------------------------------------------------------------------------------------------------------------------------
 
