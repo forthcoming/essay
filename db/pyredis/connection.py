@@ -1,7 +1,74 @@
 from itertools import chain,os,threading
 from queue import LifoQueue, Empty, Full
 from redis.exceptions import ConnectionError
+import socket,sys
 
+class Connection:
+
+    def __init__(self,host='localhost',port=6379,db=0,password=None,socket_timeout=None,socket_connect_timeout=None,
+        socket_keepalive=False,socket_keepalive_options=None,socket_type=0,retry_on_timeout=False):
+        self.host = host
+        self.port = int(port)
+        self.db = db
+        self.password = password
+        self.socket_timeout = socket_timeout
+        self.socket_connect_timeout = socket_connect_timeout or socket_timeout
+        self.socket_keepalive = socket_keepalive
+        self.socket_keepalive_options = socket_keepalive_options or {}
+        self.socket_type = socket_type
+        self.retry_on_timeout = retry_on_timeout
+
+    def connect(self): # Connects to the Redis server if not already connected
+        try:
+            self._sock = self._connect()
+        except socket.timeout:
+            raise("Timeout connecting to server")
+        except socket.error:
+            print(sys.exc_info()[1])
+            raise('ConnectionError')
+
+        if self.password:        # if a password is specified, authenticate
+            self.send_command('AUTH', self.password)
+        if self.db:              # if a database is specified, switch to it
+            self.send_command('SELECT', self.db)
+            
+    def _connect(self):
+        '''
+        Create a TCP socket connection
+        we want to mimic what socket.create_connection does to support ipv4/ipv6 
+        but we want to set options prior to calling socket.connect()
+        '''
+        for res in socket.getaddrinfo(self.host, self.port, self.socket_type,socket.SOCK_STREAM):
+            family, socktype, proto, canonname, socket_address = res
+            sock = None
+            try:
+                sock = socket.socket(family, socktype, proto)
+                # TCP_NODELAY
+                sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+
+                # TCP_KEEPALIVE
+                if self.socket_keepalive:
+                    sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+                    for k, v in self.socket_keepalive_options:
+                        sock.setsockopt(socket.IPPROTO_TCP, k, v)
+
+                # set the socket_connect_timeout before we connect
+                sock.settimeout(self.socket_connect_timeout)
+
+                # connect
+                sock.connect(socket_address)
+
+                # set the socket_timeout now that we're connected
+                sock.settimeout(self.socket_timeout)
+                return sock
+
+            except socket.error as _:
+                if sock is not None:
+                    sock.close()
+
+        raise socket.error("socket.getaddrinfo returned an empty list")
+        
+        
 class ConnectionPool: # 连接池只有在进程里有多线程时才会发挥其效率优势
 
     def __init__(self, connection_class=Connection, max_connections=None, **connection_kwargs):
