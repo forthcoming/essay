@@ -35,7 +35,7 @@ Proto Recv-Q Send-Q Local-Address          Foreign-Address             State
 tcp        0   4166 coolshell.cn:80        61.148.242.38:30901         ESTABLISHED
 tcp        0      0 coolshell.cn:80        183.60.212.163:51082        TIME_WAIT
 tcp        0      0 coolshell.cn:80        117.136.20.85:50025         FIN_WAIT2
-awk '$5 !~/70/' netstat.txt
+awk '$5 !~/70/' netstat.txt   # 正则取反
 Proto Recv-Q Send-Q Local-Address          Foreign-Address             State
 tcp        0   4166 coolshell.cn:80        61.148.242.38:30901         ESTABLISHED
 tcp        0      1 coolshell.cn:70        124.152.181.209:26825       FIN_WAIT1
