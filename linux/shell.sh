@@ -1,3 +1,48 @@
+awk
+$0       当前记录(这个变量中存放着整个行的内容)
+$1~$n    当前记录的第n个字段,字段间由FS分隔
+NF       当前记录中的字段(列)个数,$(NF-2)代表分割后的倒数第2列
+NR       行号(Number of Record),从1开始,如果有多个文件话,这个值会不断累加
+FNR      行号,与NR不同的是这个值会是各个文件自己的行号
+FS       输入字段分隔符,默认是空格或Tab
+RS       输入的记录分隔符,默认为换行符
+OFS      输出字段分隔符,默认也是空格
+ORS      输出的记录分隔符,默认为换行符
+FILENAME 当前输入文件的名字
+
+cat netstat.txt
+Proto Recv-Q Send-Q Local-Address          Foreign-Address             State
+tcp        0   4166 coolshell.cn:80        61.148.242.38:30901         ESTABLISHED
+tcp        0      1 coolshell.cn:70        124.152.181.209:26825       FIN_WAIT1
+tcp        0      0 coolshell.cn:80        110.194.134.189:70        ESTABLISHED
+tcp        0      0 coolshell.cn:80        183.60.212.163:51082        TIME_WAIT
+tcp        0      1 coolshell.cn:70        208.115.113.92:70        LAST_ACK
+tcp        0      0 coolshell.cn:80        123.169.124.111:70       ESTABLISHED
+tcp        0      0 coolshell.cn:80        117.136.20.85:50025         FIN_WAIT2
+awk -F ' ' '$3>0 && $3<=1 || NR==1 || $6 ~/FIN|TIME/ {print NR,$1,"avatar",$2}' OFS="\t" netstat.txt # -F后跟输入字段分隔符
+1	Proto	avatar	Recv-Q
+3	tcp	avatar	0
+5	tcp	avatar	0
+6	tcp	avatar	0
+8	tcp	avatar	0
+awk '/70/' netstat.txt
+tcp        0      1 coolshell.cn:70        124.152.181.209:26825       FIN_WAIT1
+tcp        0      0 coolshell.cn:80        110.194.134.189:70        ESTABLISHED
+tcp        0      1 coolshell.cn:70        208.115.113.92:70        LAST_ACK
+tcp        0      0 coolshell.cn:80        123.169.124.111:70       ESTABLISHED
+awk '!/70/' netstat.txt
+Proto Recv-Q Send-Q Local-Address          Foreign-Address             State
+tcp        0   4166 coolshell.cn:80        61.148.242.38:30901         ESTABLISHED
+tcp        0      0 coolshell.cn:80        183.60.212.163:51082        TIME_WAIT
+tcp        0      0 coolshell.cn:80        117.136.20.85:50025         FIN_WAIT2
+awk '$5 !~/70/' netstat.txt
+Proto Recv-Q Send-Q Local-Address          Foreign-Address             State
+tcp        0   4166 coolshell.cn:80        61.148.242.38:30901         ESTABLISHED
+tcp        0      1 coolshell.cn:70        124.152.181.209:26825       FIN_WAIT1
+tcp        0      0 coolshell.cn:80        183.60.212.163:51082        TIME_WAIT
+tcp        0      0 coolshell.cn:80        117.136.20.85:50025         FIN_WAIT2
+cat webapi.log | grep 'send_msg' | awk -F "\t" '{ if($8>5)  print $0  }' 
+
 ab
 sudo apt install apache2-utils
 Usage: ab [options] [http[s]://]hostname[:port]/path    # 注意命令要加单引号,-T和-p要一起使用
@@ -208,7 +253,6 @@ last -n   # 显示最近n次用户登录信息
 curl ifconfig.me # 查看服务器公网IP,还可以通过curl cip.cc,ifconfig等方式获取
 chmod -R 777   /data2      # R代表递归下面所有目录
 chown -R root:ccktv /data2 # 改变文件所属的[用户]:[组信息]
-cat webapi.log | grep 'send_msg' | awk -F "\t" '{ if($8>5)  print $0  }'  # $0代表整行,$8代表分割后的第8列,$(NF-2)代表分割后的倒数第2列
 ln 源 目标    # 建立硬链接文件
 ln -s 源 目标 # 建立软链接文件(源文件必须写成绝对路径)
 ls -l `which touch` # 命令替换,注意与管道的区别
