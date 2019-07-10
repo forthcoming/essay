@@ -4,7 +4,10 @@ from redis.exceptions import ConnectionError
 import socket,sys
 
 class Connection:
-
+    '''
+    socket_connect_timeout: 连接redis资源时的超时时间,可通过rds = redis.Redis(host='10.1.169.215', port=6379, socket_connect_timeout=3,socket_timeout=1)验证
+    socket_timeout: 每条命令执行的超时时间,可以通过rds.eval("while(true) do local a=1; end",0)验证
+    '''
     def __init__(self,host='localhost',port=6379,db=0,password=None,socket_timeout=None,socket_connect_timeout=None,
         socket_keepalive=False,socket_keepalive_options=None,socket_type=0,retry_on_timeout=False):
         self.host = host
@@ -66,6 +69,9 @@ class Connection:
                 if sock is not None:
                     sock.close()
 
+        if err is not None:
+            raise err
+           
         raise socket.error("socket.getaddrinfo returned an empty list")
         
         
