@@ -269,7 +269,7 @@ ls -lrt   # 最近访问的文件会出现在最下方
 mv #移动文件(夹)or改文件(夹)名,不需用-r
 cp -a #复制整个文件夹/目录,并保持属性不变,相当于cp -pdr
 cd - #返回到上个目录
-wc a.txt  #行数  单词数  字节数  文件名, ls | wc  
+wc a.txt  #行数  单词数  字节数  文件名, ls | wc -l
 last -n   # 显示最近n次用户登录信息
 如果shell脚本出现找不到路径或其他莫名错误,先用vim打开脚本,:set ff查看文件格式,如果是dos,应该为:set ff=unix
 curl ifconfig.me # 查看服务器公网IP,还可以通过curl cip.cc,ifconfig等方式获取
@@ -281,7 +281,7 @@ ls -l `which touch` # 命令替换,注意与管道的区别
 time find . -name "*.c"  # 执行命令并计算执行时间
 mkdir -p project/{lib/ext,bin,src/com/bjhee/{web,dao,service},test}
 mkdir -p /1/2 # 创建目录树
-grep -v "^$" test.txt  # 匹配test文件中的非空行,v意思是反向查找
+grep -v -n "^$" test.txt  # 匹配test文件中的非空行,v意思是反向查找,n意思是显示字符串在文件中出现的行号
 sudo su ccktv  # 输入的密码是执行sudo命令的用户密码,环境变量会一起被切换
 sudo -s ccktv  # 输入的密码是执行sudo命令的用户密码,不切换环境变量
 
