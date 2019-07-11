@@ -1,3 +1,25 @@
+`` & | & xargs & exec
+echo "--help"|cat         # --help
+echo "--help"|xargs cat   # 显示的是cat --help命令的帮助内容
+cat `echo "--help"`       # 最终结果等价于 echo "--help"|xargs cat
+
+-d: 默认情况下xargs将其标准输入中的内容以空白(包括空格/Tab/回车换行等)分割成多个之后当作命令行参数传递给其后面的命令,我们可以使用-d命令指定分隔符
+-n: 表示将xargs生成的命令行参数,每次传递几个参数给其后面的命令执行
+echo '11@22@33@44@55@66@77' |xargs -d '@' -n 3 echo 
+output:
+11 22 33
+44 55 66
+77
+
+|将前面标准输出当做后面命令的标准输入,xargs将标准输入作为命令的参数
+ls -l|awk '/\.zip/ {print $9}'|xargs -n 1 unzip  # xargs后面的命令必须支持多参数,有些命令如unzip就不支持输入多参数需要用-n 1解决
+ps -ef|awk '/ktv-micseq/ && !/awk/ {print $2}'|xargs kill -9
+
+exec只是find的一个参数,但``与|xargs可以用于任何命令
+ls -l `find -perm 644`             //不推荐,不能处理带空格的文件,不能处理长参数
+find -perm 644 |xargs ls -l        //推荐,不能处理带空格的文件,能处理长参数
+find -perm 644 -exec ls -l '{}' +  //推荐,可以处理带空格等特殊字符的文件,能处理长参数,{}里面房find每条结果的+是固定格式
+
 awk
 $0       当前记录(这个变量中存放着整个行的内容)
 $1~$n    当前记录的第n个字段,字段间由FS分隔
