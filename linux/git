@@ -37,7 +37,7 @@ git clone -b gh-pages https://github.com/xxoome/collector.git  #克隆指定分�
 git clone -c http.proxy=socks5://127.0.0.1:1080 https://chromium.googlesource.com/chromium/tools/depot_tools
 git branch    #列出本地分支,分支前的 * 字符代表当前所在分支(HEAD指针所指向的分支)
 git branch -a #列出本地分支和远程分支(远程分支用红色表示)
-git branch branchname   #创建分支
+git branch branchname   #在当前提交分支上创建分支
 git branch -d iss53   #删除本地分支
 git push origin --delete test #删除远程分支test 
 git push --tags #一次推送所有本地新增的标签,标签对应的版本如果未push到origin,则会连同标签一起被push,其他分支和标签仍看不到该版本
