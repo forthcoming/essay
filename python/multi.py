@@ -176,39 +176,42 @@ print(len(task),sum(result.values()))
 from multiprocessing.dummy import Process,RLock,Lock,active_children
 import time
 
-def fun1():
-    print("第一个函数")
-    with lock:
-        global income
-        income +=1
-        return income
+salary = 0
+rlock = RLock()
+lock = Lock()
 
-def fun2():
-    print("第二个函数")
-    with lock:
+def run(mutex):
+    print('start run')
+    time.sleep(.5)
+    with mutex:  # 此处只能使用递归锁
+        print('in first lock')
+        with mutex:
+            print('in second lock')
+            global salary
+            salary +=1
+
+def run_v1(mutex):
+    print('start run')
+    time.sleep(.5)
+    with mutex:
+        print('in first lock')
+    with mutex:
+        print('in second lock')
         global salary
         salary +=1
-        return salary
-
-def run():
-    time.sleep(.5)
-    with lock:  # 此处只能使用递归锁
-        res1 = fun1()
-        res2 = fun2()
         
-income,salary = 0,0
-# lock = Lock()  # error
-lock = RLock()
-
 for i in range(10):
-    t = Process(target=run)
+    # t = Process(target=run,args=(rlock,))   # ok
+    # t = Process(target=run,args=(lock,))      # error
+    # t = Process(target=run_v1,args=(rlock,))  # ok
+    t = Process(target=run_v1,args=(lock,))   # ok
     t.start()
 
 while active_children():
     print("当前线程：",active_children())
     time.sleep(1)
 else:
-    print(income,salary,'over')
+    print(salary,'over')
 
 ###########################################################################################################################
 
