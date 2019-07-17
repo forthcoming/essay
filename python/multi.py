@@ -183,7 +183,7 @@ lock = Lock()
 def run(mutex):
     print('start run')
     time.sleep(.5)
-    with mutex:  # 此处只能使用递归锁
+    with mutex:  # 此处只能用递归锁,否则后面的with mutex会拿不到锁
         print('in first lock')
         with mutex:
             print('in second lock')
