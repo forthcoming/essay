@@ -39,6 +39,7 @@ so for example this{foo}key and another{foo}key are guaranteed to be in the same
 redis集群只支持db0,不支持mget,mset,multi,除非这些key落在同一个slot上,keys *只会返回该节点的数据(主从数据一样)
 redis-py-cluster的StrictRedisCluster对keys,mget,mset,pipeline做了处理,使用时不需要再考虑key落在不同slot问题
 其中pipeline原理是先根据for key in keys:crc16(key)%16384给keys分组,再批量执行,效率仍然比单条命令依次执行要高
+参考:https://github.com/Grokzen/redis-py-cluster/blob/unstable/rediscluster/pipeline.py#L139 , send_cluster_commands
 
 什么时候整个集群不可用(cluster_state:fail)?
 如果集群任意master挂掉,且当前master没有slave.集群进入fail状态,也可以理解成集群的slot映射[0-16383]不完整时进入fail状态
