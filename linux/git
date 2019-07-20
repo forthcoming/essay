@@ -10,7 +10,7 @@ git blame filename    #显示文件中每一行的作者,最后一次改动后�
 git init
 git pull=git fetch+git merge
 git stash list   # stash是本地的,不会通过git push命令上传到git server
-git stash -m"test-stash"
+git stash -m"test-stash"  # 将工作区和暂存区的文件缓存(不缓存未追踪文件)
 git stash pop stash@{id}
 git add -A
 git log  #查看提交历史
@@ -47,7 +47,7 @@ git checkout -- <file>   #把file在工作区的修改全部撤销
 1. file自动修改后,还没有放到暂存区,使用撤销修改就回到和版本库一模一样的状态
 2. file已经放入暂存区了,接着又作了修改,撤销修改就回到添加暂存区后的状态
 注意:—很重要,如果没有 — 的话,那么命令变成创建分支
-git commit -m 'add two files'
+git commit -m'coments' # 将暂存区(add提交)提交到本地版本库,同个文件add多次后再次被更改,则提交以最后一次add为准
 
 删除README.md文件及其历史提交记录
 git filter-branch --force --index-filter 'git rm --cached --ignore-unmatch README.md' --prune-empty --tag-name-filter cat -- --all
