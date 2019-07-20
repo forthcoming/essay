@@ -21,6 +21,7 @@ git reflog    #查看历史记录的版本号id
 git merge dev #合并dev分支到当前分支,优先使用Fast-forward模式(直接把当前分支指向dev的当前提交,如果当前分支和dev各自都有新提交,则无法使用该模式)
 git merge --no-ff -m'--no-ff' dev #合并dev分支到当前分支,--no-ff表示禁用Fast-forward模式,合并后的历史有分支
 git merge --abort  #取消某次合并
+git revert commit_id  #逆操作之前的某个操作(历史记录仍然在,版本向前推进)
 git reset HEAD filename  #git add的反向操作,使其从Changes to be committed 到 Changes not staged for commit
 git reset 47902f         #就像是这些提交从来没有发生过,会保留工作目录,修改内容还在磁盘上
 git reset --hard 47902f  #回到之前某次提交状态,不保留工作目录
@@ -31,7 +32,6 @@ git commit --amend -m "***"
 用一个新的commit更新并替换上一次的commit
 这个新的commit会把任何修改内容和上一个commit的内容结合起来
 如果当前没有提出任何修改,这个操作就只会把上次的commit消息重写一遍
-git revert commit_id  #逆操作之前的某个操作(历史记录仍然在,版本向前推进)
 git push [remote-name] [branch-name]   # 将master分支推送到origin服务器(git clone时通常会自动帮你设置好那两个名字)
 git clone -b gh-pages https://github.com/xxoome/collector.git  #克隆指定分支,默认为master分支
 git clone -c http.proxy=socks5://127.0.0.1:1080 https://chromium.googlesource.com/chromium/tools/depot_tools
