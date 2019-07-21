@@ -34,6 +34,7 @@ git rebase -i 075bf67   # s合并历史提交记录,r更改历史提交说明
 pick d7acd15 222
 pick 14de029 333
 pick 172536b 444
+# 顺序与通过git log命令看到的相反
 # Rebase 075bf67..172536b onto 075bf67 (3 commands)
 # Commands:
 # p, pick <commit> = use commit
