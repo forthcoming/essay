@@ -27,12 +27,20 @@ git reset 47902f         #回到之前某次提交状态,保留工作目录,4790
 git reset --hard 47902f  #回到之前某次提交状态,不保留工作目录(使用前先确认所有提交已推送到远程,否则这些提交将会丢失)
 git reset -–hard HEAD^   #回到上次提交状态
 git reset -–hard HEAD^^  #回到上上次提交状态
-git push --force  #撤销之前错误的提交(在团队协作中危险,慎用)
-git commit --amend -m "***"
-用一个新的commit更新并替换上一次的commit
-这个新的commit会把任何修改内容和上一个commit的内容结合起来
-如果当前没有提出任何修改,这个操作就只会把上次的commit消息重写一遍
+git push --force  #如果远程主机版本比本地更新,推送时会报错,可以使用--force强制推送,结果导致远程主机上更新的版本被覆盖(慎用)
 git push [remote-name] [branch-name]   # 将master分支推送到origin服务器(git clone时通常会自动帮你设置好那两个名字)
+git rebase -i 075bf67   # s合并历史提交记录,r更改历史提交说明
+'''
+pick d7acd15 222
+pick 14de029 333
+pick 172536b 444
+# Rebase 075bf67..172536b onto 075bf67 (3 commands)
+# Commands:
+# p, pick <commit> = use commit
+# r, reword <commit> = use commit, but edit the commit message
+# s, squash <commit> = use commit, but meld into previous commit
+# If you remove a line here THAT COMMIT WILL BE LOST.
+'''
 git clone -b gh-pages https://github.com/xxoome/collector.git  #克隆指定分支,默认为master分支
 git clone -c http.proxy=socks5://127.0.0.1:1080 https://chromium.googlesource.com/chromium/tools/depot_tools
 git branch    #列出本地分支,分支前的 * 字符代表当前所在分支(HEAD指针所指向的分支)
