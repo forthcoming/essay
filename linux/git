@@ -26,7 +26,7 @@ git reset HEAD filename  #git add的反向操作,使其从Changes to be committe
 git reset 47902f         #回到之前某次提交状态,保留工作目录,47902f之后的提交记录都会消失
 git reset --hard 47902f  #回到之前某次提交状态,不保留工作目录(使用前先确认所有提交已推送到远程,否则这些提交将会丢失)
 git reset -–hard HEAD^   #回到上次提交状态
-git reset -–hard HEAD^^  #回到上上次提交状态
+git reset -–hard HEAD^^  #回到上上次提交状态,HEAD^^等价于HEAD~2
 git push --force  #如果远程主机版本比本地更新,推送时会报错,可以使用--force强制推送,结果导致远程主机上更新的版本被覆盖(慎用)
 git push [remote-name] [branch-name]   # 将master分支推送到origin服务器(git clone时通常会自动帮你设置好那两个名字)
 git rebase -i 075bf67   # s合并历史提交记录,r更改历史提交说明
