@@ -4,7 +4,7 @@ find /etc -maxdepth 1 -name '*.conf'            # 查找/etc下名称中带有*.
 find /etc -maxdepth 2 -mindepth 2 -name 1.txt   # 查找/etc下名称是1.txt的文件,且只查找第二层
 find /mnt -user student -group student          # 查找/mnt下所有人和所有组都是student的文件
 find /mnt -type d|f|l                           # 查找/mnt下目录/文件/链接,不指定的话默认查找所有类型
-find /mnt -name init* -a -type l                # 查找/mnt目录下名字带有init的软连接文件,-a 逻辑与(and),可省略;-o 逻辑或(or);! 逻辑非(not)
+find /mnt -name "init*" -a -type l              # 查找/mnt目录下名字带有init的软连接文件,-a 逻辑与(and),可省略;-o 逻辑或(or);! 逻辑非(not)
 find /mnt -perm 444                             # 查找/mnt下文件权限为444的文件
 find /mnt -size +20K                            # 查找/mnt下文件大小大于20k的文件
 find /mnt -size -20K                            # 查找/mnt下文件大小小于20k的文件
