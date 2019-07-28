@@ -1,3 +1,59 @@
+Xpath & CSS
+控制台下支持xpath语法,$x('//*[@id="a_head"]/ul/li')
+在一个网页没有引入jQuery的情况下,不管 $('tagName') /$('.class')/ $('#id') 还是 $('.class #id') 等类似的选择器
+都相当于原生JS的document.querySelector('') 方法,这个方法返回第一个匹配选择规则的DOM元素
+在Chrome的控制台里,你可以通过 $$('tagName') 或者 $$('.className') 记得是两个$$符号来选择所有匹配规则的DOM元素
+
+
+截屏
+F12 => Ctrl+Shift+P => capture => Capure (full size) screenshot
+
+
+Ctrl+F5 强刷
+
+
+模拟User Agent
+F12 -> More tools -> Network conditions
+
+
+网络限速
+F12 -> Network 最后一个功能按钮可以模拟不同网速下加载页面
+
+
+网页审计(可以去除多余css等)
+F12  ->  Audits  ->  Run
+Security面板用来查看/调试网页安全(证书)
+
+
+查看框架源代码是指查看iframe嵌套的网页源代码，动态生成的框架源代码不会显示在主网页源代码中
+
+
+优质打印
+Chrome’s Developer Tools有内建的美化代码,可以返回一段最小化且格式易读的代码,Pretty Print的按钮在Sources标签的左下角
+
+
+颜色选择器
+当在样式编辑中选择了一个颜色属性时,你可以点击颜色预览,就会弹出一个颜色选择器
+当选择器开启时,如果你停留在页面,鼠标指针会变成一个放大镜,让你去选择像素精度的颜色
+QQ截屏也可以完成类似功能
+
+
+在源代码中搜索
+如果希望在源代码中搜索要怎么办呢?在页面已经加载的文件中搜寻一个特定的字符串,快捷键是Ctrl + Shift + F (Cmd + Opt + F)
+这种搜寻方式还支持正则表达式
+
+
+JS断点调试
+F12,在source中找到对应的JS代码,单击需要下断点的行,单击step over next function call(F10)
+也可以在JS中手动添加debugger设置断点
+Event Listener Breakpoints可以给事件打断点,当遇到断点事物时停止
+
+
+getEventListeners(document.querySelector("ul"))  //以数组对象的格式返回某个元素绑定的所有事件
+getEventListeners(document.querySelector("ul")).click[0]  //查看click事件
+getEventListeners(document.querySelector("ul")).click[0].listener  //查看事件用的函数
+
+
 offset  
 返回第一个匹配元素相对于document的偏移坐标,设置所有匹配元素的偏移坐标
 $('p').offset({top:100,left:50})
