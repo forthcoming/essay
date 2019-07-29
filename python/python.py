@@ -4,7 +4,25 @@
 -5转化为补码: (0b00000101 ^ 0xff)+1  =>  0b11111011
 0b11111011转化为整数: -((0b11111011 ^ 0xff)+1)  =>  -5
 计算机存的是补码
-    
+
+from collections import deque
+def dec2bin(number):  # 方便理解c语言浮点数的内存表示
+    result=deque('.')
+    integer = int(number)
+    decimal = number -integer
+    while integer:
+        result.appendleft(str(integer&1))
+        integer>>=1
+    for i in range(100):
+        if decimal<1e-20:  # 1*10^(-4)
+            break
+        decimal*=2
+        _=int(decimal)
+        result.append(str(_))
+        decimal-=_
+    return ''.join(result)
+print(dec2bin(19.625))  # 10011.101
+
 ##################################################################################################################################
     
 from functools import lru_cache
