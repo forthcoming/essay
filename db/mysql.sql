@@ -37,7 +37,7 @@ insert into t_name(...,...,...) select ...,...,... from t1_name;
 delete from [tname] where .... and...;
 update [tname] set ... , ... where ... and ...;
 select [distinct] * from [tname] where ... and ...; 
-select count(1) from (SELECT * FROM mysql.user) tt;                                                  // from子查询,临时表需要加别名
+select count(1) from (select * from mysql.user) tt;                                                  // from子查询,临时表需要加别名
 select * from article where (title,content,uid) = (select title,content,uid from blog where bid=2);  // where子查询
 select * from article where (title,content,uid) in (select title,content,uid from blog);             // where子查询
 show variables;  //显示各种变量(配置文件参数)
@@ -48,7 +48,8 @@ show procedure status;
 show create procedure create_ktv_requested_song_by_month;
 show events;  // 查看定时任务
 show create table t_name;
-show create database db_name;
+show create database db_name;	
+select now(),SUBDATE(now(),INTERVAL 1 MINUTE),SUBDATE(now(),INTERVAL -1 MINUTE) from dual; -- 2019-07-29 18:00:59 | 2019-07-29 17:59:59 | 2019-07-29 18:01:59
 alter table t_name add name varchar(255) not null default avatar after created_time; //加在列created_time后面,add之后的旧列名之后的语法和创建表时的列声明一样
 alter table t_name change 旧列名 新列名 列类型 列参数
 rename table old_name to new_name;
