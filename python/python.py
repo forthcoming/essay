@@ -6,22 +6,29 @@
 计算机存的是补码
 
 from collections import deque
-def dec2bin(number):  # 方便理解c语言浮点数的内存表示
-    result=deque('.')
-    integer = int(number)
-    decimal = number -integer
+import re
+def dec2bin(string):  # 方便理解c语言浮点数的内存表示
+    result=deque()
+    integer,decimal=re.match(r'(\d*)\.?(\d*)',string).groups()
+    integer = int(integer or 0)
+    radix = 10**len(decimal)
+    decimal = int(decimal or 0)
     while integer:
         result.appendleft(str(integer&1))
         integer>>=1
-    for i in range(100):
-        if decimal<1e-20:  # 1*10^(-4)
-            break
-        decimal*=2
-        _=int(decimal)
-        result.append(str(_))
-        decimal-=_
+    if decimal:
+        result.append('.')
+        for idx in range(100):
+            if not decimal:
+                break
+            decimal<<=1
+            if decimal//radix:
+                result.append('1')
+                decimal-=radix
+            else:
+                result.append('0')
     return ''.join(result)
-print(dec2bin(19.625))  # 10011.101
+print(dec2bin('19.625'))  # 10011.101
 
 ##################################################################################################################################
     
