@@ -148,7 +148,6 @@ Client B: LPUSH foo a b c
 When a client is blocking for multiple keys at the same time, 
 and elements are available at the same time in multiple keys (because of a transaction or a Lua script added elements to multiple lists), 
 the client will be unblocked using the first key that received a push operation (assuming it has enough elements to serve our client, as there may be other clients as well waiting for this key). 
-Basically after the execution of every command Redis will run a list of all the keys that received data AND that have at least a client blocked. The list is ordered by new element arrival time, from the first key that received data to the last. For every key processed, Redis will serve all the clients waiting for that key in a FIFO fashion, as long as there are elements in this key. When the key is empty or there are no longer clients waiting for this key, the next key that received new data in the previous command / transaction / script is processed, and so forth.
 下面命令客户端A会先拿到b,然后是B拿到a,C拿到d
 Client A: BLPOP fo,foo 0
 Client B: BLPOP fo,foo 0
