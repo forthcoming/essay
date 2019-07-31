@@ -131,6 +131,36 @@ ltrim key start stop: 使列表只存储[start,stop]范围内的数据,支持负
 127.0.0.1:6379> rpop mylist
 "a"
 
+blpop list1 list2 list3 timeout : 连接将被阻塞,直到等待超时或发现可弹出元素为止
+The timeout argument is an integer value specifying the maximum number of seconds to block,zero can be used to block indefinitely.
+当给定多个key参数时,按key的先后顺序依次检查各个列表,弹出第一个非空列表的名字和头元素
+相同的key可以被多个客户端同时阻塞,不同的客户端被放进一个队列中,按先阻塞先服务(first-BLPOP,first-served)顺序为客户端执行BLPOP命令
+
+BLPOP可用于pipline,但把它用在MULTI/EXEC块当中没有意义,因为这要求整个服务器被阻塞以保证块执行时的原子性,该行为阻止了其他客户端执行LPUSH或RPUSH命令
+因此一个被包裹在MULTI/EXEC块内的BLPOP命令,行为表现得就像LPOP key一样,对空列表返回nil,对非空列表弹出列表名和列表元素,不进行任何阻塞操作
+
+有时候一个list会在同一时刻接收到多个元素(LPUSH mylist a b c;对同一个list进行多次push操作的MULTI块执行完EXEC语句后;执行一个Lua脚本)
+所采取的行为是先执行多个push命令,然后在执行了这个命令之后再去服务被阻塞的客户端,下面命令客户端A会接收到c元素
+Client A: BLPOP foo 0
+Client B: LPUSH foo a b c
+需要注意的是一个Lua脚本或者一个MULTI/EXEC块可能会删除这个list,在这种情况下被阻塞的客户端完全不会被服务
+
+When a client is blocking for multiple keys at the same time, 
+and elements are available at the same time in multiple keys (because of a transaction or a Lua script added elements to multiple lists), 
+the client will be unblocked using the first key that received a push operation (assuming it has enough elements to serve our client, as there may be other clients as well waiting for this key). 
+Basically after the execution of every command Redis will run a list of all the keys that received data AND that have at least a client blocked. The list is ordered by new element arrival time, from the first key that received data to the last. For every key processed, Redis will serve all the clients waiting for that key in a FIFO fashion, as long as there are elements in this key. When the key is empty or there are no longer clients waiting for this key, the next key that received new data in the previous command / transaction / script is processed, and so forth.
+下面命令客户端A会先拿到b,然后是B拿到a,C拿到d
+Client A: BLPOP fo,foo 0
+Client B: BLPOP fo,foo 0
+Client C: BLPOP fo,foo 0
+Client D: 
+multi 
+lpush foo a
+lpush fo c
+lpush fo d
+lpush foo b
+exec
+
 ---------------------------------------------------------------------------------------------------------------------------------------
 
 set常见命令(唯一性,无序性)
