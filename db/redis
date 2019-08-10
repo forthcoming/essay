@@ -200,9 +200,9 @@ hset key field value : 把key中filed域的值设为value,如果有field,则覆�
 hmset key field1 value1 [field2 value2 field3 value3 ......fieldn valuen]
 hdel key field : 删除key中field域
 hlen key : 返回key中元素的数量
-hexists key field : 判断key中有没有field域
+hexists key field : 判断key中有没有field域,时间复杂度O(1)
 hinrby float key field value : 把key中的field域的值增长浮点值value
-hkeys key : 返回key中所有的field
+hkeys key : 返回key中所有的field,时间复杂度O(N)
 hvals key : 返回key中所有的value
 hgetall key : 返回key中所有得field-value
 
