@@ -410,46 +410,101 @@ set user:username:lisi:uid 9
 
 ---------------------------------------------------------------------------------------------------------------------------------------
 
-sort
-lpush num 12 33 -13 45 90
-sort num asc  #默认升序,且按数值排序
-sort num desc
+SORT key [BY pattern] [LIMIT offset count] [GET pattern [GET pattern ...]] [ASC | DESC] [ALPHA] [STORE destination]
+返回或保存给定列表、集合、有序集合key中经过排序的元素
+只能根据一个字段排序(无法实现类似order by name,score功能),无法在集群下运行,提示ERR BY option of SORT denied in Cluster mode.
+Time complexity: 
+O(N+M*log(M)) where N is the number of elements in the list or set to sort, and M the number of returned elements. 
+When the elements are not sorted, complexity is currently O(N) as there is a copy step that will be avoided in next releases.
 
-lpush alp b c a test1 king ZendStudio
-sort apl alpha desc
-sort apl alpha asc limit 1 3
+排序默认以数字作为对象,值被解释为双精度浮点数
+lpush rank 1 3 2 5 4
+sort rank desc limit 1 3
+1) "4"
+2) "3"
+3) "2"
 
-lpush uid 1
-set user_1 admin
-set user_level_1 9999
-lpush uid 2
-set user_2 king
-set user_level_2 800
-lpush uid 3
-set user_3 queen
-set user_level_3 600
-127.0.0.1:6379> sort uid
-1) "1"
-2) "2"
-3) "3"
-127.0.0.1:6379> sort uid by user_level_* limit 1 2
-1) "2"
-2) "1"
-127.0.0.1:6379> sort uid get user_*
-1) "admin"
-2) "king"
-3) "queen"
-127.0.0.1:6379> sort uid by user_level_* get user_*
-1) "queen"
-2) "king"
-3) "admin"
-127.0.0.1:6379> sort uid by user_level_* get user_* get user_level_*
-1) "queen"
-2) "600"
-3) "king"
-4) "800"
-5) "admin"
-6) "9999"
+zadd alphabet 10 a 20 c 0 b -10 e 30 d
+zrange alphabet 0 -1 withscores
+ 1) "e"
+ 2) "-10"
+ 3) "b"
+ 4) "0"
+ 5) "a"
+ 6) "10"
+ 7) "c"
+ 8) "20"
+ 9) "d"
+10) "30"
+有序集合是根据member来排序,非score,当需要对字符串进行排序时,需要显式地在命令之后添加alpha修饰符
+sort alphabet alpha
+1) "a"
+2) "b"
+3) "c"
+4) "d"
+5) "e"
+
+lpush uid 1 2 3 4 0 5
+hmset user_info_1 name admin level 9999
+hmset user_info_2 name jack level 10
+hmset user_info_3 name peter level 25
+hmset user_info_4 name mary level 70
+通过使用by选项,可以让uid按其他键的元素来排序,不在user_level_*下面的uid默认比其他uid要小,且也会按指定顺序排序
+sort uid by user_info_*->level
+1) "0"
+2) "5"
+3) "2"
+4) "3"
+5) "4"
+6) "1"
+get #获取被排序键的值,类似与sorted-set withscores
+sort uid get # get user_info_*->name get user_info_*->level
+ 1) "0"
+ 2) (nil)
+ 3) (nil)
+ 4) "1"
+ 5) "admin"
+ 6) "9999"
+ 7) "2"
+ 8) "jack"
+ 9) "10"
+10) "3"
+11) "peter"
+12) "25"
+13) "4"
+14) "mary"
+15) "70"
+16) "5"
+17) (nil)
+18) (nil)
+默认情况下只返回排序结果,并不进行保存操作
+通过给store指定一个key,返回排序结果的元素个数,并将排序结果保存到给定key上,key类型是list
+通常还需要为key设置生存时间,另外为了正确实现这一用法,可能需要加锁以避免多个客户端同时进行缓存重建
+如果被指定key已存在,那么原有的值将被排序结果覆盖
+sort uid by user_info_*->level get # store result
+(integer) 6
+lrange result 0 -1
+1) "0"
+2) "5"
+3) "2"
+4) "3"
+5) "4"
+6) "1"
+通过将一个不存在的键作为参数传给by选项,可以跳过排序
+这种用法单独使用没什么实际用处,不过通过将这种用法和GET选项配合,就可以在不排序的情况下获取多个外部键,类似于SQL的join
+sort uid by not-exists-key get user_info_*->level get user_info_*->name
+ 1) (nil)
+ 2) (nil)
+ 3) (nil)
+ 4) (nil)
+ 5) "70"
+ 6) "mary"
+ 7) "25"
+ 8) "peter"
+ 9) "10"
+10) "jack"
+11) "9999"
+12) "admin"
 
 ---------------------------------------------------------------------------------------------------------------------------------------
 
