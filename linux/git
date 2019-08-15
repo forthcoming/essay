@@ -29,7 +29,7 @@ git reset -–hard HEAD^   #回到上次提交状态
 git reset -–hard HEAD^^  #回到上上次提交状态,HEAD^^等价于HEAD~2
 git push --force  #如果远程主机版本比本地更新,推送时会报错,可以使用--force强制推送,结果导致远程主机上更新的版本被覆盖(慎用)
 git push [remote-name] [branch-name]   # 将master分支推送到origin服务器(git clone时通常会自动帮你设置好那两个名字)
-git rebase -i 075bf67   # s合并历史提交记录,r更改历史提交说明
+git rebase -i 075bf67   # s合并历史提交记录,r更改历史提交说明,git reset + git push 也能实现提交历史合并
 '''
 pick d7acd15 222
 pick 14de029 333
