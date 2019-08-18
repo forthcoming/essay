@@ -3,7 +3,7 @@ A single nsqd can have many topics and each topic can have many channels,a chann
 To summarize, messages are multicast from topic -> channel (every channel receives a copy of all messages for that topic).
 but evenly distributed from channel -> consumers (each consumer or named client receives a portion of the messages for that channel).
 
-messages are not durable (by default)Anchor link for: messages are not durable by default
+messages are not durable (by default)
 --mem-queue-size number of messages to keep in memory (per topic/channel) (default 10000),can be set to 0 to ensure that all incoming messages are persisted to disk.  
 adjusts the number of messages queued in memory per topic/channel. Messages over that watermark are transparently written to disk, defined by --data-path.  
 messages received are un-ordered,You cannot rely on the order of messages being delivered to consumers.
