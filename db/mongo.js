@@ -88,15 +88,15 @@ db.user.insertOne({name:'avatar',age:22});  // 向collection插入数据(不存�
 db.user.insertMany([{a:1},{b:2}])
 db.user.deleteOne({name:'avatar'});  
 db.user.deleteMany({name:'avatar'});
-db.user.updateOne({},{$rename:{old:"new"}});  // 重命名字段,the update operation document must contain atomic operators
-db.user.updateMany({},{$inc:{age:10}}});  // the update operation document must contain atomic operators,eg. $set
-db.user.updateMany({},{$mul:{price:100}});  // price都乘100
-db.user.updateMany({},{$unset:{color:""}});   // 删除某个字段
+db.user.updateOne({},{$rename:{old:"new"}}); // 重命名字段,the update operation document must contain atomic operators
+db.user.updateMany({},{$inc:{age:10}}});     // the update operation document must contain atomic operators,eg. $set
+db.user.updateMany({},{$mul:{price:100}});   // price都乘100
+db.user.updateMany({},{$unset:{color:""}});  // 删除某个字段
 db.user.updateMany({name:'avatar'},{$set:{name:'wangwu'}});
 db.user.updateMany({slug: 'avatar'},{$set: { item: 2 },$setOnInsert: {slug:'akatsuki',age:333}},{upsert:true});
 /*
 没找到则将set,inc,setOnInsert等所有关键词内容合并到查询条件中,然后一并插入,依赖于upsert=true
-找到则忽略掉setOnInsert,将其他关键词内容合并到查询条件中，然后一并插入
+找到则忽略掉setOnInsert,将其他关键词内容合并到查询条件中,然后一并插入
 */
 
 /**************************************************************************
