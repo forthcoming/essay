@@ -78,6 +78,16 @@ OFS      输出字段分隔符,默认也是空格
 ORS      输出的记录分隔符,默认为换行符
 FILENAME 当前输入文件的名字
 
+统计每个用户的进程占了多少内存(统计的是RSS那一列)
+ps aux | awk 'NR!=1 {a[$1]+=$6} END{for(i in a) print i":"a[i]"KB"}'
+ntp:712KB
+root:101716KB
+redis:100644KB
+
+计算所有的.conf和.aof文件总大小
+ls -l *.conf *.aof | awk 'BEGIN{sum=0} {sum+=$5} END {print sum}'
+69860
+
 cat netstat.txt
 Proto Recv-Q Send-Q Local-Address          Foreign-Address             State
 tcp        0   4166 coolshell.cn:80        61.148.242.38:30901         ESTABLISHED
@@ -109,6 +119,8 @@ tcp        0   4166 coolshell.cn:80        61.148.242.38:30901         ESTABLISH
 tcp        0      1 coolshell.cn:70        124.152.181.209:26825       FIN_WAIT1
 tcp        0      0 coolshell.cn:80        183.60.212.163:51082        TIME_WAIT
 tcp        0      0 coolshell.cn:80        117.136.20.85:50025         FIN_WAIT2
+awk 'NR!=1 {print $4,$5 > $6}' netstat.txt   # 把指定的列输出到文件
+awk 'NR!=1 {if($6 ~/TIME|ESTABLISHED/) print > "1.txt"; else if($6 ~/FIN/) print > "2.txt"; else print > "3.txt" }' netstat.txt 
 cat webapi.log | grep 'send_msg' | awk -F "\t" '{ if($8>5)  print $0  }' 
 ---------------------------------------------------------------------------------------------------------------------------------
 ab
