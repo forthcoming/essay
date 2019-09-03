@@ -136,12 +136,12 @@ Options are:
     -X proxy:port   Proxyserver and port number to use
     -C attribute    Add cookie, eg. 'Apache=1234'. (repeatable)
     -H attribute    Add Arbitrary header line, eg. 'Accept-Encoding: gzip',Inserted after all normal header lines. (repeatable)
-ab -c 30 -n 5000 -H 'admin:sz_xlp' -X '127.0.0.1:80' 'http://apitest.ring.kugou.com/ccktv/v1/ktv_room/room/get_room_list?birthday=1990&app_agent=ccktv-ios&page_index=0&page_size=50'
+ab -c 30 -n 5000 -H 'admin:sz_xlp' -X '127.0.0.1:80' 'http://ring.com/room/room_list?birthday=1990&app_agent=ccktv-ios&page_index=0&page_size=50'
 data.json  => {"user_ids": "1,2","room_ids":"1,2","app_agent":"ccktv-ios"}  # 必须是双引号
-ab -c 30 -n 5000 -H 'admin:sz_xlp' -T 'application/json' -X '127.0.0.1:80' -p /home/ccktv/data.json 'http://apitest.ring.kugou.com/ccktv/v1/ktv_room/room/get_batch_stream'
-Server Hostname:        apitest.ring.kugou.com
+ab -c 30 -n 5000 -H 'admin:sz_xlp' -T 'application/json' -X '127.0.0.1:80' -p /home/ccktv/data.json 'http://ring.com/room/room_list'
+Server Hostname:        ring.com
 Server Port:            80
-Document Path:          /ccktv/v1/ktv_room/room/get_batch_stream
+Document Path:          room/room_list
 Document Length:        825 bytes                                          (供测试的URL返回的文档大小)
 Non-2xx responses:      0                                                  (非200状态码次数,n次请求中失败的次数,只有失败了才会出现该项)
 Concurrency Level:      30                                                 (c参数)
