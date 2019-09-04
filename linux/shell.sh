@@ -1,5 +1,5 @@
-find
-find . -iname [a-z][0-9].sh                     # iname忽略大小写,后面跟的是字符串or通配符,非正则,如果跟通配符则两边需要加引号
+find                 
+find . -maxdepth 1 -iname '[a-z][0-9]'.sh       # iname忽略大小写,后面跟的是字符串or通配符,非正则,如果跟通配符则两边需要加引号
 find /etc -maxdepth 1 -name '*.conf'            # 查找/etc下名称中带有*.conf的文件,查找一层
 find /etc -maxdepth 2 -mindepth 2 -name 1.txt   # 查找/etc下名称是1.txt的文件,且只查找第二层
 find /mnt -user student -group student          # 查找/mnt下所有人和所有组都是student的文件
