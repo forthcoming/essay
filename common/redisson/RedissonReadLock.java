@@ -16,17 +16,12 @@ public class RedissonReadLock extends RedissonLock implements RLock {
     ARGV[2]: 锁的名称
     ARGV[3]: 写锁的名称,它是在锁名称的后面加上write
     加锁流程如下:
-    1. 获取锁的mode,如果锁的mode为false,表示之前没有设置过读写锁,此时可以获得读锁.
-        1. 将锁的mode设置为read
-        2. 将锁名称对应的线程数设置为1
-        3. 设置超时名称
-        4. 设置超时名称的过期时间
-        5. 设置锁的过期时间
+    1. 获取锁的mode,如果锁的mode为false,表示之前没有设置过读写锁,此时可以获得读锁
+        1. 将锁的mode设置为read,锁名称对应的线程数设置为1,并设置锁的过期时间
+        2. 设置超时名称及其过期时间
     2. 如果锁的mode为read或者mode为write并且持有写锁的线程为当前线程,此时可以继续加读锁.换句话说,如果当前存在读锁或者持有写锁的是当前线程,都可以加读锁。
-        1. 将锁名称对应的线程数增加1
-        2. 设置超时名称
-        3. 设置超时名称的过期时间
-        4. 设置锁的过期时间
+        1. 将锁名称对应的线程数增加1,并设置锁的过期时间
+        2. 设置超时名称及其过期时间
     3. 否则返回当前锁的过期时间
     '''
     @Override
@@ -36,19 +31,16 @@ public class RedissonReadLock extends RedissonLock implements RLock {
         return commandExecutor.evalWriteAsync(getName(), LongCodec.INSTANCE, command,
                                 "local mode = redis.call('hget', KEYS[1], 'mode'); " +
                                 "if (mode == false) then " +
-                                  "redis.call('hset', KEYS[1], 'mode', 'read'); " +
-                                  "redis.call('hset', KEYS[1], ARGV[2], 1); " +
-                                  "redis.call('set', KEYS[2] .. ':1', 1); " +            // ..是lua字符串拼接符号
-                                  "redis.call('pexpire', KEYS[2] .. ':1', ARGV[1]); " +
+                                  "redis.call('hmset', KEYS[1], 'mode', 'read', ARGV[2], 1); " +             
                                   "redis.call('pexpire', KEYS[1], ARGV[1]); " +
+                                  "redis.call('psetex', KEYS[2] .. ':1', ARGV[1], 1); " +  // ..是lua字符串拼接符号
                                   "return nil; " +
                                 "end; " +
                                 "if (mode == 'read') or (mode == 'write' and redis.call('hexists', KEYS[1], ARGV[3]) == 1) then " +
                                   "local ind = redis.call('hincrby', KEYS[1], ARGV[2], 1); " + 
-                                  "local key = KEYS[2] .. ':' .. ind;" +
-                                  "redis.call('set', key, 1); " +
-                                  "redis.call('pexpire', key, ARGV[1]); " +
                                   "redis.call('pexpire', KEYS[1], ARGV[1]); " +
+                                  "local key = KEYS[2] .. ':' .. ind;" +        
+                                  "redis.call('psetex', key, ARGV[1], 1); " +
                                   "return nil; " +
                                 "end;" +
                                 "return redis.call('pttl', KEYS[1]);",
