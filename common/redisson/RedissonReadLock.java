@@ -38,7 +38,7 @@ public class RedissonReadLock extends RedissonLock implements RLock {
                                 "if (mode == false) then " +
                                   "redis.call('hset', KEYS[1], 'mode', 'read'); " +
                                   "redis.call('hset', KEYS[1], ARGV[2], 1); " +
-                                  "redis.call('set', KEYS[2] .. ':1', 1); " +
+                                  "redis.call('set', KEYS[2] .. ':1', 1); " +            // ..是lua字符串拼接符号
                                   "redis.call('pexpire', KEYS[2] .. ':1', ARGV[1]); " +
                                   "redis.call('pexpire', KEYS[1], ARGV[1]); " +
                                   "return nil; " +
