@@ -11,10 +11,9 @@ public class RedissonWriteLock extends RedissonLock implements RLock {
     ARGV[1]: 锁的超时时间
     ARGV[2]: 锁的名称
     加锁流程如下: 
-    1. 获取锁的mode,如果锁的mode为false,表示之前没有设置过读写锁,此时可以获得写锁.
-        1. 将锁的mode设置为write
-        2. 将锁名称对应的线程数设置为1
-        3. 设置锁的过期时间
+    1. 获取锁的mode,如果锁的mode为false,表示之前没有设置过读写锁,此时可以获得写锁
+        1. 将锁的mode设置为write,将锁名称对应的线程数设置为1
+        2. 设置锁的过期时间
     2. 如果锁的mode为write,并且持有写锁的线程为当前线程,此时可以继续加写锁
         1. 将锁名称对应的线程数增加1
         2. 增加锁的过期时间
@@ -27,20 +26,19 @@ public class RedissonWriteLock extends RedissonLock implements RLock {
         return commandExecutor.evalWriteAsync(getName(), LongCodec.INSTANCE, command,
                             "local mode = redis.call('hget', KEYS[1], 'mode'); " +
                             "if (mode == false) then " +
-                                  "redis.call('hset', KEYS[1], 'mode', 'write'); " +
-                                  "redis.call('hset', KEYS[1], ARGV[2], 1); " +
-                                  "redis.call('pexpire', KEYS[1], ARGV[1]); " +
-                                  "return nil; " +
-                              "end; " +
-                              "if (mode == 'write') then " +
-                                  "if (redis.call('hexists', KEYS[1], ARGV[2]) == 1) then " +
-                                      "redis.call('hincrby', KEYS[1], ARGV[2], 1); " + 
-                                      "local currentExpire = redis.call('pttl', KEYS[1]); " +
-                                      "redis.call('pexpire', KEYS[1], currentExpire + ARGV[1]); " +
-                                      "return nil; " +
-                                  "end; " +
-                                "end;" +
-                                "return redis.call('pttl', KEYS[1]);",
+                                "redis.call('hmset', KEYS[1], 'mode', 'write', ARGV[2], 1); " +
+                                "redis.call('pexpire', KEYS[1], ARGV[1]); " +
+                                "return nil; " +
+                            "end; " +
+                            "if (mode == 'write') then " +
+                                "if (redis.call('hexists', KEYS[1], ARGV[2]) == 1) then " +
+                                    "redis.call('hincrby', KEYS[1], ARGV[2], 1); " + 
+                                    "local currentExpire = redis.call('pttl', KEYS[1]); " +
+                                    "redis.call('pexpire', KEYS[1], currentExpire + ARGV[1]); " +
+                                    "return nil; " +
+                                "end; " +
+                            "end;" +
+                            "return redis.call('pttl', KEYS[1]);",
                         Arrays.<Object>asList(getName()), 
                         internalLockLeaseTime, getLockName(threadId));
     }
@@ -48,7 +46,7 @@ public class RedissonWriteLock extends RedissonLock implements RLock {
     '''
     unlockInnerAsync方法是写锁解锁的最终方法
     KEYS[1]: 锁在redis中的key
-    KEYS[2]: channel名称，用于发送解锁的消息
+    KEYS[2]: channel名称,用于发送解锁的消息
     ARGV[1]: 解锁消息
     ARGV[2]: 锁的过期时间
     ARGV[3]: 锁的名称
@@ -84,14 +82,13 @@ public class RedissonWriteLock extends RedissonLock implements RLock {
                                 "redis.call('del', KEYS[1]); " +
                                 "redis.call('publish', KEYS[2], ARGV[1]); " + 
                             "else " +
-                                // has unlocked read-locks
-                                "redis.call('hset', KEYS[1], 'mode', 'read'); " +
+                                "redis.call('hset', KEYS[1], 'mode', 'read'); " +   // has unlocked read-locks
                             "end; " +
                             "return 1; "+
                         "end; " +
                     "end; " +
-                "end; "
-                + "return nil;",
+                "end; " +
+                "return nil;",
         Arrays.<Object>asList(getName(), getChannelName()), 
         LockPubSub.READ_UNLOCK_MESSAGE, internalLockLeaseTime, getLockName(threadId));
     }
