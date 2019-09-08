@@ -30,13 +30,11 @@ public class RedissonWriteLock extends RedissonLock implements RLock {
                                 "redis.call('pexpire', KEYS[1], ARGV[1]); " +
                                 "return nil; " +
                             "end; " +
-                            "if (mode == 'write') then " +
-                                "if (redis.call('hexists', KEYS[1], ARGV[2]) == 1) then " +
-                                    "redis.call('hincrby', KEYS[1], ARGV[2], 1); " + 
-                                    "local currentExpire = redis.call('pttl', KEYS[1]); " +
-                                    "redis.call('pexpire', KEYS[1], currentExpire + ARGV[1]); " +
-                                    "return nil; " +
-                                "end; " +
+                            "if (mode == 'write' and redis.call('hexists', KEYS[1], ARGV[2]) == 1) then " +
+                                "redis.call('hincrby', KEYS[1], ARGV[2], 1); " + 
+                                "local currentExpire = redis.call('pttl', KEYS[1]); " +
+                                "redis.call('pexpire', KEYS[1], currentExpire + ARGV[1]); " +
+                                "return nil; " +
                             "end;" +
                             "return redis.call('pttl', KEYS[1]);",
                         Arrays.<Object>asList(getName()), 
