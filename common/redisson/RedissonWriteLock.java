@@ -24,21 +24,21 @@ public class RedissonWriteLock extends RedissonLock implements RLock {
         internalLockLeaseTime = unit.toMillis(leaseTime);
 
         return commandExecutor.evalWriteAsync(getName(), LongCodec.INSTANCE, command,
-                            "local mode = redis.call('hget', KEYS[1], 'mode'); " +
-                            "if (mode == false) then " +
-                                "redis.call('hmset', KEYS[1], 'mode', 'write', ARGV[2], 1); " +
-                                "redis.call('pexpire', KEYS[1], ARGV[1]); " +
-                                "return nil; " +
-                            "end; " +
-                            "if (mode == 'write' and redis.call('hexists', KEYS[1], ARGV[2]) == 1) then " +
-                                "redis.call('hincrby', KEYS[1], ARGV[2], 1); " + 
-                                "local currentExpire = redis.call('pttl', KEYS[1]); " +
-                                "redis.call('pexpire', KEYS[1], currentExpire + ARGV[1]); " +
-                                "return nil; " +
-                            "end;" +
-                            "return redis.call('pttl', KEYS[1]);",
-                        Arrays.<Object>asList(getName()), 
-                        internalLockLeaseTime, getLockName(threadId));
+            "local mode = redis.call('hget', KEYS[1], 'mode'); " +
+            "if (mode == false) then " +
+                "redis.call('hmset', KEYS[1], 'mode', 'write', ARGV[2], 1); " +
+                "redis.call('pexpire', KEYS[1], ARGV[1]); " +
+                "return nil; " +
+            "end; " +
+            "if (mode == 'write' and redis.call('hexists', KEYS[1], ARGV[2]) == 1) then " +
+                "redis.call('hincrby', KEYS[1], ARGV[2], 1); " + 
+                "local currentExpire = redis.call('pttl', KEYS[1]); " +
+                "redis.call('pexpire', KEYS[1], currentExpire + ARGV[1]); " +  // pexpire KEYS[1] ARGV[1]会出现锁L2过期时间小于L1而导致L1提前过期,https://github.com/redisson/redisson/issues/1110
+                "return nil; " +
+            "end;" +
+            "return redis.call('pttl', KEYS[1]);",                      
+            Arrays.<Object>asList(getName()), 
+            internalLockLeaseTime, getLockName(threadId));
     }
     
     '''
