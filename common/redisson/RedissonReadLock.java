@@ -38,9 +38,9 @@ public class RedissonReadLock extends RedissonLock implements RLock {
                                 "end; " +
                                 "if (mode == 'read') or (mode == 'write' and redis.call('hexists', KEYS[1], ARGV[3]) == 1) then " +
                                   "local ind = redis.call('hincrby', KEYS[1], ARGV[2], 1); " + 
-                                  "redis.call('pexpire', KEYS[1], ARGV[1]); " +
-                                  "local key = KEYS[2] .. ':' .. ind;" +        
-                                  "redis.call('psetex', key, ARGV[1], 1); " +
+                                  "local remainTime = redis.call('pttl', KEYS[1]); " +
+                                  "redis.call('pexpire', KEYS[1], math.max(remainTime, ARGV[1])); " +
+                                  "redis.call('psetex', KEYS[2] .. ':' .. ind, ARGV[1], 1); " +
                                   "return nil; " +
                                 "end;" +
                                 "return redis.call('pttl', KEYS[1]);",
