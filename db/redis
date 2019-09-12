@@ -346,8 +346,7 @@ with r.pipeline(transaction=False) as pipe:  # 默认transaction=True,会在命�
             # another client must have changed 'OUR-SEQUENCE-KEY' between the time we started WATCHing it and the pipeline's execution.
             # our best bet is to just retry.
             continue
-            
-'''
+           
 watch
 要求所有受监控的键在执行exec前都没有被修改时才会执行事务(相同客户端在事务内部修改这些键不影响事务的运行)
 只能在客户端进入事务状态之前执行才有效
@@ -367,7 +366,13 @@ exec
 
 discard
 中止事务运行
-'''
+
+客户端pipeline vs lua-script
+pipeline优点:
+    1. 集群中如果keys不落在同一个slot上,则只能用pipeline,无法使用脚本
+lua-script优点:
+    1. A Redis script(lua script) is transactional by definition and usually the script will be both simpler and faster
+    2. 命令之间存在逻辑(如if,赋值等),则只能使用脚本,无法使用pipeline
 
 ---------------------------------------------------------------------------------------------------------------------------------------
 
