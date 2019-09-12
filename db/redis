@@ -326,7 +326,34 @@ pipe.set('bing', 'baz')
 pipe.set('foo', 'bar').get('bing')  # 所有缓冲到pipeline的命令返回pipeline对象本身,因此可以链式调用
 pipe.execute()  # returning a list of responses, one for each command.  [True, True, b'baz']
 
+# pipelines can also ensure the buffered commands are executed atomically(原子性地) as a group. This happens by default. 
+# If you want to disable the atomic nature of a pipeline but still want to buffer commands, you can turn off transactions.
+# The pipeline is wrapped with the MULTI and EXEC statements by default when it is executed, which can be disabled by specifying transaction=False.
+with r.pipeline(transaction=False) as pipe:  # 默认transaction=True,会在命令两端分别加multi和exec,管道对减少客户端和服务器之间来回开销很有用
+    while True:
+        try:
+            pipe.watch('OUR-SEQUENCE-KEY')  # put a WATCH on the key that holds our sequence value
+            # after WATCHing, the pipeline is put into immediate execution mode until we tell it to start buffering commands again.
+            # this allows us to get the current value of our sequence
+            current_value = pipe.get('OUR-SEQUENCE-KEY')
+            next_value = int(current_value) + 1
+            pipe.multi()   # now we can put the pipeline back into buffered mode with MULTI,此时不管初始话是否用事物,后面的命令会以transaction=True模式运行(原子性)
+            pipe.set('OUR-SEQUENCE-KEY', next_value)
+            time.sleep(10) # 可以在watch之后multi之前,此时如果OUR-SEQUENCE-KEY被其他客户端更改,execute将会抛WatchError异常
+            pipe.execute() # finally, execute the pipeline (the set command)
+            break
+       except WatchError:  # if a WatchError wasn't raised during execution, everything we just did happened atomically.
+            # another client must have changed 'OUR-SEQUENCE-KEY' between the time we started WATCHing it and the pipeline's execution.
+            # our best bet is to just retry.
+            continue
+            
 '''
+watch
+要求所有受监控的键在执行exec前都没有被修改时才会执行事务(相同客户端在事务内部修改这些键不影响事务的运行)
+只能在客户端进入事务状态之前执行才有效
+当前客户端的事务执行失败,程序需要做的就是不断重试这个操作,直到没有发生碰撞为止
+这种形式的锁被称作乐观锁,它是一种非常强大的锁机制.因为大多数情况下不同的客户端会访问不同的键,碰撞的情况一般都很少,所以通常并不需要进行重试
+
 multi
 It can never happen that a request issued by another client is served in the middle of the execution of a Redis transaction. 
 This guarantees that the commands are executed as a single isolated operation.
@@ -334,16 +361,12 @@ Redis是单线程的服务,天生所有操作均具有原子性
 事务状态是以一个事务为单位,执行事务队列中的所有命令:除非当前事务执行完毕,否则服务器不会中断事务,也不会执行其他客户端的其他命令
 事物存在语法错误,则整个事务都不会执行
 事务存在逻辑错误,比如set a 1,lpop a则会跳过该命令,执行剩下的命令,不支持回滚
+
 exec
 开始顺序执行各条命令,之后终止watch命令
+
 discard
 中止事务运行
-watch
-要求所有受监控的键在执行exec前都没有被修改时才会执行事务(相同客户端在事务内部修改这些键不影响事务的运行)
-只能在客户端进入事务状态之前执行才有效
-
-当前客户端的事务执行失败,程序需要做的就是不断重试这个操作,直到没有发生碰撞为止
-这种形式的锁被称作乐观锁,它是一种非常强大的锁机制.因为大多数情况下不同的客户端会访问不同的键,碰撞的情况一般都很少,所以通常并不需要进行重试
 '''
 
 ---------------------------------------------------------------------------------------------------------------------------------------
