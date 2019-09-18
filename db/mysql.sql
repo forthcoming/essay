@@ -141,7 +141,7 @@ Only the InnoDB and MyISAM storage engines support FULLTEXT indexes and only for
 有些查询不满足左前缀原则,但查询字段可以索引覆盖,则explain也会显示利用索引,Extra一般会显示Using index for skip scan
 
 
-联合索引(观察key_len大小)
+联合索引(观察key_len和Extra,group by和order by都可以利用联合索引)
 create table idx(
 c1 char(1) not null default '',
 c2 char(1) not null default '',
@@ -166,21 +166,6 @@ possible_keys: c1
          rows: 2
      filtered: 100.00
         Extra: Using index condition
-
-mysql> explain select * from idx where c1='a' and c2='b' and c4='a' order by c3\G
-*************************** 1. row ***************************
-           id: 1
-  select_type: SIMPLE
-        table: idx
-   partitions: NULL
-         type: ref
-possible_keys: c1
-          key: c1
-      key_len: 6
-          ref: const,const
-         rows: 3
-     filtered: 33.33
-        Extra: Using index condition
         
 mysql> explain select * from idx where c1='a' and c2='b' and c4='a' order by c5\G
 *************************** 1. row ***************************
@@ -196,7 +181,22 @@ possible_keys: c1
          rows: 3
      filtered: 33.33
         Extra: Using index condition; Using filesort
-        
+                                                                             
+mysql> explain select * from idx where c1='a' and c4='a' order by c3\G
+*************************** 1. row ***************************
+           id: 1
+  select_type: SIMPLE
+        table: idx
+   partitions: NULL
+         type: ref
+possible_keys: c1
+          key: c1
+      key_len: 3
+          ref: const
+         rows: 3
+     filtered: 33.33
+        Extra: Using index condition; Using filesort  # 如果where字段跟order by字段不能使用联合索引的左前缀,则需要额外排序
+                                        
 mysql> explain select * from idx where c1='a' and c5='e' order by c2,c3\G
 *************************** 1. row ***************************
            id: 1
@@ -227,24 +227,7 @@ possible_keys: c1
      filtered: 33.33
         Extra: Using index condition; Using where; Using filesort
         
-
-
 mysql> explain select * from idx where c1='a' and c2='b' and c5='e' order by c3,c2\G  # 注意排序中的c2是常量
-*************************** 1. row ***************************
-           id: 1
-  select_type: SIMPLE
-        table: idx
-   partitions: NULL
-         type: ref
-possible_keys: c1
-          key: c1
-      key_len: 6
-          ref: const,const
-         rows: 3
-     filtered: 33.33
-        Extra: Using index condition; Using where
-
-mysql> explain select * from idx where c1='a' and c2='b' and c5='e' order by c2,c3\G
 *************************** 1. row ***************************
            id: 1
   select_type: SIMPLE
