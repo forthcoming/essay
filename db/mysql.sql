@@ -1,3 +1,23 @@
+锁
+悲观锁(Pessimistic Lock)
+每次去拿数据的时候都认为别人会修改,所以每次在拿数据的时候都会上锁,这样别人想拿这个数据就会block直到它拿到锁
+传统的关系型数据库里边就用到了很多这种锁机制,比如行锁,表锁等,读锁,写锁等,都是在做操作之前先上锁
+
+乐观锁(Optimistic Lock)
+每次去拿数据的时候都认为别人不会修改,所以不会上锁,但是在更新的时候会判断一下在此期间别人有没有去更新这个数据,可以使用版本号等机制
+
+乐观锁适用于写比较少的情况下,即冲突真的很少发生的时候,这样可以省去了锁的开销,加大了系统的整个吞吐量
+但如果经常产生冲突,上层应用会不断的进行retry,这样反倒是降低了性能,所以这种情况下用悲观锁就比较合适
+
+读锁
+lock table t1 read # 所有客户端都只能读,insert/update/delete都将被阻塞,一旦数据表被加上读锁,其他请求可以对该表再次增加读锁,但是不能增加写锁
+写锁
+lock table t1 write # 只有本人可以增删改查,其他人增删改查都不行,一旦数据表被加上写锁,其他请求无法在对该表增加读锁和写锁
+
+在使用lock table之后,解锁之前,当前会话不能操作未加锁的表
+MyISAM在执行查询语句(SELECT)前,会自动给涉及的所有表加读锁,在执行更新操(UPDATE/DELETE/INSERT)前会自动给涉及的表加写锁
+
+
 login
 mysql.user表具有全局性,控制着用户的登录信息和登录后的权限
 mysql_secure_installation  // 设置root密码是否允许远程登录等信息
@@ -121,6 +141,156 @@ Only the InnoDB and MyISAM storage engines support FULLTEXT indexes and only for
 有些查询不满足左前缀原则,但查询字段可以索引覆盖,则explain也会显示利用索引,Extra一般会显示Using index for skip scan
 
 
+联合索引
+create table idx(
+c1 char(1) not null default '',
+c2 char(1) not null default '',
+c3 char(1) not null default '',
+c4 char(1) not null default '',
+c5 char(1) not null default '',
+key(c1,c2,c3,c4)
+)engine innodb charset utf8;
+insert into idx values('a','b','c','a','e'),('A','b','c','b','e'),('a','B','c','c','e');
+
+mysql> explain select * from idx where c1='a' and c2='b' and c4>'a' and c3='c'\G
+*************************** 1. row ***************************
+           id: 1
+  select_type: SIMPLE
+        table: idx
+   partitions: NULL
+         type: range # 从最好到最差的连接类型为const、eq_reg、ref(根据索引列直接定位到某些数据行)、range(根据索引做范围查询)、index和all
+possible_keys: c1
+          key: c1
+      key_len: 12
+          ref: NULL
+         rows: 2
+     filtered: 100.00
+        Extra: Using index condition
+
+mysql> explain select * from idx where c1='a' and c2='b' and c4='a' order by c3\G
+*************************** 1. row ***************************
+           id: 1
+  select_type: SIMPLE
+        table: idx
+   partitions: NULL
+         type: ref
+possible_keys: c1
+          key: c1
+      key_len: 6
+          ref: const,const
+         rows: 3
+     filtered: 33.33
+        Extra: Using index condition
+        
+mysql> explain select * from idx where c1='a' and c2='b' and c4='a' order by c5\G
+*************************** 1. row ***************************
+           id: 1
+  select_type: SIMPLE
+        table: idx
+   partitions: NULL
+         type: ref
+possible_keys: c1
+          key: c1
+      key_len: 6
+          ref: const,const
+         rows: 3
+     filtered: 33.33
+        Extra: Using index condition; Using filesort
+        
+mysql> explain select * from idx where c1='a' and c5='e' order by c2,c3\G
+*************************** 1. row ***************************
+           id: 1
+  select_type: SIMPLE
+        table: idx
+   partitions: NULL
+         type: ref
+possible_keys: c1
+          key: c1
+      key_len: 3
+          ref: const
+         rows: 3
+     filtered: 33.33
+        Extra: Using index condition; Using where
+        
+mysql> explain select * from idx where c1='a' and c5='e' order by c3,c2\G
+*************************** 1. row ***************************
+           id: 1
+  select_type: SIMPLE
+        table: idx
+   partitions: NULL
+         type: ref
+possible_keys: c1
+          key: c1
+      key_len: 3
+          ref: const
+         rows: 3
+     filtered: 33.33
+        Extra: Using index condition; Using where; Using filesort
+        
+
+
+mysql> explain select * from idx where c1='a' and c2='b' and c5='e' order by c3,c2\G  # 注意排序中的c2是常量
+*************************** 1. row ***************************
+           id: 1
+  select_type: SIMPLE
+        table: idx
+   partitions: NULL
+         type: ref
+possible_keys: c1
+          key: c1
+      key_len: 6
+          ref: const,const
+         rows: 3
+     filtered: 33.33
+        Extra: Using index condition; Using where
+
+mysql> explain select * from idx where c1='a' and c2='b' and c5='e' order by c2,c3\G
+*************************** 1. row ***************************
+           id: 1
+  select_type: SIMPLE
+        table: idx
+   partitions: NULL
+         type: ref
+possible_keys: c1
+          key: c1
+      key_len: 6
+          ref: const,const
+         rows: 3
+     filtered: 33.33
+        Extra: Using index condition; Using where
+        
+
+mysql> explain select * from idx where c1='a' and c4='b' group by c2,c3\G
+*************************** 1. row ***************************
+           id: 1
+  select_type: SIMPLE
+        table: idx
+   partitions: NULL
+         type: ref
+possible_keys: c1
+          key: c1
+      key_len: 3
+          ref: const
+         rows: 3
+     filtered: 33.33
+        Extra: Using index condition
+
+mysql> explain select * from idx where c1='a' and c4='b' group by c3,c2\G
+*************************** 1. row ***************************
+           id: 1
+  select_type: SIMPLE
+        table: idx
+   partitions: NULL
+         type: ref
+possible_keys: c1
+          key: c1
+      key_len: 3
+          ref: const
+         rows: 3   # 估计扫描了多少行
+     filtered: 33.33
+        Extra: Using index condition; Using temporary   # Using filesort & Using temporary:看到这个的时候,查询需要优化了
+                                        
+                                        
 processlist 
 show full processlist;  # 如果是root帐号,能看到所有用户的当前连接;如果是其他普通帐号,则只能看到自己占用的连接
 +----+------+-----------------+------+---------+------+----------+-----------------------+
