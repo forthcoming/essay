@@ -141,7 +141,7 @@ Only the InnoDB and MyISAM storage engines support FULLTEXT indexes and only for
 有些查询不满足左前缀原则,但查询字段可以索引覆盖,则explain也会显示利用索引,Extra一般会显示Using index for skip scan
 
 
-联合索引
+联合索引(观察key_len大小)
 create table idx(
 c1 char(1) not null default '',
 c2 char(1) not null default '',
@@ -462,8 +462,6 @@ Myisam & InnoDB(默认)
 如何选择:
 1. 是否要支持事务,如果要请选择innodb,如果不需要可以考虑Myisam
 2. 如果表中绝大多数都只是读查询,可以考虑Myisam,如果既有读写也挺频繁,请使用InnoDB
-3. 系统奔溃后,Myisam恢复起来更困难,能否接受
-4. MySQL5.5版本开始Innodb已经成为Mysql的默认引擎(之前是Myisam)
 
 
 Oracle批量删除和查询表数据
