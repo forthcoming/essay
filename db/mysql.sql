@@ -215,7 +215,7 @@ create view view_name as select * from star where name like '张%' with check op
 1.简化查询
 2.更精细的权限控制(例如隐藏密码字段)
 注意:
-视图是动态的数据集合，数据随着基表的更新而更新
+视图是动态的数据集合,数据随着基表的更新而更新
 只有当视图与基表一一对应时才能通过更改视图来更改基表数据
 视图在mysql的data目录下只生成xx.frm文件即表结构,不生成表数据文件(myd)与表索引文件(myi)
 with check option是对视图里面所有的name首字符必须是以"张"字打头,不管是修改前还是修改后都必须服从此规则
@@ -226,7 +226,7 @@ update view_name set name='张家界' where name='张家辉'; //OK
 
 
 limit [offset,] N
-offset 偏移量，可选，不写则相当于limit 0,N
+offset 偏移量,可选,不写则相当于limit 0,N
 N  取出条目
 
 
