@@ -167,7 +167,7 @@ set常见命令(唯一性,无序性)
 sadd key value1 value2:往集合key中增加元素
 srem key value1 value2: 删除集合中集为value1 value2的元素,返回实际删除的元素个数
 spop key:返回并删除集合中key中1个随机元素
-srandmember key:返回集合key中随机的1个元素
+srandmember key n:返回集合key中随机的n个不相同元素,默认返回1个
 smembers key:返回集中所有的元素
 sismember key value:判断value是否在 key集合中
 scard key:返回集合中元素的个数
