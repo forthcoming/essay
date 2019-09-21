@@ -18,6 +18,43 @@ lock table t1 write # 只有本人可以增删改查,其他人增删改查都不
 MyISAM在执行查询语句(SELECT)前,会自动给涉及的所有表加读锁,在执行更新操(UPDATE/DELETE/INSERT)前会自动给涉及的表加写锁
 
 
+Transaction
+原子性:多步操作逻辑上不可分割,要么都成功,要么都不成功
+一致性:操作前后值的变化逻辑上成立
+隔离性:事务结束前不会影响到其他会话
+持久性:事务一旦提交无法撤回
+
+隔离级别             脏读可能性    不可重复读可能性     幻读可能性    加锁读
+read uncommitted    Y           Y                  Y            N
+read committed      N           Y                  Y            N
+repeatable read     N           N                  Y            N
+serializable        N           N                  N            Y
+
+MySQL默认开启一个事务,自动提交,每成功执行一个SQL,一个事务就会马上COMMIT,所以不能Rollback
+MySQL的默认隔离级别为repeatable read
+MySQL事务是基于UNDO/REDO日志
+UNDO日志记录修改前状态,ROLLBACK基于UNDO日志实现; REDO日志记录修改后的状态,COMMIT基于REDO日志实现,执行COMMIT数据才会被写入磁盘
+
+set autocommit=OFF;   # 关闭自动提交功能,当前会话有效
+start transaction;
+update student set score=score+10 where class=1;  # 只对本会话可见
+savepoint point1;
+update student set score=score-10 where class=2;
+commit; # 一旦提交事务便结束,须再次开启事务才能使用
+rollback; # 回滚到事务开始处并结束事务
+
+mysql> show variables like '%isolation%';
++-----------------------+-----------------+
+| Variable_name         | Value           |
++-----------------------+-----------------+
+| transaction_isolation | REPEATABLE-READ |
++-----------------------+-----------------+
+set session transaction isolation level [read uncommitted] | [read committed] | [repeatable read] | [serializable];
+read uncommitted(读取未提交内容): 所有事务都可以看到其他未提交事务的执行结果,本隔离级别很少用于实际应用,也被称之为脏读
+read committed(读取提交内容): 一个事务只能看见其他已经提交事务所做的改变,支持所谓的不可重复读(在一个事务的两次查询之中数据不一致)
+repeatable read(可重读): 在同一个事务中多次读取同样记录的结果是一致的,不受其他事务提交的影响
+
+
 login
 mysql.user表具有全局性,控制着用户的登录信息和登录后的权限
 mysql_secure_installation  // 设置root密码是否允许远程登录等信息
