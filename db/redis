@@ -66,6 +66,8 @@ move keyname db: 将当前数据库的key移动到给定的数据库db当中,若
 scan: 遍历所有键,类似的还有sscan,hscan,zscan,他们只遍历特定类型键里面的元素值
 redis-cli -h 10.1.138.63 -n 1 --bigkeys: 分析数据库中的大key
 monitor: streams back every command processed by the Redis server. It can help in understanding what is happening to the database
+redis-py存进去的是数字类型,再取出来时都会是字符串类型
+
 ---------------------------------------------------------------------------------------------------------------------------------------
 
 keys pattern:查找所有符合给定模式pattern的key
