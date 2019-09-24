@@ -327,7 +327,6 @@ du -s * | sort -n | tail  # 列出当前目录里最大的10个文件
 ps aux | sort -nk +4 | tail  #  列出头十个最耗内存的进程
 tail -f file.log | sed '/^Finished: SUCCESS$/ q'  # 当file.log里出现Finished: SUCCESS时候就退出tail,用于实时监控并过滤log是否出现了某条记录
 history | awk '{CMD[$2]++;count++;} END { for (a in CMD )print CMD[a] " " CMD[a]/count*100 "% " a }' | grep -v "./" | column -c3 -s " " -t | sort -nr | nl | head -n10  # 输出最常用的十条命令
-lsof -i:80   #  列出80端口现在运行什么程序
 uname -a     #  -n: 显示主机名 -r: 显示内核版本 -a: 显示所有信息
 touch file.txt    # 创建一个空文件
 uptime    # 统计系统从启动到现在运行了多久
