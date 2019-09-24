@@ -1,4 +1,4 @@
-lsof(list open file)
+lsof(list open files)
 lsof file_name              # 查看哪些进程正在使用这个文件
 lsof -t -u user_name        # 查看某个用户打开的文件,-t选项只返回PID
 lsof | grep mysql           # 列出某个进程打开的文件
