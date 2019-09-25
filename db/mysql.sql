@@ -22,6 +22,14 @@ SELECT … LOCK IN SHARE MODE  # 显式地给记录加读锁,因此其他事务�
 当一个事务提交了,锁就释放了,因此在使用上述两个SELECT锁定语句时必须开启事务
 即使被读取的行被加了一致性锁定读,如果有另一个一致性非锁定读的操作来读取该行数据是不会阻塞的,读取的是改行的快照版本
 
+MyISAM只支持表锁;InnoDB支持表锁和行锁,行锁是实现在索引上的,如果访问没有命中索引,也无法使用行锁,将退化为表锁
+行锁对提高并发帮助很大;事务对数据一致性帮助很大
+t_user(uid PK, uname, age, sex) innodb;
+update t_user set age=10 where uid=1;            -- 命中索引,行锁
+update t_user set age=10 where uid != 1;         -- 未命中索引,表锁
+update t_user set age=10 where name='shenjian';  --无索引,表锁
+
+
 Transaction
 原子性:多步操作逻辑上不可分割,要么都成功,要么都不成功
 一致性:操作前后值的变化逻辑上成立
