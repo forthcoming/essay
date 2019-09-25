@@ -94,6 +94,9 @@ like  %匹配任意字符,_匹配单个字符
 explain sql;     // obtain information about table structure or query execution plans
 auto_increment:there can be only one auto column and it must be defined as a key
 判断空(null)只能用is null/is not null来判断,建表时通常设置默认属性default,使其不为null
+1. null的列使用索引,索引统计,值都更加复杂,MySQL更难优化
+2. null需要更多的存储空间
+utf8mb4是utf8的超集,有存储4字节例如表情符号时使用它
 ? data types  //显示所有数据类型
 ? int     //显示int的具体属性
 ? show    //显示show的语法
