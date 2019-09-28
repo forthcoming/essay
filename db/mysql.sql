@@ -25,8 +25,8 @@ CREATE TABLE `profiles` (
   `sex` tinyint(4) NOT NULL DEFAULT '0',
   `rating` smallint(6) NOT NULL DEFAULT '0',
   `name` varchar(10) NOT NULL DEFAULT '',
-  PRIMARY KEY (`id`) USING BTREE
-) ENGINE=MyISAM AUTO_INCREMENT=131001 DEFAULT CHARSET=utf8
+  PRIMARY KEY (`id`)
+) ENGINE=MyISAM
 select sql_no_cache * from profiles limit 200000,10000;
 mysql> explain select sql_no_cache * from profiles limit 200000,10000\G
 *************************** 1. row ***************************
