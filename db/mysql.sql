@@ -287,7 +287,7 @@ possible_keys: c1
           ref: const
          rows: 3
      filtered: 33.33
-        Extra: Using index condition; Using where
+        Extra: Using where
         
 mysql> explain select * from idx where c1='a' and c5='e' order by c3,c2\G
 *************************** 1. row ***************************
