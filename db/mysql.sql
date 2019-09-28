@@ -18,6 +18,74 @@ Explain的时候,输出的Extra信息中如果有"Using Index",就表示这条�
 InnoDB二级索引的叶子节点包含了主键值,所以查询字段包含主键时也可以覆盖查询
 
 
+索引延迟关联
+我们尽量只查有索引的ID,速度非常快,然后再根据查出来的id进行join一次性取具体数据,这就是延迟索引
+CREATE TABLE `profiles` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `sex` tinyint(4) NOT NULL DEFAULT '0',
+  `rating` smallint(6) NOT NULL DEFAULT '0',
+  `name` varchar(10) NOT NULL DEFAULT '',
+  PRIMARY KEY (`id`) USING BTREE
+) ENGINE=MyISAM AUTO_INCREMENT=131001 DEFAULT CHARSET=utf8
+select sql_no_cache * from profiles limit 200000,10000;
+mysql> explain select sql_no_cache * from profiles limit 200000,10000\G
+*************************** 1. row ***************************
+           id: 1
+  select_type: SIMPLE
+        table: profiles
+   partitions: NULL
+         type: ALL
+possible_keys: NULL
+          key: NULL
+      key_len: NULL
+          ref: NULL
+         rows: 241000
+     filtered: 100.00
+        Extra: NULL
+select sql_no_cache profiles.* from profiles join (select id from profiles limit 200000,10000) x on profiles.id=x.id; # 0.077
+mysql> explain select sql_no_cache profiles.* from profiles join (select id from profiles limit 200000,10000) x on profiles.id=x.id\G
+*************************** 1. row ***************************
+           id: 1
+  select_type: PRIMARY
+        table: <derived2>
+   partitions: NULL
+         type: ALL
+possible_keys: NULL
+          key: NULL
+      key_len: NULL
+          ref: NULL
+         rows: 210000
+     filtered: 100.00
+        Extra: NULL
+*************************** 2. row ***************************
+           id: 1
+  select_type: PRIMARY
+        table: profiles
+   partitions: NULL
+         type: eq_ref
+possible_keys: PRIMARY
+          key: PRIMARY
+      key_len: 4
+          ref: x.id
+         rows: 1
+     filtered: 100.00
+        Extra: NULL
+*************************** 3. row ***************************
+           id: 2
+  select_type: DERIVED
+        table: profiles
+   partitions: NULL
+         type: index
+possible_keys: NULL
+          key: PRIMARY
+      key_len: 4
+          ref: NULL
+         rows: 241000
+     filtered: 100.00
+        Extra: Using index
+注意: 如果把存储引擎换成innodb,两者速度一样快
+
+
 锁
 悲观锁(Pessimistic Lock)
 每次去拿数据的时候都认为别人会修改,所以每次在拿数据的时候都会上锁,这样别人想拿这个数据就会block直到它拿到锁
@@ -302,8 +370,8 @@ possible_keys: c1
           ref: const
          rows: 3
      filtered: 33.33
-        Extra: Using index condition; Using where; Using filesort
-        
+        Extra: Using where; Using filesort
+                                                
 mysql> explain select * from idx where c1='a' and c2='b' and c5='e' order by c3,c2\G  # 注意排序中的c2是常量
 *************************** 1. row ***************************
            id: 1
@@ -349,7 +417,52 @@ possible_keys: c1
          rows: 3   # 估计扫描了多少行
      filtered: 33.33
         Extra: Using index condition; Using temporary   # Using filesort & Using temporary:看到这个的时候,查询需要优化了
-                                        
+ 
+mysql> explain select * from idx where c1>'a' order by c1,c2\G
+*************************** 1. row ***************************
+           id: 1
+  select_type: SIMPLE
+        table: idx
+   partitions: NULL
+         type: range
+possible_keys: c1
+          key: c1
+      key_len: 3
+          ref: NULL
+         rows: 1
+     filtered: 100.00
+        Extra: Using index condition
+
+mysql> explain select * from idx where c1>'a' order by c2,c3\G
+*************************** 1. row ***************************
+           id: 1
+  select_type: SIMPLE
+        table: idx
+   partitions: NULL
+         type: range
+possible_keys: c1
+          key: c1
+      key_len: 3
+          ref: NULL
+         rows: 1
+     filtered: 100.00
+        Extra: Using index condition; Using filesort
+
+mysql> explain select * from idx where c1='a' order by c2,c3\G
+*************************** 1. row ***************************
+           id: 1
+  select_type: SIMPLE
+        table: idx
+   partitions: NULL
+         type: ref
+possible_keys: c1
+          key: c1
+      key_len: 3
+          ref: const
+         rows: 3
+     filtered: 100.00
+        Extra: NULL
+
                                         
 processlist 
 show full processlist;  # 如果是root帐号,能看到所有用户的当前连接;如果是其他普通帐号,则只能看到自己占用的连接
