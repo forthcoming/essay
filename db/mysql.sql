@@ -8,9 +8,14 @@ InnoDB一定会建立聚簇索引,把实际数据行和相关的键值保存在�
 建议使用int的auto_increment作为主键(按主键递增顺序插入)
 聚簇索引的二级索引叶子节点不会保存引用的行的物理位置,而是保存了行的主键值,减小了移动数据或者数据页面分裂时维护二级索引的开销
 通过二级索引查询首先查到是主键值,然后InnoDB再通过主键索引找到相应的数据块        
-
 非聚簇索引叶结点包含索引字段值及指向数据页数据行的逻辑指针,并不是数据本身,MyISAM二级索引叶结点和主键索引在存储结构上没有任何区别
 MYISAM引擎的索引文件.MYI和数据文件.MYD相互独立,索引和数据没放在一块,索引对应的是磁盘位置,不得不通过磁盘位置访问磁盘数据
+
+
+覆盖索引(covering index)
+一个查询语句只用从索引中就能够取得,不必从数据表中读取,也可以称之为实现了索引覆盖,这样避免了查到索引后再返回表操作,减少I/O提高效率
+Explain的时候,输出的Extra信息中如果有"Using Index",就表示这条查询使用了覆盖索引
+InnoDB二级索引的叶子节点包含了主键值,所以查询字段包含主键时也可以覆盖查询
 
 
 锁
@@ -211,7 +216,6 @@ innodb,myisam支持自适应哈希索引,根据表的使用情况自动为表生
 查询条件中含有函数或表达式,则无法使用索引
 like匹配某列的前缀字符串可以使用索引
 Only the InnoDB and MyISAM storage engines support FULLTEXT indexes and only for CHAR, VARCHAR, and TEXT columns
-有些查询不满足左前缀原则,但查询字段可以索引覆盖,则explain也会显示利用索引,Extra一般会显示Using index for skip scan
 
 
 联合索引(观察key_len和Extra,group by和order by都可以利用联合索引)
