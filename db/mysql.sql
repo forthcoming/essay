@@ -161,108 +161,6 @@ commit;    -- 一旦提交事务便结束,须再次开启事务才能使用
 rollback;  -- 回滚到事务开始处并结束事务
 
 
-login
-mysql.user表具有全局性,控制着用户的登录信息和登录后的权限
-mysql_secure_installation  // 设置root密码是否允许远程登录等信息
-指定哪些IP可以连入:
-update user set host='192.168.8.%' where host='::1';
-flush privileges;
-验证(当同一台服务器启动了多个mysqld,用mysql命令登录时需要明确指定-h[ip],不能是localhost,否则登录的都是默认的3306端口):
-mysql -h192.168.9.6 -uroot -p
-创建用户/密码,并赋予该用户可以用192.168.1网段登陆:
-GRANT ALL PRIVILEGES ON *.* TO 'avatar'@'192.168.1.%' IDENTIFIED BY 'avatar' WITH GRANT OPTION;
-flush privileges;
-注意:
-以上所有改变都保存在mysql库下的user表中
-select host,user,authentication_string from mysql.user;
-
-
-common
-like  %匹配任意字符,_匹配单个字符
-explain sql;     // obtain information about table structure or query execution plans
-auto_increment:there can be only one auto column and it must be defined as a key
-判断空(null)只能用is null/is not null来判断,建表时通常设置默认属性default,使其不为null
-1. null的列使用索引,索引统计,值都更加复杂,MySQL更难优化
-2. null需要更多的存储空间
-utf8mb4是utf8的超集,有存储4字节例如表情符号时使用它
-? data types  //显示所有数据类型
-? int     //显示int的具体属性
-? show    //显示show的语法
-\s        //查看当前用户的信息
-mysql -u[username] -p[password] -h[host] -P[port]
-create database [dname];
-create table t_name as select * from t1_name;  // 不完全复制表结构(只包含基本的字段信息),并插入数据
-create table t_name like t1_name;  // 完全复制表结构(包括主键,分区等)
-drop database [dname];
-drop table [tname];  
-use [dname];
-desc [tname];
-truncate [tname];     
-insert into [tname] values(...),(...);
-insert into t_name(...,...,...) select ...,...,... from t1_name;
-delete from [tname] where .... and...;
-update [tname] set ... , ... where ... and ...;
-select [distinct] * from [tname] where ... and ...; 
-select count(1) from (select * from mysql.user) tt;                                                  // from子查询,临时表需要加别名
-select * from article where (title,content,uid) = (select title,content,uid from blog where bid=2);  // where子查询
-select * from article where (title,content,uid) in (select title,content,uid from blog);             // where子查询
-show variables;  //显示各种变量(配置文件参数)
-show triggers;
-show tables;
-show databases;
-show procedure status;
-show create procedure create_ktv_requested_song_by_month;
-show events;  // 查看定时任务
-show create table t_name;
-show create database db_name;	
-select now(),SUBDATE(now(),INTERVAL 1 MINUTE),SUBDATE(now(),INTERVAL -1 MINUTE) from dual; -- 2019-07-29 18:00:59 | 2019-07-29 17:59:59 | 2019-07-29 18:01:59
-alter table t_name add name varchar(255) not null default avatar after created_time; //加在列created_time后面,add之后的旧列名之后的语法和创建表时的列声明一样
-alter table t_name change 旧列名 新列名 列类型 列参数
-rename table old_name to new_name;
-(select aid,title from article limit 2) union all (select bid,title from blog limit 2);  //在UNION中如果对SELECT子句做限制,需要对SELECT添加圆括号,ORDER BY类似
-insert into test ( _id, version, flag ) values( 1, '1.0', 1 ) on duplicate key update version = '2.0',flag = 0; # upsert,当主键_id冲突时会执行后面的update操作
-# 创建一个从2019-02-22 16:30:00开始到10分钟后结束,每隔1分钟运行pro的事件
-create event if not exists test on schedule every 1 minute starts '2019-02-22 16:30:00' ends '2019-02-22 16:30:00'+ interval 10 minute do call pro( );
-
-
-binlog
-使用场景(binlog日志与数据库文件在同目录中)
-1. MySQL主从复制: 在master开启binlog,master把它的二进制日志传递给slave来达到数据一致的目的
-2. 使用mysqlbinlog工具恢复数据
-show master logs;   # 查看所有binlog日志列表
-show master status; # 查看最新一个binlog日志的名称及最后一个操作事件的Position
-flush logs;         # 刷新日志,自此刻开始产生一个新的binlog日志文件(每当mysqld重启or在mysqldump备份数据时加-F选项都会执行该命令)
-reset master;       # 清空所有binlog日志
-show binlog events in '201810-08571-bin.000001' from pos limit m,n;  # 日志查询
-
-
-主从复制(slave执行查询操作,降低master访问压力,实时性要求高的数据仍需要从master查询)
-1. 主开启binlog
-2. 主从设置唯一的server_id
-3. 主创建主从复制用户(repl)并授权
-# delete from mysql.user where user='repl';
-create user 'repl'@'localhost' identified by 'repl';
-grant replication slave on *.* to 'repl'@'localhost';  # *.*代表所有数据库的所有表
-# select * from mysql.user;
-# reset master;
-show master status;
-4.从使用主创建的用户(repl),授权之前要登录一下授权账号repl,why?
-# reset slave;
-stop slave;
-change master to 
-master_host = 'localhost',
-master_user = 'repl',
-master_port = 3306,
-master_password = 'repl',
-master_log_file = 'binlog.000001',  # replacing the option values with the actual values relevant to your system
-master_log_pos = 155;
-start slave;
-5. 检查主从状态
-show slave status;     # 以下两项都为Yes才说明主从创建成功
-Slave_IO_Running:Yes   读主服务器binlog日志,并写入从服务器的中继日志中
-Slave_SQL_Running:Yes  执行中继日志
-
-
 索引长度 & 区分度
 对于字符型列,索引长度越大,区分度越高,但会占用更多的空间,因此需要在两者间做一个权衡
 惯用手法:在字符列截取不同长度,测试其区分度,选择一个合适的索引长度
@@ -281,7 +179,8 @@ drop index index_name on t_name;
 btree索引: 适宜范围查询;左前缀匹配;全值匹配
 hash索引: 理论寻址O(1);无法排序优化;必须回行;不能前缀索引;不适宜范围查询
 innodb,myisam支持自适应哈希索引,根据表的使用情况自动为表生成哈希索引,无法人为指定
-查询条件中含有函数或表达式,则无法使用索引
+查询条件中的列使用函数或者表达式,则无法使用索引
+查询条件如果包含类型转换(如score为int类型下where score='98'),则无法使用索引                                        
 like匹配某列的前缀字符串可以使用索引
 Only the InnoDB and MyISAM storage engines support FULLTEXT indexes and only for CHAR, VARCHAR, and TEXT columns
 
@@ -640,5 +539,107 @@ Myisam & InnoDB(默认)
 Oracle批量删除和查询表数据
 select 'truncate table '||table_name||';' from user_tables;
 select 'select * from '||table_name||';' from user_tables;
+
+                                        
+                                        login
+mysql.user表具有全局性,控制着用户的登录信息和登录后的权限
+mysql_secure_installation  // 设置root密码是否允许远程登录等信息
+指定哪些IP可以连入:
+update user set host='192.168.8.%' where host='::1';
+flush privileges;
+验证(当同一台服务器启动了多个mysqld,用mysql命令登录时需要明确指定-h[ip],不能是localhost,否则登录的都是默认的3306端口):
+mysql -h192.168.9.6 -uroot -p
+创建用户/密码,并赋予该用户可以用192.168.1网段登陆:
+GRANT ALL PRIVILEGES ON *.* TO 'avatar'@'192.168.1.%' IDENTIFIED BY 'avatar' WITH GRANT OPTION;
+flush privileges;
+注意:
+以上所有改变都保存在mysql库下的user表中
+select host,user,authentication_string from mysql.user;
+
+
+common
+like  %匹配任意字符,_匹配单个字符
+explain sql;     // obtain information about table structure or query execution plans
+auto_increment:there can be only one auto column and it must be defined as a key
+判断空(null)只能用is null/is not null来判断,建表时通常设置默认属性default,使其不为null
+1. null的列使用索引,索引统计,值都更加复杂,MySQL更难优化
+2. null需要更多的存储空间
+utf8mb4是utf8的超集,有存储4字节例如表情符号时使用它
+? data types  //显示所有数据类型
+? int     //显示int的具体属性
+? show    //显示show的语法
+\s        //查看当前用户的信息
+mysql -u[username] -p[password] -h[host] -P[port]
+create database [dname];
+create table t_name as select * from t1_name;  // 不完全复制表结构(只包含基本的字段信息),并插入数据
+create table t_name like t1_name;  // 完全复制表结构(包括主键,分区等)
+drop database [dname];
+drop table [tname];  
+use [dname];
+desc [tname];
+truncate [tname];     
+insert into [tname] values(...),(...);
+insert into t_name(...,...,...) select ...,...,... from t1_name;
+delete from [tname] where .... and...;
+update [tname] set ... , ... where ... and ...;
+select [distinct] * from [tname] where ... and ...; 
+select count(1) from (select * from mysql.user) tt;                                                  // from子查询,临时表需要加别名
+select * from article where (title,content,uid) = (select title,content,uid from blog where bid=2);  // where子查询
+select * from article where (title,content,uid) in (select title,content,uid from blog);             // where子查询
+show variables;  //显示各种变量(配置文件参数)
+show triggers;
+show tables;
+show databases;
+show procedure status;
+show create procedure create_ktv_requested_song_by_month;
+show events;  // 查看定时任务
+show create table t_name;
+show create database db_name;	
+select now(),SUBDATE(now(),INTERVAL 1 MINUTE),SUBDATE(now(),INTERVAL -1 MINUTE) from dual; -- 2019-07-29 18:00:59 | 2019-07-29 17:59:59 | 2019-07-29 18:01:59
+alter table t_name add name varchar(255) not null default avatar after created_time; //加在列created_time后面,add之后的旧列名之后的语法和创建表时的列声明一样
+alter table t_name change 旧列名 新列名 列类型 列参数
+rename table old_name to new_name;
+(select aid,title from article limit 2) union all (select bid,title from blog limit 2);  //在UNION中如果对SELECT子句做限制,需要对SELECT添加圆括号,ORDER BY类似
+insert into test ( _id, version, flag ) values( 1, '1.0', 1 ) on duplicate key update version = '2.0',flag = 0; # upsert,当主键_id冲突时会执行后面的update操作
+# 创建一个从2019-02-22 16:30:00开始到10分钟后结束,每隔1分钟运行pro的事件
+create event if not exists test on schedule every 1 minute starts '2019-02-22 16:30:00' ends '2019-02-22 16:30:00'+ interval 10 minute do call pro( );
+
+
+binlog
+使用场景(binlog日志与数据库文件在同目录中)
+1. MySQL主从复制: 在master开启binlog,master把它的二进制日志传递给slave来达到数据一致的目的
+2. 使用mysqlbinlog工具恢复数据
+show master logs;   # 查看所有binlog日志列表
+show master status; # 查看最新一个binlog日志的名称及最后一个操作事件的Position
+flush logs;         # 刷新日志,自此刻开始产生一个新的binlog日志文件(每当mysqld重启or在mysqldump备份数据时加-F选项都会执行该命令)
+reset master;       # 清空所有binlog日志
+show binlog events in '201810-08571-bin.000001' from pos limit m,n;  # 日志查询
+
+
+主从复制(slave执行查询操作,降低master访问压力,实时性要求高的数据仍需要从master查询)
+1. 主开启binlog
+2. 主从设置唯一的server_id
+3. 主创建主从复制用户(repl)并授权
+# delete from mysql.user where user='repl';
+create user 'repl'@'localhost' identified by 'repl';
+grant replication slave on *.* to 'repl'@'localhost';  # *.*代表所有数据库的所有表
+# select * from mysql.user;
+# reset master;
+show master status;
+4.从使用主创建的用户(repl),授权之前要登录一下授权账号repl,why?
+# reset slave;
+stop slave;
+change master to 
+master_host = 'localhost',
+master_user = 'repl',
+master_port = 3306,
+master_password = 'repl',
+master_log_file = 'binlog.000001',  # replacing the option values with the actual values relevant to your system
+master_log_pos = 155;
+start slave;
+5. 检查主从状态
+show slave status;     # 以下两项都为Yes才说明主从创建成功
+Slave_IO_Running:Yes   读主服务器binlog日志,并写入从服务器的中继日志中
+Slave_SQL_Running:Yes  执行中继日志
 
 
