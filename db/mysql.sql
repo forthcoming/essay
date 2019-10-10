@@ -114,7 +114,7 @@ MyISAM只支持表锁;InnoDB支持表锁和行锁,行锁是实现在索引上的
 行锁对提高并发帮助很大;事务对数据一致性帮助很大
 t_user(uid PK, uname, age, sex) innodb;
 update t_user set age=10 where uid=1;            -- 命中索引,行锁
-update t_user set age=10 where uid != 1;         -- 未命中索引,表锁
+update t_user set age=10 where uid != 1;         -- 未命中索引,表锁(负向查询无法命中索引)
 update t_user set age=10 where name='shenjian';  --无索引,表锁
 
 
