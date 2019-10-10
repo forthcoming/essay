@@ -161,7 +161,11 @@ commit;    -- 一旦提交事务便结束,须再次开启事务才能使用
 rollback;  -- 回滚到事务开始处并结束事务
 
 
-索引长度 & 区分度
+索引长度 & 区分(Index Selectivity)
+The ratio of the number of distinct values in the indexed column / columns to the number of records in the table represents the selectivity of an index. The ideal selectivity is 1
+lf an index on a table of 100'000 records had only 500 distinct values, then the index's selectivity is 500 / 100'000 = 0.005 and in this case a query which uses the limitation of such an index will retum 100'000 / 500 = 200 records for each distinct value. 
+It is evident that a full table scan is more efficient as using such an index where much more I/O is needed to scan repeatedly the index and the table. 
+
 对于字符型列,索引长度越大,区分度越高,但会占用更多的空间,因此需要在两者间做一个权衡
 惯用手法:在字符列截取不同长度,测试其区分度,选择一个合适的索引长度
 select count(distinct(left(word,4)))/count(1) from tb_name;
@@ -184,7 +188,9 @@ innodb,myisam支持自适应哈希索引,根据表的使用情况自动为表生
 like匹配某列的前缀字符串可以使用索引
 Only the InnoDB and MyISAM storage engines support FULLTEXT indexes and only for CHAR, VARCHAR, and TEXT columns
 alter table test add fulltext(title,content)
-
+                                        
+InnoDB用户无法手动创建哈希索引,这一层上说InnoDB确实不支持哈希索引
+InnoDB会自调优(self-tuning),如果判定建立自适应哈希索引(Adaptive Hash Index, AHI),能够提升查询效率,InnoDB自己会建立相关哈希索引,这一层上说InnoDB又是支持哈希索引
 
 联合索引(观察key_len和Extra,group by和order by都可以利用联合索引)
 create table idx(
