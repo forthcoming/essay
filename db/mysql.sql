@@ -183,6 +183,7 @@ innodb,myisam支持自适应哈希索引,根据表的使用情况自动为表生
 查询条件如果包含类型转换(如score为int类型下where score='98'),则无法使用索引                                        
 like匹配某列的前缀字符串可以使用索引
 Only the InnoDB and MyISAM storage engines support FULLTEXT indexes and only for CHAR, VARCHAR, and TEXT columns
+alter table test add fulltext(title,content)
 
 
 联合索引(观察key_len和Extra,group by和order by都可以利用联合索引)
