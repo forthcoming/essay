@@ -320,6 +320,7 @@ Thu Dec 15 16:55:22 CST 2016
 2016-12-14
 ---------------------------------------------------------------------------------------------------------------------------------
 common
+curl -i -X POST 'http://10.1.4.63:5678/room/talk' -d '{"room_id":5330380,"rp_id":"b22634cd1acdfa83"}' -H 'admin:test' -H "Content-Type:application/json"
 zcat app.[0-9].log.gz|grep '1514806437'  # 查看app.0.log.gz到app.9.log.gz压缩文件的内容并过滤
 watch -n 1 -d netstat -ant  # 每隔1s高亮显示网络链接数变化情况
 iostat -x 1  # 实时查看磁盘IO使用情况
