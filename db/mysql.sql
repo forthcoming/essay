@@ -105,8 +105,8 @@ lock table t1 write # 只有本人可以增删改查,其他人增删改查都不
 在使用lock table之后,解锁之前,当前会话不能操作未加锁的表
 MyISAM在执行查询语句(SELECT)前,会自动给涉及的所有表加读锁,在执行更新操(UPDATE/DELETE/INSERT)前会自动给涉及的表加写锁
 
-SELECT … FOR UPDATE   # 显式地给一条记录加写锁,因此其他事务不能获取该记录的任何锁
-SELECT … LOCK IN SHARE MODE  # 显式地给记录加读锁,因此其他事务能够获取该记录的读锁而不能获取该记录的写锁
+SELECT … FOR UPDATE   # 显式地给一条记录加写锁(行锁),因此其他事务不能获取该记录的任何锁
+SELECT … LOCK IN SHARE MODE  # 显式地给记录加读锁(行锁),因此其他事务能够获取该记录的读锁而不能获取该记录的写锁
 当一个事务提交了,锁就释放了,因此在使用上述两个SELECT锁定语句时必须开启事务
 即使被读取的行被加了一致性锁定读,如果有另一个一致性非锁定读的操作来读取该行数据是不会阻塞的,读取的是改行的快照版本
 
@@ -115,7 +115,31 @@ MyISAM只支持表锁;InnoDB支持表锁和行锁,行锁是实现在索引上的
 t_user(uid PK, uname, age, sex) innodb;
 update t_user set age=10 where uid=1;            -- 命中索引,行锁
 update t_user set age=10 where uid != 1;         -- 未命中索引,表锁(负向查询无法命中索引)
-update t_user set age=10 where name='shenjian';  --无索引,表锁
+update t_user set age=10 where name='shenjian';  -- 无索引,表锁
+
+
+Row-Level Locking
+MySQL uses row-level locking for InnoDB tables to support simultaneous write access by multiple sessions, making them suitable for multi-user, highly concurrent, and OLTP applications.
+Advantages of row-level locking:
+Fewer lock conflicts when different sessions access different rows.
+Fewer changes for rollbacks.
+Possible to lock a single row for a long time.
+Table-Level Locking
+MySQL uses table-level locking for MyISAM, MEMORY, and MERGE tables, permitting only one session to update those tables at a time. 
+This locking level makes these storage engines more suitable for read-only, read-mostly, or single-user applications.
+Advantages of table-level locking:
+Relatively little memory required (row locking requires memory per row or group of rows locked)
+Fast when used on a large part of the table because only a single lock is involved.
+Fast if you often do GROUP BY operations on a large part of the data or must scan the entire table frequently.
+
+MySQL grants table write locks as follows:
+If there are no locks on the table, put a write lock on it.
+Otherwise, put the lock request in the write lock queue.
+MySQL grants table read locks as follows:
+If there are no write locks on the table, put a read lock on it.
+Otherwise, put the lock request in the read lock queue.
+Table updates are given higher priority than table retrievals. Therefore, when a lock is released, the lock is made available to the requests in the write lock queue and then to the requests in the read lock queue. 
+This ensures that updates to a table are not “starved” even when there is heavy SELECT activity for the table. However, if there are many updates for a table, SELECT statements wait until there are no more updates.
 
 
 Transaction
