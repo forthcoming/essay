@@ -66,8 +66,8 @@ awk -F|-v 'BEGIN{ } // {comand1;comand2} END{ }' file
 -F 定义列分隔符
 -v 定义变量
 ' ' 引用代码块,awk执行语句必须包含在内
-BEGIN{} 在对每一行进行处理之前,初始化代码,主要是引用全局变量,设置FS分隔符
-{} 命令代码块,包含一条或多条命令,处理每一行时要执行的语句
+BEGIN{} 在对每一行进行处理之前,初始化代码,主要是引用全局变量,设置FS分隔符,BEGIN和END必须大写
+{} 命令代码块,包含一条或多条命令,处理每一行时要执行的语句,命令之间用;间隔
 // 用来定义需要匹配的模式(字符串或正则表达式)
 END{} 在对每一行进行处理之后再执行的代码块,主要是进行最终计算或输出结尾摘要信息
 
@@ -95,6 +95,9 @@ redis:100644KB
 计算所有的.conf和.aof文件总大小
 ls -l *.conf *.aof | awk 'BEGIN{sum=0} {sum+=$5} END {print sum}'
 69860
+
+计算接口一天的平均耗时
+cat api.log|grep 'room_list'|grep '2019-10-15'|awk -F '\t' 'BEGIN{avg=0;cnt=0} {avg+=$8;cnt+=1} END{print avg/cnt}'
 
 cat netstat.txt
 Proto Recv-Q Send-Q Local-Address          Foreign-Address             State
