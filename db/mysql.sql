@@ -118,6 +118,14 @@ update t_user set age=10 where uid != 1;         -- 未命中索引,表锁(负�
 update t_user set age=10 where name='shenjian';  -- 无索引,表锁
 
 
+死锁成因(为表添加合理索引会大大降低死锁概率)
+事物A                                    事务B
+update test set name='TA' where _id=1;         
+                                         update test set name='TB' where _id=2;   
+update test set name='TA' where _id=2;           
+                                         update test set name='TB' where _id=1;           
+
+
 Row-Level Locking
 MySQL uses row-level locking for InnoDB tables to support simultaneous write access by multiple sessions, making them suitable for multi-user, highly concurrent, and OLTP applications.
 Advantages of row-level locking:
