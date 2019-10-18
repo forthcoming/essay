@@ -124,6 +124,9 @@ update test set name='TA' where _id=1;
                                          update test set name='TB' where _id=2;   
 update test set name='TA' where _id=2;           
                                          update test set name='TB' where _id=1;           
+解决死锁方法:
+1. 设置最大等待时间
+2. wait-for graph原理,检测有向图是否出现环路,出现环路就是死锁
 
 
 Row-Level Locking
