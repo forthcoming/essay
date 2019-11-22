@@ -647,8 +647,9 @@ rename table old_name to new_name;
 insert into test ( _id, version, flag ) values( 1, '1.0', 1 ) on duplicate key update version = '2.0',flag = 0; # upsert,当主键_id冲突时会执行后面的update操作
 # 创建一个从2019-02-22 16:30:00开始到10分钟后结束,每隔1分钟运行pro的事件
 create event if not exists test on schedule every 1 minute starts '2019-02-22 16:30:00' ends '2019-02-22 16:30:00'+ interval 10 minute do call pro( );
+互联网项目不要使用外键,可通过程序保证数据完整性
 
-
+                                        
 binlog
 使用场景(binlog日志与数据库文件在同目录中)
 1. MySQL主从复制: 在master开启binlog,master把它的二进制日志传递给slave来达到数据一致的目的
