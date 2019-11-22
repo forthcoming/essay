@@ -546,17 +546,16 @@ bigint     //8b
 float(M,D) //默认为signed,M代表总位数,D代表小数位的个数
 char(N)    //定长,N表示字符个数,不表示字节,不够N个长度时在末尾用空格补充,取出时又将尾部的空格省掉(若数据末尾自身含有空格,取出时也将被去掉),相对于变长访问速度更快
 varchar(N) //变长,不够长度时不用空格补齐,但内容前有1之2个字节来标记该列的长度
-date       // YYYY-MM-DD  如:2010-03-14
+date       // YYYY-MM-DD  如:2010-03-14, The supported range is '1000-01-01' to '9999-12-31'.
 time       // HH:MM:SS    如:19:26:32
-datetime   // YYYY-MM-DD  HH:MM:SS 如:2010-03-14 19:26:32
-timestamp  // YYYY-MM-DD  HH:MM:SS 特性:不用赋值,该列会为自己赋当前的具体时间
+datetime   // YYYY-MM-DD HH:MM:SS 如:2010-03-14 19:26:32, The supported range is '1000-01-01 00:00:00' to '9999-12-31 23:59:59'.
 
 
 分表 & partition
 数据量太大可考虑分表,例如根据用户id与10取模,将用户信息存储到不同的十张表里面
 create table topic(
     tid int primary key auto_increment,
-    update_time timestamp not null default current_timestamp on update current_timestamp comment '消息更新时间',
+    update_time datetime not null default current_timestamp on update current_timestamp comment '消息更新时间',
     title char(20) not null default ''
 )engine innodb charset utf8   # 不支持myisam
 # partition by hash( tid ) partitions 4   # 只能用数字类型,根据tid%4分区(默认名字p0,p1,p2,p3),可通过explain查看查询需要的分区
