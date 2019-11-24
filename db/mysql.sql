@@ -643,10 +643,14 @@ alter table t_name add name varchar(255) not null default avatar after created_t
 alter table t_name change 旧列名 新列名 列类型 列参数
 rename table old_name to new_name;
 (select aid,title from article limit 2) union all (select bid,title from blog limit 2);  //在UNION中如果对SELECT子句做限制,需要对SELECT添加圆括号,ORDER BY类似
-insert into test ( _id, version, flag ) values( 1, '1.0', 1 ) on duplicate key update version = '2.0',flag = 0; # upsert,当主键_id冲突时会执行后面的update操作
 # 创建一个从2019-02-22 16:30:00开始到10分钟后结束,每隔1分钟运行pro的事件
 create event if not exists test on schedule every 1 minute starts '2019-02-22 16:30:00' ends '2019-02-22 16:30:00'+ interval 10 minute do call pro( );
 互联网项目不要使用外键,可通过程序保证数据完整性
+
+# upsert,当唯一索引/主键索引冲突时会执行update操作,否则执行insert操作                                     
+insert into test(_id, version, flag) values( 1, '1.0', 1 ) on duplicate key update version = '2.0',flag = 0; 
+# 遇到duplicate约束时,ignore会直接跳过这条语句的插入
+insert ignore into test(_id, version, flag) values( 1, '1.0', 1 ); 
 
                                         
 binlog
