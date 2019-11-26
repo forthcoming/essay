@@ -614,15 +614,14 @@ utf8mb4是utf8的超集,有存储4字节例如表情符号时使用它
 \s        //查看当前用户的信息
 mysql -u[username] -p[password] -h[host] -P[port]
 create database [dname];
-create table t_name as select * from t1_name;  // 不完全复制表结构(只包含基本的字段信息),并插入数据
 create table t_name like t1_name;  // 完全复制表结构(包括主键,分区等)
+insert into t_name(...,...,...) select ...,...,... from t1_name;
 drop database [dname];
 drop table [tname];  
 use [dname];
 desc [tname];
 truncate [tname];     
 insert into [tname] values(...),(...);
-insert into t_name(...,...,...) select ...,...,... from t1_name;
 delete from [tname] where .... and...;
 update [tname] set ... , ... where ... and ...;
 select [distinct] * from [tname] where ... and ...; 
