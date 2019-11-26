@@ -408,6 +408,7 @@ possible_keys: c1
                                         
 processlist 
 show full processlist;  # 如果是root帐号,能看到所有用户的当前连接;如果是其他普通帐号,则只能看到自己占用的连接
+mysqladmin -uroot -P3306 -hlocalhost kill Id -p   # 杀死指定Id的sql语句,常用于mysql死锁情况                              
 +----+------+-----------------+------+---------+------+----------+-----------------------+
 | Id | User | Host            | db   | Command | Time | State    | Info                  |
 +----+------+-----------------+------+---------+------+----------+-----------------------+
