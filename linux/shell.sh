@@ -99,6 +99,9 @@ ls -l *.conf *.aof | awk 'BEGIN{sum=0} {sum+=$5} END {print sum}'
 计算接口一天的平均耗时
 cat api.log|grep 'room_list'|grep '2019-10-15'|awk -F '\t' 'BEGIN{avg=0;cnt=0} {avg+=$8;cnt+=1} END{print avg/cnt}'
 
+统计总行数和满足条件的总行数
+cat api.log |awk -F '[:|,]' 'BEGIN{sum=0;cnt=0} {sum+=1} $2 ~/2019/ {cnt+=1;print cnt} END{print sum,cnt}'
+
 cat netstat.txt
 Proto Recv-Q Send-Q Local-Address          Foreign-Address             State
 tcp        0   4166 coolshell.cn:80        61.148.242.38:30901         ESTABLISHED
