@@ -173,7 +173,7 @@ repeatable read(可重读): 在同一个事务中多次读取同样记录的结�
 read uncommitted    Y           Y                  Y            N    
 read committed      N           Y                  Y            N
 repeatable read     N           N                  Y            N
-serializable        N           N                  N            Y  写会加"写锁",读会加"读锁",当出现读写锁冲突的时候,后访问的事务必须等前一个事务执行完成才能继续执行
+serializable        N           N                  N            Y  写会加"写锁",读会加"读锁",当出现读写锁冲突的时候,后访问的事务必须等前一个事务执行完成才能继续执行(A读B写和A写B读通条数据都会阻塞)
 
 一致性非锁定读: 
 要读取的行被加了排他锁(写锁),这时候读取操作不会等待行上锁的释放,而是会读取行的一个快照数据,每行记录可能有多个版本
