@@ -185,6 +185,7 @@ select host,user,authentication_string from mysql.user;
 
 
 common
+SELECT SLEEP(100);  # 模拟耗时查询
 like  %匹配任意字符,_匹配单个字符
 explain sql;     // obtain information about table structure or query execution plans
 auto_increment:there can be only one auto column and it must be defined as a key
