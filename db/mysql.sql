@@ -205,7 +205,7 @@ drop database [dname];
 drop table [tname];  
 use [dname];
 desc [tname];
-truncate [tname];     
+truncate [tname];  # 速度比delete更快,但truncate删除后不记录mysql日志,不可以恢复数据 
 insert into [tname] values(...),(...);
 delete from [tname] where .... and...;
 update [tname] set ... , ... where ... and ...;
