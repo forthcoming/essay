@@ -404,7 +404,8 @@ MySQL默认开启一个事务,自动提交,每成功执行一个SQL,一个事务
 MySQL事务是基于UNDO/REDO日志
 UNDO日志记录修改前状态,ROLLBACK基于UNDO日志实现; REDO日志记录修改后的状态,COMMIT基于REDO日志实现,执行COMMIT数据才会被写入磁盘
 
-set autocommit=OFF;   # 关闭自动提交功能,当前会话有效
+show variables like "%autocommit%";  # mysql默认是on,可通过set autocommit=off;关闭
+set autocommit=off;   # 关闭自动提交功能,当前会话有效,任何一条sql语句都会自动开启事务,即begin可以省略
 begin;     -- 在存储过程中,mysql会将begin识别为begin···end,所以在存储过程中,只能使用start transaction来表示开始一个事务
 update student set score=score+10 where class=1;  # 只对本会话可见
 savepoint point1;
@@ -420,7 +421,7 @@ Innodb_row_lock_time_avg: 每次平均锁定的时间
 Innodb_row_lock_time_max: 最长一次锁定时间
 Innodb_row_lock_waits: 系统启动到现在总共锁定的次数
 
-select * from information_schema.innodb_trx  # 当前运行的所有事务
+select * from information_schema.innodb_trx;  # 当前运行的所有事务
 trx_state: 事务执行状态,允许值是RUNNING,LOCK WAIT,ROLLING BACK,COMMITTING,被阻塞的事务状态是LOCK WAIT
 trx_wait_started: 事务开始等待锁定的时间,前提是trx_state=LOCK WAIT;否则NULL
 trx_mysql_thread_id: MySQL线程ID,与show processlist中的ID值相对应,可通过kill杀死
@@ -428,7 +429,7 @@ trx_query: 事务正在执行的SQL语句
 trx_tables_in_use: The number of InnoDB tables used while processing the current SQL statement of this transaction.
 trx_isolation_level: 当前事务的隔离级别
 
-SELECT * FROM performance_schema.data_locks
+select * from performance_schema.data_locks;
 ENGINE: The storage engine that holds or requested the lock.
 ENGINE_TRANSACTION_ID: The storage engine internal ID of the transaction that requested the lock. This can be considered the owner of the lock, although the lock might still be pending, not actually granted yet (LOCK_STATUS='WAITING').
 OBJECT_SCHEMA: The schema that contains the locked table.
@@ -439,6 +440,6 @@ LOCK_MODE: How the lock is requested.The value is storage engine dependent. For 
 LOCK_STATUS: The status of the lock request.The value is storage engine dependent. For InnoDB, permitted values are GRANTED (lock is held) and WAITING (lock is being waited for).
 LOCK_DATA: The data associated with the lock, if any. The value is storage engine dependent. For InnoDB, a value is shown if the LOCK_TYPE is RECORD, otherwise the value is NULL. 
 
-SELECT * FROM performance_schema.data_lock_waits;
+select * from performance_schema.data_lock_waits;
 
 
