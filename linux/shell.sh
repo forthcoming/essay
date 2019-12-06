@@ -309,6 +309,7 @@ nohup &
 nohup: 忽略SIGHUP信号,关闭shell,进程还是存在的.但如果你直接在shell中用Ctrl C,进程也会消失,因为对SIGINT信号不免疫
 所以要让进程真正不受Ctrl C和shell关闭的影响,就同时用nohup processname &,nohup命令使标准输出和标准错误默认重定向到nohup.out文件
 nohup java -jar monitor.jar > /home/java.log &
+nohup python -u counter.py args >> /logs/counter.log &   # -u参数可以立即输出
 ---------------------------------------------------------------------------------------------------------------------------------
 合并文件(uniq命令可以去除排序过的文件中的重复行,也就是说为了使uniq起作用,所有的重复行必须是相邻的)
 取出两个文件行的并集(重复的行只保留一份),结果按行排序
