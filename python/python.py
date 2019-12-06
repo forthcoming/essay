@@ -111,9 +111,8 @@ fun(2)  # 输出[1, 2]
 def fun(a,*args,**kwargs):  
     print(a,end='\t')
     print(type(args),args,end='\t')    
-    print(type(kwargs),kwargs)    
-fun(1,2,3,c=4,d=5)   # 1	<class 'tuple'> (2, 3)	<class 'dict'> {'c': 4, 'd': 5}
-
+    print(type(kwargs),kwargs)   
+fun(1,2,3,c=4,d=5,**{'e':6})   # 1	<class 'tuple'> (2, 3)	<class 'dict'> {'c': 4, 'd': 5, 'e': 6}
 #########################################################################################################################################
 
 作用域
