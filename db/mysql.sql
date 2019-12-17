@@ -212,7 +212,7 @@ update [tname] set ... , ... where ... and ...;
 select [distinct] * from [tname] where ... and ...; 
 select count(1) from (select * from mysql.user) tt;                                                  // from子查询,临时表需要加别名
 select * from article where (title,content,uid) = (select title,content,uid from blog where bid=2);  // where子查询
-select * from article where (title,content,uid) in (select title,content,uid from blog);             // where子查询
+select * from article where (title,content,uid) in (select title,content,uid from blog);             // where子查询,第一处括号不能省
 show variables;  //显示各种变量(配置文件参数)
 show triggers;
 show tables;
