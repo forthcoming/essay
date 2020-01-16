@@ -25,6 +25,14 @@ The other arguments are the list of addresses of the instances I want to use to 
 集群中的主从是在创建集时分配,并不需要在每个节点的配置文件中设置
 手动杀死集群中的某个master,其slave会自动被晋选为master
 
+集群最小配置文件
+daemonize yes
+port 8003
+cluster-enabled yes
+cluster-config-file nodes8003.conf
+cluster-node-timeout 5000
+appendonly yes
+
 in practical terms, what do you get with Redis Cluster?
 The ability to automatically split your dataset among multiple nodes.
 The ability to continue operations when a subset of the nodes are experiencing failures or are unable to communicate with the rest of the cluster.
