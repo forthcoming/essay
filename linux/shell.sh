@@ -174,7 +174,7 @@ Transfer rate:          572.79 [Kbytes/sec] received
 ---------------------------------------------------------------------------------------------------------------------------------                    
 download & upload
 ssh -p port user@ip     # 远程连接
-scp file1 user@ip:file2 # 上传or下载文件(file1 -> file2),文件夹需要在scp后加-r参数
+scp file1 user@ip:file2 # 上传or下载文件(传输方向由file1 -> file2),文件夹需要在scp后加-r参数
 rz -y #  Receive Zmodem,上传文件,y代表覆(默认不覆盖)
 sz filename  # Send Zmodem,下载文件
 rsync -a 源文件 user@目标IP:路径 # -a表示递归方式传输文件,并保持所有文件属性,rsync默认只对差异文件做更新,也可以全量(优于scp),使用时需要目标服务器开启sshd
