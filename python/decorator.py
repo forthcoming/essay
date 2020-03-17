@@ -163,14 +163,14 @@ def f(x):
      
 f(1)
 '''
-start in decorator_a
-end in decorator_a
-start in decorator_b
-end in decorator_b
-start in inner_b
-start in inner_a
-start in f
-end in inner_a
-end in inner_b
+start in decorator_a        # 装饰时打印
+end in decorator_a          # 装饰时打印
+start in decorator_b        # 装饰时打印
+end in decorator_b          # 装饰时打印
+start in inner_b            # 调用时打印
+start in inner_a            # 调用时打印
+start in f                  # 调用时打印
+end in inner_a              # 调用时打印
+end in inner_b              # 调用时打印
 '''
 
