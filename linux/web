@@ -74,7 +74,7 @@ http {
     include /etc/nginx/conf.d/*.conf;
     upstream test{
         ip_hash; #同一个用户(ip)会被引到同一个服务器上
-        server 1.2.3.4 weight=2;  #权重默认值为1,权重越大,访问到的概率越大(此处是2/3,会受到ip_hash>的影响)
+        server 1.2.3.4 weight=2;  #权重默认值为1,权重越大,访问到的概率越大(此处是2/3,会受到ip_hash的影响)
         server 2.3.4.5 max_fails=3 fail_timeout=60s; #当有2次请求失败时就不再请求该服务器,直至60s后,依次循环
         }
     
