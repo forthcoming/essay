@@ -191,7 +191,8 @@ sdiff key1 key2 key3:求出key1与key2 key3的差集,即key1-key2-key3
 
 zset常见命令(有序集合,有序是指按照键score的大小顺序存放)
 zadd key score1 value1 score2 value2:如果添加的成员已经存在于有序集合中,则会更新成员的score并更新到正确的排序位置
-zcard key:返回元素个数
+zincrby key increment member: 如果member不在有序集合,it is added with increment as its score (as if its previous score was 0.0). 如果key不存在,会先创建一个只带有member的有序集合
+zcard key: 返回元素个数
 zrem key value1 value2: 删除集合中的元素
 zrank key member: 返回member的排名(升续0名开始)
 zrevrank key memeber:查询member的排名(降续0名开始)
