@@ -44,9 +44,7 @@ user root;
 worker_processes auto;  #有多少个工作的子进程
 error_log /var/log/nginx/error.log;
 pid /run/nginx.pid;
-
-# Load dynamic modules. See /usr/share/nginx/README.dynamic.
-include /usr/share/nginx/modules/*.conf;
+include /usr/share/nginx/modules/*.conf;   # Load dynamic modules. See /usr/share/nginx/README.dynamic.
 
 events {
     worker_connections 1024;  #一个子进程最大能同时连接多少个,gunicorn的该参数是指所有进程总的最大并发数
@@ -58,18 +56,15 @@ http {
                       '"$http_user_agent" "$http_x_forwarded_for"';
 
     access_log  /var/log/nginx/access.log  main;
-
     sendfile            on;
     tcp_nopush          on;
     tcp_nodelay         on;
     keepalive_timeout   65;
     types_hash_max_size 2048;
-
     include             /etc/nginx/mime.types;
     default_type        application/octet-stream;
 
-    # Load modular configuration files from the /etc/nginx/conf.d directory.
-    # See http://nginx.org/en/docs/ngx_core_module.html#include for more information.
+    # Load modular configuration files from the /etc/nginx/conf.d directory.See http://nginx.org/en/docs/ngx_core_module.html#include for more information.
     include /etc/nginx/conf.d/*.conf;
     upstream test{
         ip_hash; #同一个用户(ip)会被引到同一个服务器上
@@ -98,8 +93,6 @@ http {
         ssl_certificate_key /etc/nginx/ssl/nginx.key;
         access_log   /home/avatar/Desktop/nginx.log main; # 每个server可以拥有独立的access log
         root         /usr/share/nginx/html;
-        # Load configuration files for the default server block.
-        include /etc/nginx/default.d/*.conf;
         gzip on;
         
         #location ~ ^/show/v1/(.*)$ { proxy_pass http://127.0.0.1:6088; }
