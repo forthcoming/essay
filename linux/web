@@ -132,7 +132,7 @@ http {
 
 nginx -t   #检测配置文件是否有效
 nginx -s reload 更改配置重启nginx
-同一个server下可以有不同的location,也同时可以拥有多个server,不同的server通过server_name区分
+http层可以拥有多个server,同一个server下可以有不同的location,不同的server通过server_name区分
 如果可以匹配到任何一个server的server_name,则使用此server,否则匹配到第一个server块,不论server_name是否匹配
    
 gunicorn无法处理static资源(js,jpg,css),应为其本身是用來處理Python網頁應用程式,而前端的static資源,主要還是交由後面nignx來負責
