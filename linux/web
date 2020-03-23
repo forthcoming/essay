@@ -89,7 +89,9 @@ http {
         proxy_set_header Host $host;                   # 服务端可通过request.headers.get('Host')获取到服务的域名
         proxy_set_header X-Real-IP $remote_addr;       # 服务端可通过request.headers.get('X-Real-IP')获取到客户端IP
         proxy_set_header X-Forwarded-For $remote_addr; # 服务端可通过request.headers.get('X-Forwarded-For')获取到客户端IP,(记录一组Ip)
-    }
+        access_log /usr/local/opt/nginx/logs/access.log main;  # log_format中main的指定格式输出日志
+        error_log /usr/local/opt/nginx/logs/error.log;
+}
 
     server {
         listen 443 ssl;
