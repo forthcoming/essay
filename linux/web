@@ -83,7 +83,7 @@ http {
 
     server {
         listen         5566;
-        server_name    abc.com;   # 也可以是ip
+        server_name    acsing.kg.com abc.com;   # 也可以是ip,多个server_name用空格隔开
         location / { proxy_pass http://127.0.0.1:8081;}
         #location ~ ^/show/v1/(.*)$ { proxy_pass http://127.0.0.1:6088; }
         proxy_set_header Host $host;                   # 服务端可通过request.headers.get('Host')获取到服务的域名
