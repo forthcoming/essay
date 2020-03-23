@@ -113,6 +113,7 @@ http {
 
 -----------------------------------------------------------------------------------------------------------------------------------------
 
+nginx -c /usr/local/etc/nginx/nginx.conf
 nginx -t        检测配置文件是否有效
 nginx -s reload 更改配置重启nginx
 http层可以拥有多个server,同一个server下可以有不同的location,不同的server通过server_name区分
