@@ -101,7 +101,7 @@ http {
         
         location / {
             proxy_pass http://127.0.0.1:7000;
-            # proxy_pass http://test;            # 接收方nginx的server_name对应要写成test
+            # proxy_pass http://test;            # 接收方nginx的server_name对应可以写成test
         }
 
         location /static/ {
