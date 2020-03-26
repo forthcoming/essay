@@ -1140,7 +1140,7 @@ print(regex.findall(s))   #['avat1ar cao', 'avat2ar cao']
 #注意r''的使用
 re.findall(r'\[q\\w1','[q\w1')    #['[q\\w1']
 re.findall('\\[q\\\w1','[q\w1')             #['[q\\w1']
-re.findall('\[q\\w1','[q\w1')     #[],匹配不到的原因是python字符串也是用\转义特殊字符,\q被python理解成[
+re.findall('\[q\\w1','[q\w1')     #[],匹配不到的原因是python字符串也是用\转义特殊字符,\[被python理解成[
 re.findall(r'\bor\b', 'which or orange ')   #['or'] 建议使用\b单词\b形式,如\bw+\b
 re.findall('\bor\b', 'which or orange ')    #[]
 
