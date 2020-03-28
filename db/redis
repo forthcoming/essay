@@ -568,7 +568,7 @@ shutdown [save/nosave] 关闭服务器,保存数据,修改AOF(如果设置)
 slowlog get N 获取慢查询日志
 slowlog len 获取慢查询日志条数
 slowlog reset 清空慢查询
-info []  可以查看主从,内存/CPU使用,持久化,每个库使用情况
+info []  可以查看主从,内存/CPU使用,持久化,每个库使用情况/配置文件位置
 config get 选项(支持*通配)
 config set 选项 值
 config rewrite 把值写到配置文件
