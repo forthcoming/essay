@@ -68,7 +68,6 @@ redis key过期策略(同时使用)
 
 通用操作
 del key1 key2 ... Keyn: 删除1个或多个键,不存在的key忽略掉,返回真正删除的key的数量
-unlink key1 key2 ... Keyn: 删除1个或多个键,不存在的key忽略掉,return the number of keys that were unlinked,it is not blocking, while del is.
 rename oldkey newkey: 给key赋一个新的key名, 如果newkey已存在 ,则 newkey的原值被覆盖 (类似的还有renamenx)
 randomkey: 返回随机key
 exists keyname: 判断key是否存在 ,返回 1/0
@@ -78,9 +77,29 @@ persist keyname: 把指定key置为永久有效
 expire keyname 整型值: 设置key的生命周期,以秒为单位(类似的还有pexpire,毫秒数,设置生命周期)
 move keyname db: 将当前数据库的key移动到给定的数据库db当中,若与给定数据库key重名,或key不存在于当前数据库,则MOVE无任何效果
 scan: 遍历所有键,类似的还有sscan,hscan,zscan,他们只遍历特定类型键里面的元素值
-redis-cli -h 10.1.138.63 -n 1 --bigkeys: 分析数据库中的大key
 monitor: streams back every command processed by the Redis server. It can help in understanding what is happening to the database
 redis-py存进去的是数字类型,再取出来时都会是字符串类型
+
+unlink key1 key2 ... Keyn: 异步删除1个或多个键,不存在的key忽略掉,return the number of keys that were unlinked,it is not blocking, while del is.
+redis-cli -h 10.1.138.63 -n 1 --bigkeys: 分析数据库中的大key
+
+memory usage(时间复杂度：O(N) where N is the number of samples)
+The MEMORY USAGE command reports the number of bytes that a key and its value require to be stored in RAM.Longer keys and values show asymptotically linear usage.
+127.0.0.1:6379> memory usage avatar
+(integer) 48
+127.0.0.1:6379> memory usage avatar1
+(integer) 49
+For nested data types, the optional SAMPLES option can be provided, where count is the number of sampled nested values. 
+By default, this option is set to 5. To sample the all of the nested values, use SAMPLES 0.
+127.0.0.1:6379> hlen hkey                       // hkey有100w个字段,每个字段value长度介于1~1024字节
+(integer) 1000000
+127.0.0.1:6379> MEMORY usage hkey               //默认SAMPLES为5
+(integer) 521588753
+127.0.0.1:6379> MEMORY usage hkey SAMPLES 1000  //指定SAMPLES为1000
+(integer) 617977753
+127.0.0.1:6379> MEMORY usage hkey SAMPLES 10000 //指定SAMPLES为10000
+(integer) 624950853
+这是使用抽样求平均的算法,要想获取key较精确的内存值,就指定更大SAMPLES个数,但过大会占用CPU时间
 
 ---------------------------------------------------------------------------------------------------------------------------------------
 
@@ -572,6 +591,12 @@ flushall 清空所有数据库数据
 如果flushall之后,系统恰好bgrewriteaof了,那么aof就清空了,数据丢失
 shutdown [save/nosave] 关闭服务器,保存数据,修改AOF(如果设置)
 slowlog get N 获取慢查询日志
+127.0.0.1:6379> SLOWLOG GET 1
+1) 1) (integer) 26            // slowlog唯一编号id
+   2) (integer) 1440057815    // 查询的时间戳
+   3) (integer) 47            // 查询耗时(微妙),表示本条命令查询耗时47微秒
+   4) 1) "SLOWLOG"            // 查询命令,完整命令为 SLOWLOG GET
+      2) "GET"
 slowlog len 获取慢查询日志条数
 slowlog reset 清空慢查询
 info []  可以查看主从,内存/CPU使用,持久化,每个库使用情况/配置文件位置
