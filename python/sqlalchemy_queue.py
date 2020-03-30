@@ -113,6 +113,7 @@ class Queue:
 
     def __init__(self, maxsize=0, use_lifo=False):
         """
+        refer: https://github.com/sqlalchemy/sqlalchemy/blob/master/lib/sqlalchemy/util/queue.py
         If `maxsize` is <= 0, the queue size is infinite.
         If `use_lifo` is True, this Queue acts like a Stack (LIFO).
         注意:
@@ -134,18 +135,15 @@ class Queue:
 
     def qsize(self): # Return the approximate size of the queue (not reliable!).
         with self.mutex:
-            n = len(self.queue)
-        return n
-
+            return len(self.queue)
+        
     def empty(self): # Return True if the queue is empty, False otherwise (not reliable!).
         with self.mutex:
-            bool = self._empty()  # not self.queue
-        return bool
+            return self._empty()  # not self.queue
 
     def full(self): # Return True if the queue is full, False otherwise (not reliable!).
         with self.mutex:
-            bool = self._full()  # self.maxsize > 0 and len(self.queue) == self.maxsize
-        return bool
+            return self._full()  # self.maxsize > 0 and len(self.queue) == self.maxsize
 
     def put(self, item, block=True, timeout=None):
         """
