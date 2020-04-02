@@ -305,10 +305,10 @@ class Queue:
 #             self.size(), self.checkedin(), self.overflow(), self.checkedout())
 #
 #     def size(self):
-#         return self._pool.maxsize
+#         return self._pool.maxsize     # 连接池大小
 #
 #     def checkedin(self):
-#         return self._pool.qsize()
+#         return self._pool.qsize()    # 连接池中的连接数
 #
 #     def overflow(self):
 #         return self._overflow
