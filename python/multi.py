@@ -85,6 +85,7 @@ if __name__=='__main__':
 
 # lock
 from multiprocessing.dummy import Process,Lock
+from threading import get_ident
 mutex=Lock()  
 
 def loop(n):
@@ -95,6 +96,9 @@ def loop(n):
 
 def loop_lock(n):
     global deposit
+    print(get_ident())
+    # Return a non-zero integer that uniquely identifies the current thread amongst other threads that exist simultaneously.
+    # This may be used to identify per-thread resources.A thread's identity may be reused for another thread after it exits.
     for i in range(100000):
         with mutex:  # 加锁会使速度变慢,注意这里不能写作with Lock(),mutex必须共享
             deposit += n # 存
