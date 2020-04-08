@@ -106,7 +106,7 @@ def session_scope():
         raise
     finally:
         print('session close')
-        session.close()    # 非必须(暂未发现必须使用的场景),释放连接到连接池,结束当前事务,This clears all items and ends any transaction in progress.
+        session.close()    # 非必须(暂未发现必须使用的场景),释放连接到连接池,结束(非提交)当前事务,This clears all items and ends any transaction in progress.
 
 def working_session(index):
     # with session_scope() as session: # 块语句正常结束,调用session.commit和session.close,异常结束调用session.rollback和session.close
