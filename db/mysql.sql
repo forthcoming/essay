@@ -1,3 +1,9 @@
+连接池(Faster and safer)
+The connection pool acts as a bounded buffer for the incoming connection requests. 
+If there is a traffic spike the connection pool will level it instead of saturating all available database resources.
+The waiting step and the timeout mechanism are safety hooks, preventing excessive database server load. 
+If one application gets way too much database traffic, the connection pool is going to mitigate it therefore preventing it from taking down the database server.
+
 processlist 
 show full processlist;  # 如果是root帐号,能看到所有用户的当前连接;如果是其他普通帐号,则只能看到自己占用的连接
 kill Id;                # 杀死指定Id的sql语句,常用于mysql死锁情况                              
