@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import functools,pickle
 from flask import request
-from rediscluster import StrictRedisCluster
+from rediscluster import RedisCluster
 
 startup_nodes = [
     {"host": "localhost", "port": "8001"}, 
@@ -11,7 +11,7 @@ startup_nodes = [
     {"host": "localhost", "port": "8005"},
     {"host": "localhost", "port": "8006"},
 ]
-rc = StrictRedisCluster(startup_nodes=startup_nodes)
+rc = RedisCluster(startup_nodes=startup_nodes)
 
 class RedisCache:  # 接口缓存
     def __init__(self, client, default_timeout=300, key_prefix=None):
