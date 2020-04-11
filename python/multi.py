@@ -1,3 +1,49 @@
+进程中的变量传递(可变对象x从A进程传给B进程时,即使id没变,但仍然是一个全新的对象y,y在刚进B的那一刻值与x相同,此后便再无关联)
+from multiprocessing import Process 
+import time,os
+class A:
+    a=0
+    b=[]
+    def __init__(self):
+        self.c=1
+        self.d=[]
+test=A()
+
+print(test.a,test.b,test.c,test.d,id(test.a),id(test.b),id(test.c),id(test.d))
+
+def main():
+    print('in main',os.getpid(),os.getppid())
+    test.a=11
+    test.b.append(22)
+    test.c=33
+    test.d.append(44)
+    program=Process(target=kid,args=(test,))
+    program.start()
+    program.join()
+    print('in main',test.a,test.b,test.c,test.d,id(test.a),id(test.b),id(test.c),id(test.d))
+    
+def kid(test):
+    print('in kid',os.getpid(),os.getppid())
+    test.a=55
+    test.b.append(66)
+    test.c=77
+    test.d.append(88)
+    print('in kid',test.a,test.b,test.c,test.d,id(test.a),id(test.b),id(test.c),id(test.d))
+    time.sleep(2)
+
+main()
+print(test.a,test.b,test.c,test.d,id(test.a),id(test.b),id(test.c),id(test.d))
+
+output:
+0 [] 1 [] 4355075824 4359193136 4355075856 4359193776
+in main 2929 1121
+in kid 2930 2929
+in kid 55 [22, 66] 77 [44, 88] 4355077584 4359193136 4355078288 4359193776
+in main 11 [22] 33 [44] 4355076176 4359193136 4355076880 4359193776
+11 [22] 33 [44] 4355076176 4359193136 4355076880 4359193776
+
+###########################################################################################################################
+
 concurrent:
 当有多个线程在操作时,如果系统只有一个CPU,则它根本不可能真正同时进行一个以上的线程,它只能把CPU运行时间划分成若干个时间段
 再将时间段分配给各个线程执行,在一个时间段的线程代码运行时,其它线程处于挂起状态.这种方式我们称之为并发(Concurrent)
