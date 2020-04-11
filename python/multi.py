@@ -1,4 +1,4 @@
-进程中的变量传递(可变对象x从A进程传给B进程时,即使id没变,但仍然是一个全新的对象y,y在刚进B的那一刻值与x相同,此后便再无关联)
+进程中的变量传递(可变对象x从A进程传给B进程时,即使id没变,但仍然是一个全新的对象y,y在刚进B的那一刻值与x相同,此后便再无关联,子进程结束时其test被销毁)
 from multiprocessing import Process 
 import time,os
 class A:
