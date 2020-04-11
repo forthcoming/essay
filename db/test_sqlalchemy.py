@@ -49,7 +49,7 @@ class User(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String(50))
     password = Column(String(12))
-Base.metadata.create_all(engine) # 在数据库建表
+# Base.metadata.create_all(engine) # 在数据库建表
 
 
 def working_engine(engine):
