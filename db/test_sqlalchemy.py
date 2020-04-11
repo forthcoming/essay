@@ -11,7 +11,7 @@ import time
 
 '''
 pool_size和max_overflow会受到mysql配置文件: max_connections服务器最多可以建立的连接数(会保留一个root登陆的连接);max_user_connections同一个用户最多可建立的连接数影响
-engine线程安全,但不是进程安全,如果engine传递给子进程,相当于重新在子进程里面定义了一个engine
+engine线程安全,但不是进程安全,连接池不应该在进程间传递,应为子进程中连接池会带有部分主进程的连接资源,子进程池新加入的连接资源不会影响到主进程,推荐做法是子进程重新申请engine或者子进程最开始处调用engine.dispose()释放连接池中的资源
 惰性连接,并没有连接数据库,until the first time a method like Engine.execute() or Engine.connect() is called
 the pool begins with no connections; once this number of connections is requested, that number of connections will remain.
 The pool_pre_ping feature will normally emit SQL equivalent to “SELECT 1” each time a connection is checked out from the pool;
