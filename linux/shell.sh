@@ -357,6 +357,7 @@ mkdir -p /1/2 # 创建目录树
 grep -C 2 -v -n "^$" test.txt  # 匹配test文件中的非空行,C意思是显示匹配行的上下指定行数,v意思是反向查找,n意思是显示字符串在文件中出现的行号
 sudo su ccktv  # 输入的密码是执行sudo命令的用户密码,环境变量会一起被切换
 sudo -s ccktv  # 输入的密码是执行sudo命令的用户密码,不切换环境变量
+firewall-cmd --zone=public --list-port  # centos查看开放的端口信息
 ---------------------------------------------------------------------------------------------------------------------------------
 Ubuntu
 launcher地址: /usr/share/applications/eclipse.desktop
