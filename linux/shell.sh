@@ -287,6 +287,7 @@ netstat -apn | grep 27017 # 查看27017端口使用情况(包括进程名,pid,po
 ps -efL|grep pid # 查看某个进程下的所有线程,用LWP表示
 pstree -p pid    # 查看某个进程下的所有线程
 top -p pid       # 然后按H,查看某个进程下的所有线程
+ps -efj          # j获取进程的PPID, PID, PGID and SID(会话ID)
 
 top(动态显示进程列表)
 top -d n: 每n秒刷新一次,默认设置每3秒钟刷新一次,按CPU占有率降序排列
