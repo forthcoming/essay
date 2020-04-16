@@ -1,3 +1,9 @@
+https://api.mongodb.com/python/current/faq.html
+PyMongo is thread-safe and provides built-in connection pooling for threaded applications.But it's not fork-safe.
+经验: 带有连接池的对象都是线程安全,非进程安全
+
+/***************************************************************************/
+
 mongo监控
 mongostat -h 10.1.140.179:27017
 导出数据
