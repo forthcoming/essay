@@ -413,7 +413,11 @@ update student set score=score-10 where class=2;
 commit;    -- 一旦提交事务便结束,须再次开启事务才能使用
 rollback;  -- 回滚到事务开始处并结束事务
 
-
+                                        
+show full processlist;         # 显示连接数(有上限)
+show status like 'Threads%';   # 显示连接数(Threads_connected)
+netstat -anp|grep '10.1.208.25:3306'
+                                       
 show status like 'innodb_row_lock_%';
 Innodb_row_lock_current_waits: 当前等待锁的数量
 Innodb_row_lock_time: 系统启动到现在,锁定的总时间长度(单位毫秒,同下)
@@ -422,6 +426,7 @@ Innodb_row_lock_time_max: 最长一次锁定时间
 Innodb_row_lock_waits: 系统启动到现在总共锁定的次数
 
 select * from information_schema.innodb_trx;  # 当前运行的所有事务
+select trx_id from information_schema.innodb_trx where trx_mysql_thread_id = connection_id();  # 查看当前绘话开启的事务id
 trx_state: 事务执行状态,允许值是RUNNING,LOCK WAIT,ROLLING BACK,COMMITTING,被阻塞的事务状态是LOCK WAIT
 trx_wait_started: 事务开始等待锁定的时间,前提是trx_state=LOCK WAIT;否则NULL
 trx_mysql_thread_id: MySQL线程ID,与show processlist中的ID值相对应,可通过kill杀死
