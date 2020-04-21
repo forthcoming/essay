@@ -114,6 +114,9 @@ class Connection: # Manages TCP communication to and from a Redis server
                     raise ConnectionError('Bad response from PING health check')
             except (ConnectionError, TimeoutError):
                 self.disconnect()
+                self.send_command('PING', check_health=False)   # 重新建立连接
+                if nativestr(self.read_response()) != 'PONG':
+                    raise ConnectionError('Bad response from PING health check')
 
     def send_command(self, *args, **kwargs): # Send an already packed command to the Redis server
         command = args
