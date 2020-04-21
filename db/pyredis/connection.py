@@ -99,7 +99,7 @@ class Connection: # Manages TCP communication to and from a Redis server
                 shutdown(self._sock, socket.SHUT_RDWR)
             self._sock.close()
             self._sock = None
-
+            
     def check_health(self):
         '''
         Connections maintain an open socket to the Redis server. Sometimes these sockets are interrupted or disconnected for a variety of reasons.
