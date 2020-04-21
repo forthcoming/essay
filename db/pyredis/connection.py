@@ -43,7 +43,7 @@ class Connection: # Manages TCP communication to and from a Redis server
         self._sock = None
         self._parser = parser_class(socket_read_size=socket_read_size)
 
-    def __del__(self):
+    def __del__(self):  # 为什么要定义__del__
         self.disconnect()
 
     def can_read(self, timeout=0): # Poll the socket to see if there's data that can be read.
@@ -122,7 +122,7 @@ class Connection: # Manages TCP communication to and from a Redis server
             self.disconnect()
             raise
 
-    def read_response(self):  # Read the response from a previously sent command
+    def read_response(self):
         try:
             response = self._parser.read_response()
         except BaseException:
