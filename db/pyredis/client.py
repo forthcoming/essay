@@ -42,11 +42,17 @@ class Redis:
         try:
             connection.send_command(*args)
             return self.parse_response(connection, command_name, **options)
+        
+
         except (ConnectionError, TimeoutError) as e:
-            raise
+            connection.disconnect()
+            if not (connection.retry_on_timeout and isinstance(e, TimeoutError)):
+                raise
+            connection.send_command(*args)
+            return self.parse_response(connection, command_name, **options)
         finally:
             pool.release(connection)
-
+            
     def pipeline(self, transaction=True, shard_hint=None):
         return Pipeline(self.connection_pool,transaction,shard_hint)
 
