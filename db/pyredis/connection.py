@@ -1,18 +1,35 @@
-from itertools import chain,os,threading
-from queue import LifoQueue, Empty, Full
-from redis.exceptions import ConnectionError
-import socket,sys
+from itertools import chain
+from time import time
+import io, os, socket, threading
 
-class Connection:
-    '''
-    socket_connect_timeout: 连接redis资源时的超时时间,可通过rds = redis.Redis(host='10.1.169.215', port=6379, socket_connect_timeout=3,socket_timeout=1)验证
-    socket_timeout: 每条命令执行的超时时间,可以通过rds.eval("while(true) do local a=1; end",0)验证
-    '''
-    def __init__(self,host='localhost',port=6379,db=0,password=None,socket_timeout=None,socket_connect_timeout=None,
-        socket_keepalive=False,socket_keepalive_options=None,socket_type=0,retry_on_timeout=False):
+class Connection: # Manages TCP communication to and from a Redis server
+
+    def __init__(self,
+                 host='localhost',
+                 port=6379,
+                 db=0,
+                 password=None,
+                 socket_timeout=None,
+                 socket_connect_timeout=None,
+                 socket_keepalive=False,
+                 socket_keepalive_options=None,
+                 socket_type=0,
+                 retry_on_timeout=False,
+                 encoding='utf-8',
+                 encoding_errors='strict',
+                 decode_responses=False,
+                 parser_class=DefaultParser,
+                 socket_read_size=65536,
+                 health_check_interval=0,
+                 client_name=None,
+                 username=None
+    ):
+        self.pid = os.getpid()   # 注意
         self.host = host
         self.port = int(port)
         self.db = db
+        self.username = username
+        self.client_name = client_name
         self.password = password
         self.socket_timeout = socket_timeout
         self.socket_connect_timeout = socket_connect_timeout or socket_timeout
@@ -20,60 +37,101 @@ class Connection:
         self.socket_keepalive_options = socket_keepalive_options or {}
         self.socket_type = socket_type
         self.retry_on_timeout = retry_on_timeout
+        self.health_check_interval = health_check_interval
+        self.next_health_check = 0
+        self.encoder = Encoder(encoding, encoding_errors, decode_responses)
+        self._sock = None
+        self._parser = parser_class(socket_read_size=socket_read_size)
 
-    def connect(self): # Connects to the Redis server if not already connected
-        try:
+    def __del__(self):
+        self.disconnect()
+
+    def can_read(self, timeout=0): # Poll the socket to see if there's data that can be read.
+        pass
+
+    def connect(self):  # Connects to the Redis server if not already connected
+        if not self._sock:
             self._sock = self._connect()
-        except socket.timeout:
-            raise("Timeout connecting to server")
-        except socket.error:
-            print(sys.exc_info()[1])
-            raise('ConnectionError')
+            try:
+                self.on_connect()
+            except RedisError:
+                self.disconnect()
+                raise
 
-        if self.password:        # if a password is specified, authenticate
-            self.send_command('AUTH', self.password)
-        if self.db:              # if a database is specified, switch to it
-            self.send_command('SELECT', self.db)
-            
-    def _connect(self):
-        '''
-        Create a TCP socket connection
-        we want to mimic what socket.create_connection does to support ipv4/ipv6 
-        but we want to set options prior to calling socket.connect()
-        '''
+    def _connect(self):  # Create a TCP socket connection
         for res in socket.getaddrinfo(self.host, self.port, self.socket_type,socket.SOCK_STREAM):
             family, socktype, proto, canonname, socket_address = res
             sock = None
             try:
                 sock = socket.socket(family, socktype, proto)
-                # TCP_NODELAY
                 sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-
-                # TCP_KEEPALIVE
                 if self.socket_keepalive:
                     sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
-                    for k, v in self.socket_keepalive_options:
+                    for k, v in iteritems(self.socket_keepalive_options):
                         sock.setsockopt(socket.IPPROTO_TCP, k, v)
-
-                # set the socket_connect_timeout before we connect
-                sock.settimeout(self.socket_connect_timeout)
-
-                # connect
+                '''
+                socket_connect_timeout: 连接redis资源时的超时时间,可通过rds = redis.Redis(host='10.1.169.215', port=6379, socket_connect_timeout=3,socket_timeout=1)验证
+                socket_timeout: 每条命令执行的超时时间,可以通过rds.eval("while(true) do local a=1; end",0)验证
+                '''
+                sock.settimeout(self.socket_connect_timeout)    # 注意,set the socket_connect_timeout before we connect
                 sock.connect(socket_address)
-
-                # set the socket_timeout now that we're connected
-                sock.settimeout(self.socket_timeout)
+                sock.settimeout(self.socket_timeout)            # 注意,set the socket_timeout now that we're connected
                 return sock
 
             except socket.error as _:
                 if sock is not None:
                     sock.close()
 
-        if err is not None:
-            raise err
-           
-        raise socket.error("socket.getaddrinfo returned an empty list")
-        
+    def on_connect(self):  # Initialize the connection, authenticate and select a database(连接数据库)
+        if self.username or self.password:  # if username and/or password are set, authenticate
+            if self.username:
+                auth_args = (self.username, self.password or '')
+            else:
+                auth_args = (self.password,)
+            self.send_command('AUTH', *auth_args, check_health=False)  # avoid checking health here -- PING will fail if we try to check the health prior to the AUTH
+
+        if self.db:
+            self.send_command('SELECT', self.db)
+
+    def disconnect(self):   # Disconnects from the Redis server
+        if self._sock:
+            if os.getpid() == self.pid:  # 判断是否是当前进程
+                shutdown(self._sock, socket.SHUT_RDWR)
+            self._sock.close()
+            self._sock = None
+
+    def check_health(self):
+        if self.health_check_interval and time() > self.next_health_check:
+            try:
+                self.send_command('PING', check_health=False)  # Check the health of the connection with a PING/PONG,没有socket连接的话会先建立连接(此处check_health=False防止无穷调用)
+                if nativestr(self.read_response()) != 'PONG':  # 更新next_health_check
+                    raise ConnectionError('Bad response from PING health check')
+            except (ConnectionError, TimeoutError):
+                self.disconnect()
+
+    def send_command(self, *args, **kwargs): # Send an already packed command to the Redis server
+        command = args
+        if not self._sock:
+            self.connect()
+        if kwargs.get('check_health', True):
+            self.check_health()
+        try:
+            for item in command:
+                sendall(self._sock, item)
+        except BaseException:
+            self.disconnect()
+            raise
+
+    def read_response(self):  # Read the response from a previously sent command
+        try:
+            response = self._parser.read_response()
+        except BaseException:
+            self.disconnect()
+            raise
+        if self.health_check_interval:
+            self.next_health_check = time() + self.health_check_interval
+        return response
+    
         
 class ConnectionPool: # 连接池只有在进程里有多线程时才会发挥其效率优势
 
