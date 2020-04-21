@@ -101,6 +101,12 @@ class Connection: # Manages TCP communication to and from a Redis server
             self._sock = None
 
     def check_health(self):
+        '''
+        Connections maintain an open socket to the Redis server. Sometimes these sockets are interrupted or disconnected for a variety of reasons.
+        When a connection becomes disconnected, the next command issued on that connection will fail and redis-py will raise a ConnectionError to the caller. 
+        Health checks(health_check_interval) are performed just before a command is executed if the underlying connection has been idle for more than health_check_interval seconds. 
+        If your application is running in an environment that disconnects idle connections after 30 seconds you should set the health_check_interval option to a value less than 30.
+        '''
         if self.health_check_interval and time() > self.next_health_check:
             try:
                 self.send_command('PING', check_health=False)  # Check the health of the connection with a PING/PONG,没有socket连接的话会先建立连接(此处check_health=False防止无穷调用)
