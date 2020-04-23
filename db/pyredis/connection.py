@@ -1,6 +1,7 @@
 from itertools import chain
 from time import time
 import io, os, socket, threading
+from queue import LifoQueue, Empty, Full
 
 class Connection: # Manages TCP communication to and from a Redis server
 
@@ -189,7 +190,7 @@ class ConnectionPool:
         self._created_connections += 1  # 非线程安全,不过无关紧要,因为你不可能在极短时间内创建许多连接,即使不准,统计误差也不会有2个
         return self.connection_class(**self.connection_kwargs)
 
-    def get_connection(self, command_name, *keys, **options):  # Get a connection from the pool
+    def get_connection(self):  # Get a connection from the pool
         self._checkpid()
         with self._lock:
             try:
@@ -226,82 +227,73 @@ class ConnectionPool:
                 connection.disconnect()
         
 
-
-
 class BlockingConnectionPool(ConnectionPool):
     """
-    Thread-safe blocking connection pool::
+    Thread-safe blocking connection pool:
     from redis.client import Redis
     client = Redis(connection_pool=BlockingConnectionPool())
-
-    It performs the same function as the default ConnectionPool implementation, in that,
-    it maintains a pool of reusable connections that can be shared by multiple redis clients (safely across threads if required).
-
-    Use timeout to tell it either how many seconds to wait for a connection to become available, or to block forever:
-    pool = BlockingConnectionPool(timeout=None) # Block forever.
-    pool = BlockingConnectionPool(timeout=5)    # Raise a ConnectionError after five seconds if a connection is not available.
+    It performs the same function as the default ConnectionPool implementation,The difference is that,
+    in the event that a client tries to get a connection from the pool when all of connections are in use, rather than raising a ConnectionError,
+    it makes the client wait ("blocks") for a specified number of seconds until a connection becomes available.
     """
-    def __init__(self, max_connections=50, timeout=20,connection_class=Connection, **connection_kwargs):
-        self.timeout = timeout
-        # 调用父类构造函数,由于父类构造函数调用了reset,并且子类进行了重构,so子类的reset随后会被调用
-        super(BlockingConnectionPool, self).__init__(connection_class=connection_class,max_connections=max_connections,**connection_kwargs)
+    def __init__(self, max_connections=50, timeout=20,connection_class=Connection, queue_class=LifoQueue,**connection_kwargs):
+        self.queue_class = queue_class
+        self.timeout = timeout  # how many seconds to wait for a connection to become available, or to block forever
+        super().__init__(connection_class=connection_class,max_connections=max_connections,**connection_kwargs) # 调用父类构造函数,由于父类构造函数调用了reset,并且子类进行了重构,so子类的reset随后会被调用
 
     def reset(self):
-        self.pid = os.getpid()
-        self._check_lock = threading.Lock()
-        self.pool = LifoQueue(self.max_connections)  # Create and fill up a thread safe queue with ``None`` values.
+        self.pool = self.queue_class(self.max_connections)
         while True:
             try:
-                self.pool.put_nowait(None)   # 等价于self.pool.put(None,False)
-            except Full:  # 队列超过上限
+                self.pool.put(None,block=False)  # 用None将连接池填满
+            except Full:
                 break
-        self._connections = []   # Keep a list of actual connection instances so that we can disconnect them later.
+        self._connections = []    # Keep a list of actual connection instances so that we can disconnect them later.
+        self.pid = os.getpid()    # 必须放最后赋值
 
-    def make_connection(self):
-        "Make a fresh connection."
+    def make_connection(self):   # Make a fresh connection
         connection = self.connection_class(**self.connection_kwargs)
         self._connections.append(connection)
         return connection
 
-    def get_connection(self, *keys, **options):
+    def get_connection(self):
         """
         Get a connection, blocking for self.timeout until a connection is available from the pool.
-        If the connection returned is None then creates a new connection.
-        Because we use a last-in first-out queue, the existing connections(having been returned to the pool after the initial None values were added) will be returned before None values. 
-        This means we only create new connections when we need to, i.e.: the actual number of connections will only increase in response to demand.
+        If the connection returned is ``None`` then creates a new connection.Because we use a last-in first-out queue,
         """
-        self._checkpid()  # Make sure we haven't changed process.
-        # Try and get a connection from the pool. If one isn't available within self.timeout then raise a ConnectionError.
-        connection = None
+        self._checkpid()
         try:
             connection = self.pool.get(block=True, timeout=self.timeout)
         except Empty:
-            # Note that this is not caught by the redis client and will be raised unless handled by application code. If you want never to
             raise ConnectionError("No connection available.")
         if connection is None:
             connection = self.make_connection()
+
         try:
             connection.connect()
-            if not connection.is_ready_for_command():
+            try:
+                if connection.can_read():
+                    raise ConnectionError('Connection has data')
+            except ConnectionError:
                 connection.disconnect()
                 connection.connect()
-                if not connection.is_ready_for_command():
+                if connection.can_read():
                     raise ConnectionError('Connection not ready')
-        except:
+        except BaseException:
             self.release(connection)
             raise
         return connection
 
     def release(self, connection):
-        self._checkpid()  # Make sure we haven't changed process.
-        if connection.pid != self.pid:
-            return
-        try:
-            self.pool.put_nowait(connection) # Put the connection back into the pool.
-        except Full:  # perhaps the pool has been reset() after a fork? regardless, we don't want this connection
-            pass
+        self._checkpid()
+        if connection.pid == self.pid:
+            try:
+                self.pool.put_nowait(connection)
+            except Full:  # perhaps the pool has been reset() after a fork? regardless,we don't want this connection
+                pass
 
-    def disconnect(self):  # Disconnects all connections in the pool.
+    def disconnect(self):
         self._checkpid()
         for connection in self._connections:
             connection.disconnect()
+            
