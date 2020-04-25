@@ -1,5 +1,6 @@
 from threading import Lock
 from collections import deque
+from itertools import islice
 
 # 代码来自threading.py,略有改动
 
@@ -76,3 +77,82 @@ class _RLock:
 
     def _is_owned(self):  # 线程是否拥有该锁
         return self._owner == get_ident()
+
+
+class Condition:
+    """
+    A condition variable allows one or more threads to wait until they are notified by another thread.
+    If the lock argument is given and not None, it must be a Lock or RLock object, and it is used as the underlying lock.
+    Otherwise, a new RLock object is created and used as the underlying lock.
+    """
+
+    def __init__(self):
+        self._lock = RLock()
+        self.acquire = self._lock.acquire
+        self.release = self._lock.release
+        self._release_save = self._lock._release_save
+        self._acquire_restore = self._lock._acquire_restore
+        self._is_owned = self._lock._is_owned
+        self._waiters = deque()
+
+    def __enter__(self):
+        return self._lock.__enter__()
+
+    def __exit__(self, *args):
+        return self._lock.__exit__(*args)
+
+    def __repr__(self):
+        return "<Condition(%s, %d)>" % (self._lock, len(self._waiters))
+
+    def wait(self, timeout=None):
+        """
+        Wait until notified or until a timeout occurs.
+        If the calling thread has not acquired the lock when this method is called, a RuntimeError is raised.
+        This method releases the underlying lock, and then blocks until it is awakened by a notify() call for the same condition variable in another thread, or until the optional timeout occurs.
+        Once awakened or timed out, it re-acquires the lock and returns.
+        When the timeout argument is present and not None, it should be a floating point number specifying a timeout for the operation in seconds (or fractions thereof).
+        When the underlying lock is an RLock, it is not released using its release() method, since this may not actually unlock the lock when it was acquired multiple times recursively.
+        Instead, an internal interface of the RLock class is used, which really unlocks it even when it has been recursively acquired several times. Another internal interface is then used to restore the recursion level when the lock is reacquired.
+        """
+        if not self._is_owned():
+            raise RuntimeError("self.not_empty wait on un-acquired lock")
+        waiter = Lock()
+        waiter.acquire()
+        self._waiters.append(waiter)
+        saved_state = self._release_save()  # 释放self._lock锁
+        gotit = False
+        try:    # 再次上锁挂起线程,等待notify通知后释放锁
+            if timeout is None:
+                gotit = waiter.acquire()
+            else:
+                if timeout > 0:
+                    gotit = waiter.acquire(True, timeout)  # 等待超过timeout时直接返回False并向下执行
+                else:
+                    gotit = waiter.acquire(False)
+            return gotit
+        finally:  # wait超时或者notify通知
+            self._acquire_restore(saved_state)
+            if not gotit:
+                try:
+                    self._waiters.remove(waiter)
+                except ValueError:
+                    pass
+
+    def notify(self, n=1):
+        """
+        Wake up one or more threads waiting on this condition, if any.
+        If the calling thread has not acquired the lock when this method is called, a RuntimeError is raised.
+        This method wakes up at most n of the threads waiting for the condition variable; it is a no-op if no threads are waiting.
+        """
+        if not self._is_owned():
+            raise RuntimeError("cannot notify on un-acquired lock")
+        all_waiters = self._waiters
+        for waiter in deque(islice(all_waiters, n)):
+            waiter.release()
+            try:
+                all_waiters.remove(waiter)
+            except ValueError:
+                pass
+
+    def notify_all(self):
+        self.notify(len(self._waiters))
