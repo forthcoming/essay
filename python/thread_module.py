@@ -86,13 +86,15 @@ class Condition:
     Otherwise, a new RLock object is created and used as the underlying lock.
     """
 
-    def __init__(self):
-        self._lock = RLock()
-        self.acquire = self._lock.acquire
-        self.release = self._lock.release
-        self._release_save = self._lock._release_save
-        self._acquire_restore = self._lock._acquire_restore
-        self._is_owned = self._lock._is_owned
+    def __init__(self, lock=None):
+        if lock is None:
+            lock = RLock()
+        self._lock = lock
+        self.acquire = lock.acquire
+        self.release = lock.release
+        self._release_save = lock._release_save
+        self._acquire_restore = lock._acquire_restore
+        self._is_owned = lock._is_owned
         self._waiters = deque()
 
     def __enter__(self):
