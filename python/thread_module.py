@@ -175,8 +175,12 @@ class Semaphore:
             time.sleep(.1)
             with semaphore:
                 print('working in {}'.format(idx))
-                time.sleep(1)
-    threads = [Thread(target=work,args=(idx,)) for idx in range(5)]
+    def work_v1(idx):
+        with semaphore:
+            with semaphore:
+                with semaphore:
+                    print('working in {}'.format(idx))
+    threads = [Thread(target=work,args=(idx,)) for idx in range(5)]  # or work_v1
     for thread in threads:
         thread.start()
     for thread in threads:
