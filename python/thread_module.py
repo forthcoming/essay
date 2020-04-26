@@ -37,7 +37,7 @@ class _RLock:
         if self._owner == me:
             self._count += 1
             return 1
-        rc = self._block.acquire(blocking, timeout)
+        rc = self._block.acquire(blocking, timeout)  # 锁等待超时返回False并向下执行(不会抛出异常)
         if rc:
             self._owner = me
             self._count = 1
