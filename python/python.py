@@ -1,6 +1,48 @@
+import threading
+
+def plyer_display():
+    print('初始化通过完成,音视频同步完成,可以开始播放....')
+
+barrier = threading.Barrier(3, action=plyer_display, timeout=None)  # 设置3个障碍对象
+
+def player_init(status):
+    print(status)
+    try:
+        barrier.wait(2)  # 如果2秒内没有达到障碍线程数量,会进入断开状态,引发BrokenBarrierError错误
+    except Exception as e:  # BrokenBarrierError错误
+        print("等待超时了... ")
+    else:
+        print("xxxooooxxxxxooooxxxoooo")
+
+
+if __name__ == '__main__':
+
+    status_list = ["init ready", "video ready", "audio ready"]
+    thread_list = []
+    for i in range(0, 3):
+        t = threading.Thread(target=player_init, args=(status_list[i],))
+        t.start()
+        thread_list.append(t)
+    for t in thread_list:
+        t.join()
+'''
+output:
+init ready
+video ready
+audio ready
+初始化通过完成,音视频同步完成,可以开始播放....
+xxxooooxxxxxooooxxxoooo
+xxxooooxxxxxooooxxxoooo
+xxxooooxxxxxooooxxxoooo
+'''
+
+##################################################################################################################################
+
 __init__.py
 主要作用是将文件夹变为一个Python模块,我们在python中导入一个包时,实际上是导入了它的__init__.py文件,该文件内的语句都将被执行
 被导入的文件中的全局代码,类静态区都会被执行
+
+##################################################################################################################################
 
 原码 & 补码
 原码: 用最高位表示符号位,1表示负,0表示正,其他位存放该数的二进制的绝对值
@@ -8,6 +50,8 @@ __init__.py
 -5转化为补码: (0b00000101 ^ 0xff)+1  =>  0b11111011
 0b11111011转化为整数: -((0b11111011 ^ 0xff)+1)  =>  -5
 计算机存的是补码
+
+##################################################################################################################################
 
 from collections import deque
 import re
