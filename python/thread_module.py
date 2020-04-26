@@ -106,7 +106,7 @@ class Condition:
     def __repr__(self):
         return "<Condition(%s, %d)>" % (self._lock, len(self._waiters))
 
-    def wait(self, timeout=None):
+    def wait(self, timeout=None):  # wait等待超时返回False(不会抛出异常),线程被唤醒
         """
         Wait until notified or until a timeout occurs.
         If the calling thread has not acquired the lock when this method is called, a RuntimeError is raised.
@@ -128,7 +128,7 @@ class Condition:
                 gotit = waiter.acquire()
             else:
                 if timeout > 0:
-                    gotit = waiter.acquire(True, timeout)  # 等待超过timeout时直接返回False并向下执行
+                    gotit = waiter.acquire(True, timeout)
                 else:
                     gotit = waiter.acquire(False)
             return gotit
