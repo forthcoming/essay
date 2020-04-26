@@ -238,3 +238,29 @@ class Semaphore:
 
     def __exit__(self, t, v, tb):
         self.release()
+
+        
+class BoundedSemaphore(Semaphore):  # 建议使用BoundedSemaphore代替Semaphore,应为他会对release做检测,减小程序bug
+    """
+    A bounded semaphore checks to make sure its current value doesn't exceed its initial value. If it does, ValueError is raised.
+    If the semaphore is released too many times it's a sign of a bug. If not given, value defaults to 1.
+    Like regular semaphores, bounded semaphores manage a counter representing the number of release() calls minus the number of acquire() calls, plus an initial value.
+    The acquire() method blocks if necessary until it can return without making the counter negative. If not given, value defaults to 1.
+    """
+
+    def __init__(self, value=1):
+        super().__init__(value)
+        self._initial_value = value
+
+    def release(self):
+        """
+        When the counter is zero on entry and another thread is waiting for it to become larger than zero again, wake up that thread.
+        If the number of releases exceeds the number of acquires, raise a ValueError.
+        """
+        with self._cond:
+            if self._value >= self._initial_value:
+                raise ValueError("Semaphore released too many times")
+            self._value += 1
+            self._cond.notify()
+            
+            
