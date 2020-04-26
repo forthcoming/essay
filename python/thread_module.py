@@ -303,4 +303,112 @@ class Event:
             return signaled
         
         
-        
+class BrokenBarrierError(RuntimeError):
+    pass
+
+class Barrier:
+    """
+    We maintain two main states, 'filling' and 'draining' enabling the barrier to be cyclic.  Threads are not allowed into it until it has fully drained since the previous cycle.  
+    In addition, a 'resetting' state exists which is similar to 'draining' except that threads leave with a BrokenBarrierError,and a 'broken' state in which all threads get the exception.
+    Useful for synchronizing a fixed number of threads at known synchronization points.
+    Threads block on 'wait()' and are simultaneously awoken once they have all made that call.
+    多线程Barrier会设置一个线程障碍数量parties,如果等待的线程数量没有达到障碍数量parties,所有线程会处于阻塞状态,当等待的线程到达了这个数量就会唤醒所有的等待线程
+    """
+
+    def __init__(self, parties, action=None, timeout=None):
+        """
+        'action' is a callable which, when supplied, will be called by one of the threads after they have all entered the barrier and just prior to releasing them all.
+        If a 'timeout' is provided, it is used as the default for all subsequent 'wait()' calls.
+        """
+        self._cond = Condition(Lock())
+        self._action = action
+        self._timeout = timeout
+        self._parties = parties  # the number of threads required to trip the barrier.
+        self._state = 0          # 0 filling, 1, draining, -1 resetting, -2 broken
+        self._count = 0          # the number of threads currently waiting at the barrier.
+
+    @property
+    def parties(self):
+        return self._parties
+
+    @property
+    def n_waiting(self):
+        if self._state == 0:   # We don't need synchronization here since this is an ephemeral result anyway.  It returns the correct value in the steady state.
+            return self._count
+        return 0
+
+    @property
+    def broken(self):  # Return True if the barrier is in a broken state.
+        return self._state == -2
+
+    def _enter(self):      # Block until the barrier is ready for us, or raise an exception if it is broken.
+        while self._state in (-1, 1):  # It is draining or resetting, wait until done
+            self._cond.wait()
+        if self._state < 0:            # see if the barrier is in a broken state
+            raise BrokenBarrierError
+        assert self._state == 0
+
+    def _release(self):
+        try:
+            if self._action:      # Optionally run the 'action' and release the threads waiting in the barrier.
+                self._action()
+            self._state = 1       # enter draining state
+            self._cond.notify_all()
+        except:
+            self._break()         # an exception during the _action handler.  Break and reraise
+            raise
+
+    def _break(self):  # An internal error was detected.  The barrier is set to a broken state all parties awakened.
+        self._state = -2
+        self._cond.notify_all()
+
+    def abort(self):  # Useful in case of error.  Any currently waiting threads and threads attempting to 'wait()' will have BrokenBarrierError raised.
+        with self._cond:
+            self._break()
+
+    def wait(self, timeout=None):
+        """
+        如果等待超时,障碍将进入断开状态,如果在线程等待期间障碍断开或重置,此方法会引发BrokenBarrierError错误
+        When the specified number of threads have started waiting, they are all simultaneously awoken.
+        If an 'action' was provided for the barrier, one of the threads will have executed that callback prior to returning.
+        Returns an individual index number from 0 to 'parties-1'.
+        """
+        if timeout is None:
+            timeout = self._timeout
+        with self._cond:
+            self._enter() # Block while the barrier drains.
+            index = self._count
+            self._count += 1
+            try:
+                if index + 1 == self._parties:
+                    self._release()
+                else:
+                    self._wait(timeout)       # We wait until someone releases us
+                return index
+            finally:
+                self._count -= 1
+                self._exit()     # Wake up any threads waiting for barrier to drain.
+
+    def _wait(self, timeout):    # Wait in the barrier until we are released.  Raise an exception if the barrier is reset or broken.
+        if not self._cond.wait_for(lambda : self._state != 0, timeout):
+            #timed out.  Break the barrier
+            self._break()
+            raise BrokenBarrierError
+        if self._state < 0:
+            raise BrokenBarrierError
+        assert self._state == 1
+
+    def _exit(self):      # If we are the last thread to exit the barrier, signal any threads waiting for the barrier to drain.
+        if self._count == 0:
+            if self._state in (-1, 1):
+                self._state = 0
+                self._cond.notify_all()
+
+    def reset(self):    # Any threads currently waiting will get the BrokenBarrier exception raised.
+        with self._cond:
+            if self._count > 0:
+                if self._state in (0,-2):
+                    self._state = -1
+            else:
+                self._state = 0
+            self._cond.notify_all()
