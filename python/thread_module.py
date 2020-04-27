@@ -46,7 +46,7 @@ class _RLock:
 
     __enter__ = acquire
 
-    def release(self):
+    def release(self): # 只能释放自己上的锁
         """
         If after the decrement it is zero, reset the lock to unlocked, and if any other threads are blocked waiting for the lock to become unlocked, allow exactly one of them to proceed.
         If after the decrement the recursion level is still nonzero, the lock remains locked and owned by the calling thread.
@@ -67,7 +67,7 @@ class _RLock:
         self._count, self._owner = state
 
     def _release_save(self):                # Internal methods used by condition variables
-        if self._count == 0:
+        if self._count == 0:                # 允许释放其他线程的锁
             raise RuntimeError("cannot release un-acquired lock")
         count = self._count
         self._count = 0
