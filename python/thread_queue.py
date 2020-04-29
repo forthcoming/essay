@@ -146,3 +146,29 @@ class PriorityQueue(Queue):
 
     def _get(self):
         return heappop(self.queue)
+
+    
+class _PySimpleQueue: 
+    '''
+    Simple, unbounded FIFO queue.缺少如任务追踪等高级功能的简单队列,This pure Python implementation is not reentrant.
+    Note: while this pure Python version provides fairness(by using a threading.Semaphore which is itself fair, being based on threading.Condition), fairness is not part of the API contract.
+    '''
+
+    def __init__(self):
+        self._queue = deque()
+        self._count = threading.Semaphore(0)
+
+    def put(self, item):
+        self._queue.append(item)
+        self._count.release()
+
+    def get(self, block=True, timeout=None):
+        if timeout is not None and timeout < 0:
+            raise ValueError("'timeout' must be a non-negative number")
+        if not self._count.acquire(block, timeout):
+            raise Empty
+        return self._queue.popleft()
+
+    def qsize(self):  # Return the approximate size of the queue (not reliable!).
+        return len(self._queue)
+SimpleQueue = _PySimpleQueue
