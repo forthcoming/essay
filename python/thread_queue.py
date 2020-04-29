@@ -98,7 +98,7 @@ class Queue:
             self.not_full.notify()
             return item
 
-    def task_done(self):   # 一定要放到任务执行完的最后一步调用,标记本次任务结束
+    def task_done(self):   # 要放到任务执行完的最后一步调用,标记本次任务结束
         '''
         Indicate that a formerly enqueued task is complete.
         Used by Queue consumer threads.  For each get() used to fetch a task, a subsequent call to task_done() tells the queue that the processing on the task is complete.
@@ -112,7 +112,7 @@ class Queue:
             elif self.unfinished_tasks < 0:
                 raise ValueError('task_done() called too many times')
 
-    def join(self):
+    def join(self):  # 使用前要保证所有生产者都已完成生产任务(可通过线程join达到目的)
         '''
         Blocks until all items in the Queue have been gotten and processed.
         The count of unfinished tasks goes up whenever an item is added to the queue.
