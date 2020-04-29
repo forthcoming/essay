@@ -3,6 +3,8 @@ from collections import deque
 from heapq import heappush, heappop
 from time import monotonic as time
 
+# 代码来自queue.py,略有改动
+
 
 __all__ = ['Empty', 'Full', 'Queue', 'PriorityQueue', 'LifoQueue', 'SimpleQueue']
 
