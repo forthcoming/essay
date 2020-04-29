@@ -122,3 +122,24 @@ class Queue:
         with self.all_tasks_done:
             while self.unfinished_tasks:
                 self.all_tasks_done.wait()
+
+                
+class LifoQueue(Queue):
+
+    def _init(self, maxsize):
+        self.queue = []
+
+    def _get(self):
+        return self.queue.pop()
+
+
+class PriorityQueue(Queue):
+
+    def _init(self, maxsize):
+        self.queue = []
+
+    def _put(self, item):
+        heappush(self.queue, item)
+
+    def _get(self):
+        return heappop(self.queue)
