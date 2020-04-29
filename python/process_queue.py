@@ -54,7 +54,7 @@ class SimpleQueue:
         return SimpleQueue(ctx=self.get_context())
     '''
     def __init__(self, *, ctx):  # *是命名关键字参数用法
-        self._reader, self._writer = connection.Pipe(duplex=False)  # multiprocessing.Pipe()
+        self._reader, self._writer = connection.Pipe(duplex=False)  # multiprocessing.Pipe(),说明管道也可以多进程传递,但同时读or同时写可能会出错,所以要加锁
         self._poll = self._reader.poll
         self._rlock = ctx.Lock()                                    # multiprocessing.Lock()
         self._wlock = None if sys.platform == 'win32' else ctx.Lock()
