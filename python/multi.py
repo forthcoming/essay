@@ -1,3 +1,33 @@
+Pipe
+# The Pipe() function returns a pair of connection objects connected by a pipe which by default is duplex (two-way).
+# Each connection object has send() and recv() methods (among others). Note that data in a pipe may become corrupted if two processes (or threads) try to read from or write to the same end of the pipe at the same time.
+# Of course there is no risk of corruption from processes using different ends of the pipe at the same time.
+
+import time
+from multiprocessing import Process, Pipe
+
+def f(conn):
+    time.sleep(3)
+    conn.send([42, None, 'hello'])
+    conn.close()
+
+if __name__ == '__main__':
+    parent_conn, child_conn = Pipe(False)  # parent_conn只读,child_conn只写
+    # parent_conn, child_conn = Pipe(True)  # parent_conn和child_conn可以读写,默认为True
+    p = Process(target=f, args=(child_conn,))
+    p.start()
+    '''
+    返回值bool类型,whether there is any data available to be read.
+    If timeout is not specified then it will return immediately.
+    If timeout is a number then this specifies the maximum time in seconds to block.
+    If timeout is None then an infinite timeout is used.
+    '''
+    parent_conn.poll(timeout=1)
+    print(parent_conn.recv())    # [42, None, 'hello'], Blocks until there is something to receive.
+    p.join()
+
+###########################################################################################################################
+    
 进程中的变量传递(可变对象x从A进程传给B进程时,即使id没变,但仍然是一个全新的对象y,y在刚进B的那一刻值与x相同,此后便再无关联,子进程结束时其test被销毁)
 from multiprocessing import Process 
 import time,os
