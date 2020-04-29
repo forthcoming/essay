@@ -98,7 +98,7 @@ class Queue:
             self.not_full.notify()
             return item
 
-    def task_done(self):
+    def task_done(self):   # 一定要放到任务执行完的最后一步调用,标记本次任务结束
         '''
         Indicate that a formerly enqueued task is complete.
         Used by Queue consumer threads.  For each get() used to fetch a task, a subsequent call to task_done() tells the queue that the processing on the task is complete.
