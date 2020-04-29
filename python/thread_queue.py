@@ -22,6 +22,7 @@ class Queue:
 
         # mutex must be held whenever the queue is mutating.  All methods that acquire mutex must release it before returning.
         # mutex is shared between the three conditions, so acquiring and releasing the conditions also acquires and releases mutex.
+        # not_empty与not_full拥有不同的_waiters,目的是把因put挂起的线程和因get挂起的线程区分开
         self.mutex = threading.Lock()
         # Notify not_empty whenever an item is added to the queue; a thread waiting to get is notified then.
         self.not_empty = threading.Condition(self.mutex)
@@ -53,7 +54,7 @@ class Queue:
         If 'timeout' is a non-negative number, it blocks at most 'timeout' seconds and raises the Full exception if no free slot was available within that time.
         Otherwise ('block' is false), put an item on the queue if a free slot is immediately available, else raise the Full exception ('timeout' is ignored in that case).
         '''
-        with self.not_full:
+        with self.not_full: # 与with self.not_empty,with self.all_tasks_done,with self.mutex等价
             if self.maxsize > 0:
                 if not block:
                     if self._qsize() >= self.maxsize:
