@@ -53,7 +53,7 @@ class SimpleQueue:
         from .queues import SimpleQueue
         return SimpleQueue(ctx=self.get_context())
     '''
-    def __init__(self, *, ctx):
+    def __init__(self, *, ctx):  # *是命名关键字参数用法
         self._reader, self._writer = connection.Pipe(duplex=False)  # multiprocessing.Pipe()
         self._poll = self._reader.poll
         self._rlock = ctx.Lock()                                    # multiprocessing.Lock()
