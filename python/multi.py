@@ -1,7 +1,7 @@
 # ProcessPoolExecutor & ThreadPoolExecutor
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, as_completed
-import math, urllib.request,time,random
-from multiprocessing.dummy import Lock
+from threading import Lock,get_ident
+import math,urllib.request,time,random,os
 
 '''
 ThreadPoolExecutor & ProcessPoolExecutor在提交任务的时候有两种方式,submit和map:
@@ -49,7 +49,7 @@ def is_prime(n):
 
 def work(second):
     time.sleep(second)
-    print(f'I have sleep {second} seconds')
+    print(f'I have sleep {second} seconds, ident:{get_ident()}, PID:{os.getpid()}\n') # 可以看出只创建了max_workers个线程/进程
     return second
 
 def consumer(item, mutex, _result):
