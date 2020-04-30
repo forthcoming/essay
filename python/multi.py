@@ -1,3 +1,127 @@
+# ProcessPoolExecutor & ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, as_completed
+import math, urllib.request,time,random
+from multiprocessing.dummy import Lock
+
+'''
+ThreadPoolExecutor & ProcessPoolExecutor在提交任务的时候有两种方式,submit和map:
+相同点:
+1·都不阻塞程序,通过遍历结果集可以达到阻塞的效果
+2·一旦某个子程序结束,会立即执行下一个任务,由work总耗时6s可以验证
+3·主程序会等待子程序执行完才退出,相当与daemon=False
+不同点:
+1·map可以保证按顺序输出,submit按照谁先完成谁先输出
+2·如果你要提交的任务是一样的,就可以简化成map.假如提交的任务不一样,或者执行的过程之可能出现异常（使用map执行过程中发现问题会直接抛出错误）就要用到submit()
+
+shutdown(wait=True)
+If wait is True then this method will not return until all the pending futures are done executing and the resources associated with the executor have been freed.
+If wait is False then this method will return immediately and the resources associated with the executor will be freed when all pending futures are done executing.
+Regardless of the value of wait, the entire Python program will not exit until all pending futures are done executing.
+'''
+
+urls = [
+    'http://www.foxnews.com/',
+    'http://www.cnn.com/',
+    'http://europe.wsj.com/',
+    'http://www.bbc.co.uk/',
+    'http://some-made-up-domain.com/'
+]
+
+primes = [112272535095293, 112582705942171, 112272535095293, 115280095190773, 1099726899285419]
+
+task = [1, 2, 3, 2, 1, 5, 3, 4, 4, 6, 1, 5, 2, 7, 1, 10, 4, 6, 3, 5, 32, 4, 7, 2, 7, 3, 1, 9, 5, 2] * 10
+result = {}
+mutex = Lock()
+_result = set()
+
+def load_url(url, timeout):
+    with urllib.request.urlopen(url, timeout=timeout) as conn:
+        return conn.read()
+
+def is_prime(n):
+    if n % 2 == 0:
+        return False
+    sqrt_n = int(math.floor(math.sqrt(n)))
+    for i in range(3, sqrt_n + 1, 2):
+        if n % i == 0:
+            return False
+    return True
+
+def work(second):
+    time.sleep(second)
+    print(f'I have sleep {second} seconds')
+    return second
+
+def consumer(item, mutex, _result):
+    # 1/(int(time.time())&1)  # 线程池中出现错误,程序不会报错,需要手动捕捉异常
+
+    time.sleep(random.uniform(0,.01))
+    with mutex:
+        if item in result:
+            time.sleep(.01)
+            result[item]+=1
+        else:
+            time.sleep(.01)
+            result[item]=1
+
+    # with mutex:
+    #     while True:
+    #         if item in _result:
+    #             time.sleep(.001)
+    #         else:
+    #             time.sleep(random.uniform(0, .01))
+    #             _result.add(item)
+    #             break
+    # if item in result:
+    #     time.sleep(random.uniform(0, .01))
+    #     result[item] += 1
+    # else:
+    #     time.sleep(random.uniform(0, .01))
+    #     result[item] = 1
+    # _result.remove(item)
+
+    # error
+    # time.sleep(random.uniform(0,.01))
+    # if item in result:
+    #     time.sleep(random.uniform(0,.01))
+    #     result[item]+=1
+    # else:
+    #     time.sleep(random.uniform(0,.01))
+    #     result[item]=1
+
+if __name__ == '__main__':
+    # with ThreadPoolExecutor(max_workers=2) as executor:   # with代码块结束会调用executor.shutdown(),其中包含对线程的join操作
+    #     futures = {executor.submit(load_url, url, 30): url for url in urls}  # 非阻塞
+    #     '''
+    #     阻塞,只要有线程结束(finished or were cancelled)就返回,直至所有线程结束(仅在获取线程返回值时才需要调用)
+    #     Any futures given by fs that are duplicated will be returned once.
+    #     Any futures that completed before as_completed() is called will be yielded first. The returned iterator raises a concurrent.futures.
+    #     '''
+    #     for future in as_completed(futures): # 阻塞
+    #         print(futures)
+    #         url = futures[future]
+    #         try:
+    #             data = future.result()
+    #         except Exception as exc:
+    #             print('%r generated an exception: %s' % (url, exc))
+    #         else:
+    #             print('%r page is %d bytes' % (url, len(data)))
+
+    # with ProcessPoolExecutor(2) as executor:
+    #     for number, result in zip(primes, executor.map(is_prime,primes)): # map本身非阻塞,遍历会使其阻塞
+    #         print('{} is prime: {}'.format(number, result))
+
+    # with ProcessPoolExecutor(2) as executor:
+    #     for result in executor.map(work,[3,2,4]):
+    #         print('the result is {}'.format(result))
+
+    with ThreadPoolExecutor(6) as executor:
+        for item in task:
+            executor.submit(consumer, item, mutex, _result)
+    print(len(task), sum(result.values()))
+
+###########################################################################################################################
+
 Pipe
 # The Pipe() function returns a pair of connection objects connected by a pipe which by default is duplex (two-way).
 # Each connection object has send() and recv() methods (among others). Note that data in a pipe may become corrupted if two processes (or threads) try to read from or write to the same end of the pipe at the same time.
