@@ -96,8 +96,9 @@ if __name__ == '__main__':
     #     阻塞,只要有线程结束(finished or were cancelled)就返回,直至所有线程结束(仅在获取线程返回值时才需要调用)
     #     Any futures given by fs that are duplicated will be returned once.
     #     Any futures that completed before as_completed() is called will be yielded first. The returned iterator raises a concurrent.futures.
+    #     timeout不会影响线程的执行,只有40s之后返回的线程,在取其返回值时会抛出concurrent.futures._base.TimeoutError异常
     #     '''
-    #     for future in as_completed(futures): # 阻塞
+    #     for future in as_completed(futures,timeout=40): # 阻塞
     #         print(futures)
     #         url = futures[future]
     #         try:
