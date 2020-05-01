@@ -1,5 +1,3 @@
-__all__ = ['Queue', 'SimpleQueue', 'JoinableQueue']
-
 import sys, os, threading, collections, time, weakref, errno, traceback, _multiprocessing
 from queue import Empty, Full
 from multiprocessing import Queue,connection
@@ -7,6 +5,8 @@ from multiprocessing.reduction import ForkingPickler
 from multiprocessing.context import assert_spawning
 from multiprocessing.util import debug, info, Finalize, register_after_fork, is_exiting
 
+__all__ = ['Queue', 'SimpleQueue', 'JoinableQueue']
+_sentinel = object()
 
 class Queue:
     
