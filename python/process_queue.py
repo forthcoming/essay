@@ -24,7 +24,7 @@ class Queue:
         if sys.platform != 'win32':
             register_after_fork(self, Queue._after_fork)
 
-    def _after_fork(self):   # Queue被传到其他进程之后调用,
+    def _after_fork(self):   # Queue被传到其他进程之后调用
         debug('Queue._after_fork()')
         self._notempty = threading.Condition(threading.Lock())
         self._buffer = collections.deque()
