@@ -171,7 +171,7 @@ class Queue:
             debug('... queue thread already dead')
 
     @staticmethod
-    def _finalize_close(buffer, notempty):
+    def _finalize_close(buffer, notempty): # 进程退出时先调用_finalize_close通知queue线程,然后调用_finalize_join阻塞queue线程
         debug('telling queue thread to quit')
         with notempty:
             buffer.append(_sentinel)
