@@ -156,12 +156,27 @@ def fun(a,*args,**kwargs):
     print(type(kwargs),kwargs)   
 fun(1,*[2,3],c=4,d=5,**{'e':6})   # 1	<class 'tuple'> (2, 3)	<class 'dict'> {'c': 4, 'd': 5, 'e': 6}
 
-# 默认实参调用函数(默认值只被计算一次,如果默认值是一个可变对象如列表,字典,大多类对象时,函数在随后调用中会累积参数值)
+# 默认实参调用函数(如果默认值是一个可变对象如列表,字典,大多类对象时,函数在随后调用中会累积参数值)
 def fun(a, L=[]):  
     L.append(a)  
     print(L)  
 fun(1)  # 输出[1]  
 fun(2)  # 输出[1, 2]  
+
+#if u dont want the default to be shared between subsequent calls ,u can write the function like this instead.
+def f(a,L=None):
+    if L is None:
+        L=[]
+    L.append(a)
+    print(L)
+
+i = 5
+def f(arg=i):
+  print(arg)
+i = 6
+f() # The default values are evaluated at the point of function definition in the defining scope
+print(f.__defaults__) #(5,)
+
 #########################################################################################################################################
 
 作用域
