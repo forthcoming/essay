@@ -1127,37 +1127,6 @@ def tail(filename, n=10):
 
 #########################################################################################################################################
 
-默认参数
-def f(a,L=[]):
-    L.append(a)
-    return L
-print(f(1)) #[1]
-print(f(3,[1,2])) #[1, 2, 3]
-print(f(2)) #[1, 2]
-'''
-Default parameter values are evaluated when the function definition is executed. This means that the expression is evaluated once,
-when the function is defined, and that the same “pre-computed” value is used for each call.
-该特性可以实现装饰器实现的统计调用次数的功能
-'''
-
-#if u dont want the default to be shared between subsequent calls ,u can write the function like this instead.
-def f(a,L=None):
-    if L is None:
-        L=[]
-    L.append(a)
-    return L
-print(f(1)) #[1]
-print(f(2)) #[2]
-
-i = 5
-def f(arg=i):
-  print(arg)
-i = 6
-f() #The default values are evaluated at the point of function definition in the defining scope, so that will print 5.
-print(f.__defaults__) #(5,)
-
-#########################################################################################################################################
-
 md5
 import hashlib
 m=hashlib.md5(b"hello blockchain world, this is yeasy@github")
