@@ -217,6 +217,7 @@ This floating-point value determines the ideal duration of the “timeslices” 
 Please note that the actual value can be higher, especially if long-running internal functions or methods are used. 
 Also, which thread becomes scheduled at the end of the interval is the operating system’s decision. The interpreter doesn’t have its own scheduler.
 '''
+标准库中所有阻塞型I/O函数都会释放GIL,time.sleep()也会释放,因此尽管有GIL,线程还是能在I/O密集型应用中发挥作用
 子线程可以访问程序的全局变量并且改变变量本身,子线程也可以改变进程变量本身,前提是需要以参数形式传递给子线程
 子进程or子进程中的子线程可以访问程序的全局变量,但是该变量的一份拷贝,并不能修改他,只不过值是一样而已
 对于CPU密集型,python的多线程表现不如单线程好,但多进程效率更高,进程数不是越大越好,默认进程数等于电脑核数
