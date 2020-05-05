@@ -1,5 +1,5 @@
 '''
-静态方法和类方法都可以用类或者类实例调用,不能访问实例属性,可以访问类属性
+静态方法和类方法都可以用类或者类实例调用,都可以被继承,不能访问实例属性,可以访问类属性
 classmethod must have a reference to a class object as the first parameter(cls), whereas staticmethod can have no parameters at all.
 '''
 class Kls:
