@@ -208,6 +208,15 @@ parallel:
 
 线程 & 进程
 由于GIL锁的缘故,线程实际上是并发运行(即便有多个cpu,线程会在其中一个cpu来回切换,只占用一个cpu资源),而进程才是真正的并行(同时执行多个任务,占用多个cpu资源)
+sys.getswitchinterval() # current thread switch interval
+sys.setswitchinterval(n)
+'''
+The parameter must represent the desired switching delay in seconds A typical value is 0.005 (5 milliseconds).
+Set the interpreter’s thread switch interval (in seconds). 
+This floating-point value determines the ideal duration of the “timeslices” allocated to concurrently running Python threads. 
+Please note that the actual value can be higher, especially if long-running internal functions or methods are used. 
+Also, which thread becomes scheduled at the end of the interval is the operating system’s decision. The interpreter doesn’t have its own scheduler.
+'''
 子线程可以访问程序的全局变量并且改变变量本身,子线程也可以改变进程变量本身,前提是需要以参数形式传递给子线程
 子进程or子进程中的子线程可以访问程序的全局变量,但是该变量的一份拷贝,并不能修改他,只不过值是一样而已
 对于CPU密集型,python的多线程表现不如单线程好,但多进程效率更高,进程数不是越大越好,默认进程数等于电脑核数
