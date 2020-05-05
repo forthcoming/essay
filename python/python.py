@@ -1,3 +1,29 @@
+# thread local
+from multiprocessing.dummy import Process
+from threading import local
+import time
+from os import urandom
+
+class ThreadLocal:
+    def __init__(self):
+        # self.token=local()  # 保证同一个实例在不同线程中拥有不同的token值,redis分布式锁利用该性质达到线程安全
+        self.token=type('dummy',(),{})
+
+    def show(self,timeout):
+        self.token.value=urandom(16)
+        time.sleep(timeout)
+        print(self.token.value)
+
+thread_local=ThreadLocal()
+
+processes=[Process(target=lambda thread_local,timeout:thread_local.show(timeout),args=(thread_local,idx)) for idx in range(1,4)]
+for process in processes:
+    process.start()
+for process in processes:
+    process.join()
+
+##################################################################################################################################
+
 import threading
 
 def plyer_display():
@@ -110,32 +136,6 @@ a: int = 123
 b: str = 'hello'
 l: List[int] = [1, 2, 3]  # 指明一个全部由整数组成的列表
 print(greater.__annotations__) # {'a': <class 'int'>, 'b': <class 'int'>, 'return': <class 'bool'>}
-
-##################################################################################################################################
-
-# thread local
-from multiprocessing.dummy import Process
-from threading import local
-import time
-from os import urandom
-
-class ThreadLocal:
-    def __init__(self):
-        self.token=local()  # 保证同一个实例在不同线程中拥有不同的token值,redis分布式锁利用该性质达到线程安全
-        # self.token=type('dummy',(),{})
-
-    def show(self,timeout):
-        self.token.value=urandom(16)
-        time.sleep(timeout)
-        print(self.token.value)
-
-thread_local=ThreadLocal()
-
-processes=[Process(target=lambda thread_local,timeout:thread_local.show(timeout),args=(thread_local,idx)) for idx in range(1,4)]
-for process in processes:
-    process.start()
-for process in processes:
-    process.join()
 
 ##################################################################################################################################
     
@@ -394,6 +394,7 @@ x is y   #True
 x is z   #False
 print(id(x),id(y),id(z)) #1685786989512 1685786989512 1685786991112
 is比较的内存地址,==比较的是字面值
+元组的值会随引用的可变对象的变化而变,元组中不可变的是元素的标识(id)
 
 #########################################################################################################################################
 
