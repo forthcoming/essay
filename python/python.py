@@ -985,6 +985,10 @@ print(d.setdefault('e','avatar')) # avatar
 print(d.setdefault('b','akatsuki')) # 2
 print(d)   # {'d': None, 'b': 2, 'c': 4, 'e': 'avatar'}
 
+one = {'a':1,'b':2}
+two = {'a':3,'c':2}
+three = {**one,**two}   # {'a': 3, 'b': 2, 'c': 2},合并两个字典
+                                       
 # dict.setdefault(key, default=None)
 # key -- 查找的键值
 # default -- 键不存在时,设置的默认键值
