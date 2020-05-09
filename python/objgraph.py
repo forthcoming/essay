@@ -30,7 +30,7 @@ def get_leaking_objects():
     finally:
         del objects, i  # clear cyclic references to frame
 
-def count(typename, objects=None):
+def count(typename):
     """
     Count objects tracked by the garbage collector with a given class name.
     The class name can optionally be fully qualified.
@@ -46,8 +46,7 @@ def count(typename, objects=None):
     >>> count('MyClass', get_leaking_objects())
         3
     """
-    if objects is None:
-        objects = gc.get_objects()
+    objects = gc.get_objects()
     try:
         if '.' in typename:
             return sum(1 for o in objects if _long_typename(o) == typename)
@@ -56,7 +55,7 @@ def count(typename, objects=None):
     finally:
         del objects  # clear cyclic references to frame
 
-def typestats(objects=None, shortnames=True, filter=None):
+def typestats(shortnames=True, filter=None):
     """
     Count the number of instances for each type tracked by the GC.
     Note that the GC does not track simple objects like int or str.
@@ -68,8 +67,7 @@ def typestats(objects=None, shortnames=True, filter=None):
         >>> typestats(get_leaking_objects())
         {'MemoryError': 1, 'tuple': 2795, 'RuntimeError': 1, 'list': 47, ...}
     """
-    if objects is None:
-        objects = gc.get_objects()
+    objects = gc.get_objects()
     try:
         if shortnames:
             typename = _short_typename
@@ -85,7 +83,7 @@ def typestats(objects=None, shortnames=True, filter=None):
     finally:
         del objects  # clear cyclic references to frame
 
-def show_most_common_types(limit=10, objects=None, shortnames=True, filter=None):
+def show_most_common_types(limit=10, shortnames=True, filter=None):
     """
     Print the table of types of most common instances.
     If ``filter`` is specified, it should be a function taking one argument and returning a boolean. Objects for which ``filter(obj)`` returns ``False`` will be ignored.
@@ -97,7 +95,7 @@ def show_most_common_types(limit=10, objects=None, shortnames=True, filter=None)
         dict                       953
         builtin_function_or_method 800
     """
-    stats = sorted(typestats(objects, shortnames=shortnames, filter=filter).items(), key=operator.itemgetter(1), reverse=True)
+    stats = sorted(typestats(shortnames=shortnames, filter=filter).items(), key=operator.itemgetter(1), reverse=True)
     if limit:
         stats = stats[:limit]
     width = max(len(name) for name, count in stats)
