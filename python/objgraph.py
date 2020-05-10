@@ -107,7 +107,7 @@ def show_growth(limit=10, shortnames=True,filter=None,peak_stats={}):
     Show the increase in peak object counts since last call.
     peak_stats, a dictionary from type names to previously seen peak object counts.  Usually you don't need to pay attention to this argument.
     """
-    gc.collect()
+    gc.collect()  # 避免循环引用干扰
     stats = typestats(shortnames=shortnames, filter=filter)
     deltas = {}
     for name, count in stats:
