@@ -27,7 +27,7 @@ class finalize:
             atexit.register(self._exitfunc)  # 尽可能注册一次
             finalize._registered_with_atexit = True
         info = self._Info()
-        info.weakref = ref(obj, self)  # 弱引用
+        info.weakref = ref(obj, self)  # 弱引用,obj被垃圾回收时调用self,程序退出那一刻还未被回收时不会调用
         info.func = func
         info.args = args
         info.kwargs = kwargs or None
