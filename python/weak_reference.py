@@ -10,7 +10,7 @@ class finalize:
     When the program exits any remaining finalizers for which the atexit attribute is true will be run in reverse order of creation.
     Finalizer objects don't have any state of their own.  They are just used as keys to lookup _Info objects in the registry. This ensures that they cannot be part of a ref-cycle.
     """
-    __slots__ = ()
+    __slots__ = ()  # 实例不允许拥有属性,防止出现循环引用
     _registry = {}
     _shutdown = False
     _index_iter = itertools.count()
