@@ -361,11 +361,29 @@ print('out of code block')
 #########################################################################################################################################
 
 __slots__
-实例的__dict__只保存实例变量,不保存类属性(变量和函数)
-__slots__限制实例的属性,阻止实例拥有__dict__属性,能达到更快的属性访问和更少的内存消耗
+__slots__ are implemented at the class level by creating descriptors (Implementing Descriptors) for each variable name.
 it really only saves you when you have thousands of instances
-__slots__ declaration is limited to the class where it is defined. As a result, subclasses will have a __dict__ unless they also define __slots__
 __slots__定义的属性仅对当前类实例起作用,对继承的子类不起作用,除非在子类中也定义__slots__,这样子类实例允许定义的属性就是自身的__slots__加上父类的__slots__
+classes defining __slots__ do not support weak references to its instances. If weak reference support is needed, then add '__weakref__' to the sequence of strings in the __slots__ declaration.
+实例的__dict__只保存实例变量,不保存类属性(变量和函数)
+
+class Slots:
+    a = 123
+    b = []
+    c = 'string'
+    __slots__=['d','e']   # 限制实例的属性只能是d跟e, 去掉实例的__dict__,__weakref__ 属性, 能达到更快的属性访问和更少的内存消耗
+
+    def __init__(self):
+        self.d='d'
+        self.e=123
+
+    def test():pass
+
+slots = Slots()
+print(Slots.__dict__)
+# print(slots.__dict__)      # error
+# print(slots.__weakref__ )  # error
+# slots.f = []               # error
 
 #########################################################################################################################################
 
