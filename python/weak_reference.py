@@ -1,4 +1,4 @@
-import sys,itertools,gc
+import sys,itertools,gc,atexit
 from weakref import ref
 
 # 参考weakref.py
@@ -23,7 +23,6 @@ class finalize:
     def __init__(self, obj, func, *args, **kwargs):
         if not self._registered_with_atexit:
             # We may register the exit function more than once because of a thread race, but that is harmless
-            import atexit
             atexit.register(self._exitfunc)  # 尽可能注册一次
             finalize._registered_with_atexit = True
         info = self._Info()
@@ -102,11 +101,7 @@ class finalize:
                     if not pending:
                         break
                     f = pending.pop()
-                    try:
-                        # gc is disabled, so (assuming no daemonic
-                        # threads) the following is the only line in
-                        # this function which might trigger creation
-                        # of a new finalizer
+                    try:     # gc is disabled, so (assuming no daemonic threads) the following is the only line in this function which might trigger creation of a new finalizer
                         f()
                     except Exception:
                         sys.excepthook(*sys.exc_info())
