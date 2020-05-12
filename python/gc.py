@@ -21,10 +21,10 @@ atexit
 通过该模块注册的函数, 在程序被未被Python捕获的信号杀死时并不会执行, 在检测到Python内部致命错误以及调用了os._exit()时也不会执行.
 
 内存泄漏仅仅存在于某个进程中,无法进程间传递(即gc.get_objects仅仅统计所在进程的对象),会随着进程的结束而释放内存
-The del statement does not necessarily call __del__() – it simply decrements the object’s reference count, and if this reaches zero __del__() is called.
 gc.disable()仅仅关闭垃圾回收功能,对象仍可能会因为引用计数为0而被销毁
 当对像的引用只剩弱引用时, garbage collection可以销毁引用并将其内存重用于其他内容, 弱引用不增加引用计数
 弱引用的主要用途是实现保存大对象的高速缓存或映射, 但又并希望大对象仅仅因为它出现在高速缓存或映射中而保持存活;还能避免循环引用
+The del statement does not necessarily call __del__() – it simply decrements the object’s reference count, and if this reaches zero __del__() is called.
 从Python3.4 开始, __del__() 方法不会再阻止循环引用被作为垃圾回收, 并且模块全局变量在interpreter shutdown 期间不会被强制设为None
 
 WeakKeyDictionary
