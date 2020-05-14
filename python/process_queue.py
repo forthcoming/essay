@@ -1,6 +1,6 @@
 import sys, os, threading, collections, time, weakref, errno, traceback, _multiprocessing
 from queue import Empty, Full
-from multiprocessing import Queue,connection
+from multiprocessing import connection
 from multiprocessing.reduction import ForkingPickler
 from multiprocessing.context import assert_spawning
 from multiprocessing.util import debug, info, Finalize, register_after_fork, is_exiting
