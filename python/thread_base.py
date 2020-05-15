@@ -419,28 +419,6 @@ class Barrier:
                 self._state = 0
             self._cond.notify_all()
 
-            
-class Timer(Thread):  # Call a function after a specified number of seconds
-    # t = Timer(30.0, f, args=None, kwargs=None)
-    # t.start()
-
-    def __init__(self, interval, function, args=None, kwargs=None):
-        Thread.__init__(self)
-        self.interval = interval
-        self.function = function
-        self.args = args if args is not None else []
-        self.kwargs = kwargs if kwargs is not None else {}
-        self.finished = Event()
-
-    def cancel(self):   # Stop the timer if it hasn't finished yet.
-        self.finished.set()
-
-    def run(self):
-        self.finished.wait(self.interval)
-        if not self.finished.is_set():
-            self.function(*self.args, **self.kwargs)
-        self.finished.set()
-     
         
 ########################################Thread开始########################################        
 get_ident = _thread.get_ident
@@ -773,3 +751,25 @@ def _after_fork():
         assert len(_active) == 1
 ########################################Thread结束########################################        
 
+
+class Timer(Thread):  # Call a function after a specified number of seconds
+    # t = Timer(30.0, f, args=None, kwargs=None)
+    # t.start()
+
+    def __init__(self, interval, function, args=None, kwargs=None):
+        Thread.__init__(self)
+        self.interval = interval
+        self.function = function
+        self.args = args if args is not None else []
+        self.kwargs = kwargs if kwargs is not None else {}
+        self.finished = Event()
+
+    def cancel(self):   # Stop the timer if it hasn't finished yet.
+        self.finished.set()
+
+    def run(self):
+        self.finished.wait(self.interval)
+        if not self.finished.is_set():
+            self.function(*self.args, **self.kwargs)
+        self.finished.set()
+     
