@@ -714,6 +714,38 @@ class _MainThread(Thread):  # Special thread class to represent the main thread
 
 _main_thread = _MainThread()   # Create the main thread object, and make it available for the interpreter (Py_Main) as threading._shutdown.
 
+def _shutdown():
+    """
+    主进程结束时调用
+    Wait until the Python thread state of all non-daemon threads get deleted.   
+    Note that just calling _stop() isn't enough:  other threads may already be waiting on _tstate_lock.
+    """
+    
+    if _main_thread._is_stopped: # _shutdown() was already called
+        return
+
+    tlock = _main_thread._tstate_lock
+    # The main thread isn't finished yet, so its thread state lock can't have been released.
+    assert tlock is not None
+    assert tlock.locked()
+    tlock.release()
+    _main_thread._stop()
+
+    # Join all non-deamon threads
+    while True:
+        with _shutdown_locks_lock:
+            locks = list(_shutdown_locks)
+            _shutdown_locks.clear()
+
+        if not locks:
+            break
+
+        for lock in locks:
+            # mimick Thread.join(),模拟线程join
+            lock.acquire()
+            lock.release()
+        # new threads can be spawned while we were waiting for the other threads to complete
+
 def current_thread():   # Return the current Thread object, corresponding to the caller's thread of control.
     return _active[get_ident()]
 
