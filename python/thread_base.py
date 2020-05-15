@@ -620,7 +620,10 @@ class Thread:
             assert not lock.locked()
         self._is_stopped = True
         self._tstate_lock = None
-
+        if not self.daemon: # 非守护线程结束,删除集合中对应的哨兵锁
+            with _shutdown_locks_lock:
+                _shutdown_locks.discard(lock)  # 移除集合元素,不存在也不会报错
+                
     def is_alive(self):
         """
         Return whether the thread is alive.
@@ -729,12 +732,18 @@ def _after_fork():
     Reset _active_limbo_lock, in case we forked while the lock was held by another (non-forked) thread.  http://bugs.python.org/issue874900
     """
     global _active_limbo_lock, _main_thread
+    global _shutdown_locks_lock, _shutdown_locks
     _active_limbo_lock = Lock()
 
     # fork() only copied the current thread; clear references to others.
     new_active = {}
     current = current_thread()
     _main_thread = current
+    
+    # reset _shutdown() locks: threads re-register their _tstate_lock below
+    _shutdown_locks_lock = _allocate_lock()
+    _shutdown_locks = set()
+    
     with _active_limbo_lock:
         # Dangling thread instances must still have their locks reset, because someone may join() them.
         threads = set(list(_active.values()) + list(_limbo.values()))
