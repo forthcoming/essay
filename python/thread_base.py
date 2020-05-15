@@ -760,6 +760,7 @@ def enumerate():
 
 def _after_fork():
     """
+    线程对象在进程中传递时调用
     Cleanup threading module state that should not exist after a fork.
     Reset _active_limbo_lock, in case we forked while the lock was held by another (non-forked) thread.  http://bugs.python.org/issue874900
     """
