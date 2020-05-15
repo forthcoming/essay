@@ -431,6 +431,10 @@ _active = {}    # maps thread id to Thread object
 _limbo = {}
 _dangling = WeakSet()
 
+# Set of Thread._tstate_lock locks of non-daemon threads used by _shutdown() to wait until all Python thread states get deleted: see Thread._set_tstate_lock().
+_shutdown_locks_lock = Lock()
+_shutdown_locks = set()
+
 class Thread:
 
     _initialized = False
@@ -584,6 +588,9 @@ class Thread:
         # Set a lock object which will be released by the interpreter when the underlying thread state (see pystate.h) gets deleted.
         self._tstate_lock = _thread._set_sentinel()
         self._tstate_lock.acquire()
+        if not self.daemon:   # 非守护线程
+            with _shutdown_locks_lock:
+                _shutdown_locks.add(self._tstate_lock)
 
     def _wait_for_tstate_lock(self, block=True, timeout=-1): # 获取哨兵锁
         '''
