@@ -633,7 +633,7 @@ class Thread:
         assert self._initialized, "Thread.__init__() not called"
         if self._is_stopped or not self._started.is_set():
             return False
-        self._wait_for_tstate_lock(False)  # 尝试获取哨兵锁
+        self._wait_for_tstate_lock(False)  # 尝试获取哨兵锁,必须,用于更新self._is_stopped状态
         return not self._is_stopped
 
     def join(self, timeout=None):
