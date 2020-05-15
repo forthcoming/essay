@@ -197,7 +197,7 @@ class JoinableQueue(Queue):
         if not self._sem.acquire(block, timeout):
             raise Full
 
-        with self._notempty, self._cond:
+        with self._notempty, self._cond:  # 为什么要加self._cond锁
             if self._thread is None:
                 self._start_thread()
             self._buffer.append(obj)
