@@ -1,16 +1,13 @@
 """
 Refer: https://github.com/google/python-atfork/blob/master/atfork/__init__.py
-功能与os.register_at_fork类似
+功能与os.register_at_fork类似,redis连接池也有类似函数_checkpid,通过pid判断对象切换进程后调用对应函数做清理工作
 To use this module, first import it early on your programs initialization:
 import atfork
 atfork.monkeypatch_os_fork_functions()
 Next, register your atfork actions by calling atfork.atfork:
 """
 
-import os
-import sys
-import threading
-import traceback
+import os, sys, threading, traceback
 
 __all__ = ('monkeypatch_os_fork_functions', 'atfork')
 
