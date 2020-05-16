@@ -72,7 +72,7 @@ def parent_after_fork_release():
     """
     Call all parent after fork callables, release the lock and print all prepare and parent callback exceptions.
     """
-    prepare_exceptions = list(_prepare_call_exceptions)
+    prepare_exceptions = list(_prepare_call_exceptions)  # 拷贝,非引用赋值
     del _prepare_call_exceptions[:]
     exceptions = _call_atfork_list(_parent_call_list)
     _fork_lock.release()
@@ -83,9 +83,9 @@ def child_after_fork_release():
     """
     Call all child after fork callables, release lock and print all all child callback exceptions.
     """
-    del _prepare_call_exceptions[:]
+    del _prepare_call_exceptions[:]  # 仅仅清空异常列表,父进程中注册的call_list在子进程中依然存在
     exceptions = _call_atfork_list(_child_call_list)
-    _fork_lock.release()
+    _fork_lock.release()  # 子进程中也要释放锁
     _print_exception_list(exceptions, 'after fork from child')
 
 def os_fork_wrapper():  # Wraps os.fork() to run atfork handlers.
