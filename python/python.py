@@ -887,9 +887,8 @@ print(time.strftime("%Y-%m-%d %H:%M:%S", time_struct))  # 时间戳转时间字�
                                        
 #########################################################################################################################################
 
-random
+random(random是伪随机,默认随机数生成种子是从/dev/urandom或者是系统时间戳获取,所以种子肯定不会是一样的)
 from random import randrange,uniform,choice,sample,shuffle,randint,random
-
 print(random())            # 随机生成一个[0,1)范围内实数                                 
 print(randrange(1, 10, 2)) # 从range(start, stop[, step])范围内选取一个值并返回(不包含stop)
 print(uniform(-2,5))       # 随机生成一个[x,y]范围内实数
@@ -906,48 +905,6 @@ OUT:
 5
 [6, 2, 6]
 [6, 5, 6, 6, 3, 6, 4, 2, 1]
-
-注意:
-random是伪随机,默认随机数生成种子是从/dev/urandom或者是系统时间戳获取,所以种子肯定不会是一样的
-但两个进程的父进程是同一个进程,进程在导入random模块的时候种子已经选好了,所以不同子进程生成的随机数序列肯定是一样的
-验证如下
-import random
-import os
-if os.fork() == 0:
-    print(f"[rand 1] {random.randint(1,100)}")
-    print(f"[rand 1] {random.randint(1,100)}")
-    print(f"[rand 1] {random.randint(1,100)}")
-else:
-    print(f"[rand 2] {random.randint(1,100)}")
-    print(f"[rand 2] {random.randint(1,100)}")
-    print(f"[rand 2] {random.randint(1,100)}")
-» python test.py
-[rand 2] 51
-[rand 2] 58
-[rand 2] 31
-[rand 1] 51
-[rand 1] 58
-[rand 1] 31
-
-import random
-import os
-if os.fork() == 0:
-    random.seed()
-    print(f"[rand 1] {random.randint(1,100)}")
-    print(f"[rand 1] {random.randint(1,100)}")
-    print(f"[rand 1] {random.randint(1,100)}")
-else:
-    random.seed()
-    print(f"[rand 2] {random.randint(1,100)}")
-    print(f"[rand 2] {random.randint(1,100)}")
-    print(f"[rand 2] {random.randint(1,100)}")
-» python test.py
-[rand 2] 7
-[rand 2] 52
-[rand 2] 43
-[rand 1] 16
-[rand 1] 70
-[rand 1] 97
 
 #########################################################################################################################################
 
