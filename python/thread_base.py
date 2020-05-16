@@ -798,6 +798,16 @@ def _after_fork():
         _active.clear()
         _active.update(new_active)
         assert len(_active) == 1
+       
+"""
+Register callables to be called when forking a new process.
+before: A callable to be called in the parent before the fork() syscall.
+after_in_child: A callable to be called in the child after fork().
+after_in_parent: A callable to be called in the parent after fork().
+'before' callbacks are called in reverse order. 'after_in_child' and 'after_in_parent' callbacks are called in order.
+"""
+if hasattr(_os, "register_at_fork"):
+    _os.register_at_fork(after_in_child=_after_fork)
 ########################################Thread结束########################################        
 
 
