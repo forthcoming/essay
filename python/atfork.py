@@ -1,5 +1,6 @@
 """
 Refer: https://github.com/google/python-atfork/blob/master/atfork/__init__.py
+功能与os.register_at_fork类似
 To use this module, first import it early on your programs initialization:
 import atfork
 atfork.monkeypatch_os_fork_functions()
