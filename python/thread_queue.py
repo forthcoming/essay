@@ -6,7 +6,7 @@ from time import monotonic as time
 # 代码来自queue.py,略有改动
 
 
-__all__ = ['Empty', 'Full', 'Queue', 'PriorityQueue', 'LifoQueue', 'SimpleQueue']
+__all__ = ['Empty', 'Full', 'Queue', 'PriorityQueue', 'LifoQueue', 'SimpleQueue']  # 仅仅限制from thread_queue import *的行为
 
 class Empty(Exception):   # Exception raised by Queue.get(block=0)/get_nowait().
     pass
