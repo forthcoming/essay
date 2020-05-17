@@ -618,7 +618,7 @@ class Thread:
         self._tstate_lock = None
         if not self.daemon: # 非守护线程结束,删除集合中对应的哨兵锁
             with _shutdown_locks_lock:
-                _shutdown_locks.discard(lock)  # 移除集合元素,不存在也不会报错
+                _shutdown_locks.discard(lock)  # Remove an element from a set if it is a member.If the element is not a member, do nothing.
                 
     def is_alive(self):
         """
