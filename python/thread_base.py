@@ -1,13 +1,11 @@
 from threading import Lock
 from collections import deque
-from itertools import islice
+from itertools import islice,count as _count
 from time import monotonic
+from weakref import WeakSet
 import os as _os
 import sys as _sys
 import _thread
-from weakref import WeakSet
-from itertools import count as _count
-from threading import Lock
 
 # 代码来自threading.py,略有改动
 
@@ -429,7 +427,7 @@ _newname = lambda: "Thread-{}".format(_counter())
 _active_limbo_lock = Lock()
 _active = {}    # maps thread id to Thread object
 _limbo = {}
-_dangling = WeakSet()
+_dangling = WeakSet()  # 所有申请过的线程对象集合
 
 # Set of Thread._tstate_lock locks of non-daemon threads used by _shutdown() to wait until all Python thread states get deleted: see Thread._set_tstate_lock().
 _shutdown_locks_lock = Lock()
@@ -495,10 +493,8 @@ class Thread:
                     finally:
                         del exc_type, exc_value, exc_tb
             finally:
-                # Prevent a race in
-                # test_threading.test_no_refcycle_through_target when
-                # the exception keeps the target alive past when we
-                # assert that it's dead.
+                # Prevent a race in test_threading.test_no_refcycle_through_target when
+                # the exception keeps the target alive past when we assert that it's dead.
                 #XXX self._exc_clear()
                 pass
         finally:
@@ -760,43 +756,35 @@ def enumerate():
 
 def _after_fork():
     """
-    线程对象在进程中传递时调用
+    只要调用了os.fork,就会调用os.register_at_fork注册的函数
     Cleanup threading module state that should not exist after a fork.
     Reset _active_limbo_lock, in case we forked while the lock was held by another (non-forked) thread.  http://bugs.python.org/issue874900
+    fork() only copied the current thread; clear references to others.
     """
-    global _active_limbo_lock, _main_thread
-    global _shutdown_locks_lock, _shutdown_locks
+    global _active_limbo_lock, _shutdown_locks_lock, _shutdown_locks, _main_thread
     _active_limbo_lock = Lock()
-
-    # fork() only copied the current thread; clear references to others.
-    new_active = {}
-    current = current_thread()
-    _main_thread = current
-    
-    # reset _shutdown() locks: threads re-register their _tstate_lock below
-    _shutdown_locks_lock = _allocate_lock()
+    _shutdown_locks_lock = Lock()
     _shutdown_locks = set()
-    
+    _main_thread = current_thread()  # get_ident在遇到fork时返回值不会变,只有在不同线程中返回值才不一样,so取的是分叉前的main-thread
+
     with _active_limbo_lock:
-        # Dangling thread instances must still have their locks reset, because someone may join() them.
+        # Dangling thread instances must still have their locks reset,because someone may join() them.
         threads = set(list(_active.values()) + list(_limbo.values()))
         threads.update(_dangling)
+        _limbo.clear()
+        _active.clear()
         for thread in threads:
             # Any lock/condition variable may be currently locked or in an invalid state, so we reinitialize them.
-            if thread is current:
+            if thread is _main_thread:
                 # There is only one active thread. We reset the ident to its new value since it can have changed.
                 thread._reset_internal_locks(True)
                 ident = get_ident()
                 thread._ident = ident
-                new_active[ident] = thread
+                _active[ident] = thread
             else:
                 # All the others are already stopped.
                 thread._reset_internal_locks(False)
                 thread._stop()
-
-        _limbo.clear()
-        _active.clear()
-        _active.update(new_active)
         assert len(_active) == 1
        
 """
