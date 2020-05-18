@@ -7,7 +7,9 @@ import os as _os
 import sys as _sys
 import _thread
 
-# 代码来自threading.py,略有改动
+##########################################################################
+refer: https://github.com/python/cpython/blob/master/Lib/threading.py
+##########################################################################
 
 class _RLock:
     """
