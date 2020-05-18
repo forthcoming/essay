@@ -5,7 +5,7 @@ from time import monotonic
 from weakref import WeakSet
 import os as _os
 import sys as _sys
-import _thread
+import _thread,functools
 
 ##########################################################################
 refer: https://github.com/python/cpython/blob/master/Lib/threading.py
