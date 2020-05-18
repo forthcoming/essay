@@ -30,6 +30,11 @@ class _RLock:
             hex(id(self))
         )
 
+    def _at_fork_reinit(self):  # reinitialize the lock after fork in the child process; reset the lock to the unlocked state.
+        self._block._at_fork_reinit()
+        self._owner = None
+        self._count = 0
+        
     def acquire(self, blocking=True, timeout=-1):
         """
         When invoked without arguments:
