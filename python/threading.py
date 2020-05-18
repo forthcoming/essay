@@ -731,7 +731,7 @@ def _register_atexit(func, *arg, **kwargs):
     """
     if _SHUTTING_DOWN:
         raise RuntimeError("can't register atexit after shutdown")
-    call = functools.partial(func, *arg, **kwargs)
+    call = functools.partial(func, *arg, **kwargs)  # 添加或修改原函数的默认参数,产生一个新的函数
     _threading_atexits.append(call)
     
 def _shutdown():
