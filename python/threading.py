@@ -736,7 +736,7 @@ def _register_atexit(func, *arg, **kwargs):
     
 def _shutdown():
     """
-    主进程结束时调用
+    每个进程结束时都会调用
     Wait until the Python thread state of all non-daemon threads get deleted.   
     Note that just calling _stop() isn't enough:  other threads may already be waiting on _tstate_lock.
     """
