@@ -787,6 +787,7 @@ def enumerate():
 def _after_fork():
     """
     只要调用了os.fork,就会调用os.register_at_fork注册的函数
+    本函数仅在Unix系统生效,windows无fork函数
     Cleanup threading module state that should not exist after a fork.
     Reset _active_limbo_lock, in case we forked while the lock was held by another (non-forked) thread.  http://bugs.python.org/issue874900
     fork() only copied the current thread; clear references to others.
@@ -795,7 +796,7 @@ def _after_fork():
     _active_limbo_lock = Lock()
     _shutdown_locks_lock = Lock()
     _shutdown_locks = set()
-    _main_thread = current_thread()  # get_ident在遇到fork时返回值不会变,只有在不同线程中返回值才不一样,so取的是分叉前的main-thread
+    _main_thread = current_thread()  # get_ident在遇到fork时,如果是Unix系统则返回值不变,取的是分叉前的main-thread
 
     with _active_limbo_lock:
         # Dangling thread instances must still have their locks reset,because someone may join() them.
