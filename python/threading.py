@@ -792,11 +792,11 @@ def _after_fork():
     Reset _active_limbo_lock, in case we forked while the lock was held by another (non-forked) thread.  http://bugs.python.org/issue874900
     fork() only copied the current thread; clear references to others.
     """
-    global _active_limbo_lock, _shutdown_locks_lock, _shutdown_locks, _main_thread
+    global _active_limbo_lock, _shutdown_locks_lock, _main_thread
     _active_limbo_lock = Lock()
     _shutdown_locks_lock = Lock()
-    _shutdown_locks = set()
     _main_thread = current_thread()  # get_ident在遇到fork时,如果是Unix系统则返回值不变,取的是分叉前的main-thread
+    _shutdown_locks.clear()
 
     with _active_limbo_lock:
         # Dangling thread instances must still have their locks reset,because someone may join() them.
