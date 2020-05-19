@@ -106,7 +106,7 @@ class Condition:
         self.release = lock.release
         self._release_save = lock._release_save
         self._acquire_restore = lock._acquire_restore
-        self._is_owned = lock._is_owned
+        self._is_owned = lock._is_owned # Lock无此函数,需要自己实现,但Condition中实现的_is_owned跟RLock的_is_owned有点区别(锁L在线程T1获取,在T2判断)
         self._waiters = deque()
 
     def _at_fork_reinit(self):
