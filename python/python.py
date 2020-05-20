@@ -1033,7 +1033,7 @@ count用于指定最多替换次数,不指定时全部替换
 subn同sub,只不过返回值是一个二元tuple,即(sub函数返回值, 替换次数)
 
 import re
-pattern = re.compile(r"like")
+pattern = re.compile(r"like")  # compile内部也会有缓存,因此少量正则匹配不需要compile,refer: https://github.com/python/cpython/blob/master/Lib/re.py#L289
 s1 = pattern.sub(r"love", "I like you, do you Like me?")
 print(s1)     # I love you, do you love me?
 print(re.subn(r'(\w+) (\w+)' ,r'\2 \1','i say, hello world!'))  #('say i, world hello!', 2)
