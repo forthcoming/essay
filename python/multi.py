@@ -398,6 +398,8 @@ join([timeout])
 # A process can be joined many times.
 # 主程序一遇到join就会阻塞,直到join的子进程执行完毕,但不会阻塞所有子程序的运行
 # join会调用系统的os.waitpid()方法来获取子进程的退出信息,消除子进程,防止产生僵尸进程,但如果超过timeout后父进程被唤醒,子进程在这之后结束,仍可能产生僵尸进程
+# 如果timeout未指定,则主进程总的等待时间T = max(t1,t2,...,tn)
+# 如果timeout大于0,T1 = min(timeout,max(t1,0)),T2 = min(timeout,max(t2-T1,0)),Tn = min(timeout,max(tn-Tn-1,0)),则主进程总的等待时间T = sum(T1+T2,...+Tn)
 
 from multiprocessing import Process
 import time
