@@ -289,9 +289,8 @@ if __name__=='__main__':
     time.sleep(0.1)                            #必须要停一下
     print(p,p.is_alive(),p.pid,p.name)         #<Process(python, stopped[SIGTERM])> False 10732 python
 
-    p = Process(target=test, name='test',args=(4,))
-    p.daemon=True  
-    # daemon=True:  父进程結束,子进程/线程也將終止(When a process exits, it attempts to terminate all of its daemonic child processes.)
+    p = Process(target=test, name='test',args=(4,),daemon=True)
+    # daemon=True:  父进程结束,子进程/线程也將终止(When a process exits, it attempts to terminate all of its daemonic child processes.),但父进程被kill -9杀死时子进程不会结束,会被系统托管
     # daemon=False: 父进程运行完,会接着等子进程/线程全部都执行完后才结束(注意线程也有daemon概念)
     print('PPID:{} PID:{}'.format(os.getppid(),os.getpid()))  #PPID:8092 PID:7872
     p.start() #异步执行子进程
