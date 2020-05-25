@@ -1,17 +1,21 @@
 # mmap
-import os,time,mmap
+import os,time,mmap,re
 
 def test0():
     mm = mmap.mmap(fileno=-1, length=256, access=mmap.ACCESS_COPY)  # fileno=-1 means map anonymous memory,length不能小于所写内容总字节数
     mm.write(b"Hello world!\n")  # 会移动文件指针,If the mmap was created with ACCESS_READ, then writing to it will raise a TypeError exception.
     mm.write(b"welcome to python!\n")  # 如果剩余空间不足,则抛出ValueError
     
-    mm.seek(0)         # 指定文件指针到某个位置
+    # 不会移动文件指针,也不使用文件指针
+    print(re.findall(rb'!',mm))
     mm[0]=97
     mm[6:12]=b'python'
-    print(mm[:5])         # 不会移动文件指针,也不使用文件指针
-    print(mm.read(13))    # 会移动文件指针,读指定字节数据
-    print(mm.readline())  # 会移动文件指针,读一行数据
+    print(mm[:5])        
+    
+    # 会移动文件指针
+    mm.seek(0)            # 指定文件指针到某个位置
+    print(mm.read(13))    # 读指定字节数据
+    print(mm.readline())  # 读一行数据
     mm.close()  # Subsequent calls to other methods of the object will result in a ValueError exception being raised. This will not close the open file.
 
 def test1():
