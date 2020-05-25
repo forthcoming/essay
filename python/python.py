@@ -1,3 +1,61 @@
+# mmap
+import os,time,mmap
+
+def test0():
+    mm = mmap.mmap(fileno=-1, length=256, access=mmap.ACCESS_COPY)  # fileno=-1 means map anonymous memory,length不能小于所写内容总字节数
+    mm.write(b"Hello world!\n")  # 会移动文件指针,If the mmap was created with ACCESS_READ, then writing to it will raise a TypeError exception.
+    mm.write(b"welcome to python!\n")  # 如果剩余空间不足,则抛出ValueError
+    
+    mm.seek(0)         # 指定文件指针到某个位置
+    mm[0]=97
+    mm[6:12]=b'python'
+    print(mm[:5])         # 不会移动文件指针,也不使用文件指针
+    print(mm.read(13))    # 会移动文件指针,读指定字节数据
+    print(mm.readline())  # 会移动文件指针,读一行数据
+    mm.close()  # Subsequent calls to other methods of the object will result in a ValueError exception being raised. This will not close the open file.
+
+def test1():
+    with open("hello.txt", "wb") as f:
+        f.write(b"Hello Python!\n")
+    
+    with open("hello.txt", "r+b") as f:  # 读写权限要与mmap保持一致
+        with mmap.mmap(f.fileno(), 0,access=mmap.ACCESS_COPY) as mm:  # 向ACCESS_WRITE内存映射赋值会影响内存和底层的文件,向ACCESS_COPY内存映射赋值会影响内存,但不会更新底层的文件
+            print(mm.readline())  # prints b"Hello Python!\n"
+            print(mm[:5])         # prints b"Hello"
+            mm[6:] = b" world!\n"
+            mm.seek(0)
+            print(mm.readline())  # prints b"Hello  world!\n"
+
+def test2():
+    '''
+    create an anonymous map and exchange data between the parent and child processes
+    MAP_PRIVATE creates a private copy-on-write mapping, so changes to the contents of the mmap object will be private to this process(A进程更改的数据不会同步到B进程);
+    MAP_SHARED creates a mapping that's shared with all other processes mapping the same areas of the file. The default value is MAP_SHARED(A进程更改的数据会同步到B进程).
+    在MAP_SHARED情况下各个进程的mm对象独立,意味着close,文件指针等不相互影响,仅共享数据
+    '''
+    mm = mmap.mmap(-1, 13,flags=mmap.MAP_SHARED)
+    mm.write(b"Hello world!")
+    mm.seek(0)
+    pid = os.fork()
+
+    if pid == 0:  # In a child process
+        mm[6:12]=b'python'
+        print('child process: ',mm.readline())
+        print('child process: ',mm.tell())
+        mm.close()
+        os._exit(0)
+    else:         # In a parent process
+        time.sleep(1)   # 让子进程先执行
+        print('parent process: ',mm.tell())
+        print('parent process: ',mm.readline())
+        mm.close()
+
+
+if __name__=='__main__':
+    test2()
+    
+##################################################################################################################################
+    
 # thread local
 from multiprocessing.dummy import Process
 from threading import local
