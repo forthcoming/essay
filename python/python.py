@@ -1,3 +1,24 @@
+# memoryview
+import time
+
+def work(data):
+    data[0]=65
+
+def main():
+    t0 = time.time()
+    data = bytearray(b'a'*900000)
+    _data=memoryview(data)
+    for idx in range(1,900000):
+        # work(data)         # .07s
+        # work(data[:idx])   # 13s,拷贝了一份传给了work函数
+        work(_data[:idx])   # .16s,相当于指针传给了work函数
+    print(data[0],f'cost {time.time()-t0} seconds')
+    
+if __name__=='__main__':
+    main()
+
+##################################################################################################################################
+
 # mmap
 import os,time,mmap,re
 
