@@ -67,7 +67,7 @@ class Heap:
             size = self._roundup(max(size, 1), self._alignment)
             arena, start, stop = self._malloc(size)
             real_stop = start + size
-            if real_stop < stop:  # 申请多余的空间释放掉(这个判断貌似多余)
+            if real_stop < stop:  # 申请多余的空间释放掉(real_stop可能等于stop)
                 # if the returned block is larger than necessary, mark the remainder available
                 self._add_free_block((arena, real_stop, stop))
             self._allocated_blocks[arena].add((start, real_stop))
