@@ -470,7 +470,7 @@ Note that lock is a keyword-only argument.
 
 from multiprocessing import Process,Value
 def work(share):
-    with share.get_lock():
+    with share.get_lock():  # 应为Value只对读和赋值加了锁,详见multiprocessing.sharedctypes.make_property
         share.value-=1
     
 if __name__ == '__main__':
