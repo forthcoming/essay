@@ -2,6 +2,7 @@
 # It allows you to share memory between data-structures (things like PIL images, SQLlite data-bases, NumPy arrays, etc.) without first copying. 
 # This is very important for large data sets.With it you can do things like memory-map to a very large file, slice a piece of that file and do calculations on that piece
 # A memoryview supports slicing and indexing to expose its data. One-dimensional slicing will result in a subview
+# 当memoryview实例mm跨进程传递时,相当于子进程拷贝了一份数据,mm重新指向了子进程的数据
 import time
 
 def work(data):
