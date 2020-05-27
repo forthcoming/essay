@@ -1,8 +1,54 @@
+# ctypes
+import ctypes
+
+_int = ctypes.c_int(12)
+_ushort = ctypes.c_ushort(-3)  # 溢出,2 byte
+_int.value = 10
+print(_int.value,_ushort.value)
+
+pi = ctypes.pointer(_int)
+print(pi.contents)      # Pointer instances have a contents attribute which returns the object to which the pointer points
+pi.contents = _ushort   # 更改指针指向
+pi[0] = 12
+print(_int,_ushort,pi[0])
+
+# ctypes.create_string_buffer(init_or_size, size=None)
+# This function creates a mutable character buffer. The returned object is a ctypes array of c_char.if you want to access it as NUL terminated string, use the value property
+# init_or_size must be an integer which specifies the size of the array, or a bytes object which will be used to initialize the array items.
+# If a bytes object is specified as first argument, the buffer is made one item larger than its length so that the last element in the array is a NUL termination character. An integer can be passed as second argument
+p = ctypes.create_string_buffer(3)            # create a 3 byte buffer, initialized to NUL bytes
+print(ctypes.sizeof(p), p.raw)                # 3 b'\x00\x00\x00'
+p = ctypes.create_string_buffer(b"Hello",10)  # create a buffer containing a NUL terminated string
+print(ctypes.sizeof(p), p.raw)                # 10 b'Hello\x00\x00\x00\x00\x00'
+p.value = b"Hi"
+p[2]=65
+print(p.raw,p.value)                          # b'HiAlo\x00\x00\x00\x00\x00' b'HiAlo'
+
+byte_array = (ctypes.c_byte*4)()
+print(byte_array[::])
+print(ctypes.addressof(byte_array))  # Returns the address of the memory buffer as integer. obj must be an instance of a ctypes type.
+
+# ctypes.memmove(dst, src, count)
+# Same as the standard C memmove library function: copies count bytes from src to dst. dst and src must be integers or ctypes instances that can be converted to pointers.
+
+# ctypes.memset(dst, c, count)
+# Same as the standard C memset library function: fills the memory block at address dst with count bytes of value c. dst must be an integer specifying an address, or a ctypes instance.
+
+# from_buffer(source[, offset])
+# This method returns a ctypes instance that shares the buffer of the source object. The source object must support the writeable buffer interface.
+# The optional offset parameter specifies an offset into the source buffer in bytes; the default is zero. If the source buffer is not large enough a ValueError is raised.
+
+# 参数是指针:
+# 1. 希望改变原有数据
+# 2. the data is too large to be passed by value
+
+##################################################################################################################################
+
 # memoryview
 # It allows you to share memory between data-structures (things like PIL images, SQLlite data-bases, NumPy arrays, etc.) without first copying. 
 # This is very important for large data sets.With it you can do things like memory-map to a very large file, slice a piece of that file and do calculations on that piece
 # A memoryview supports slicing and indexing to expose its data. One-dimensional slicing will result in a subview
-# 当memoryview实例mm跨进程传递时,相当于子进程拷贝了一份数据,mm重新指向了子进程的数据
+# 当memoryview实例mm跨进程传递时,相当于子进程拷贝了一份数据,mm重新指向了子进程的数据,指针对象ctypes.pointer也是一样
 import time
 
 def work(data):
