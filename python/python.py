@@ -131,7 +131,7 @@ def test3():  # 进程间通信(模拟multiprocessing.Value)
     buf = memoryview(mm)
     obj = ctypes.c_int.from_buffer(buf)  # buf大小不能小于c_int大小,正确使用方式是跟c_int一般大
     # obj=ctypes.c_int(12)  # 此obj无法在进程间共享
-    ctypes.memset(ctypes.addressof(obj), 97, ctypes.sizeof(obj))
+    ctypes.memset(ctypes.addressof(obj), 97, ctypes.sizeof(obj))  # 非必须,一般用于未给定初始值情况下的初始化工作
     obj.value = 2**31 - 1   # 最大数
     print(mm[:],buf.tobytes(),obj.value)
     mm.write( b"Hello\n")  # 会影响到obj的值,应为操作的是同一块内存
