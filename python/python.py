@@ -25,7 +25,7 @@ p[2]=65
 print(p.raw,p.value)                          # b'HiAlo\x00\x00\x00\x00\x00' b'HiAlo'
 
 c_byte_array = ctypes.c_byte*4
-array = c_byte_array(1,2,3,4)  # 初始化
+array = c_byte_array(1,2,3,4)  # 初始化,只有到数组是c_char型数组时才有value属性,返回整个字符串
 print(array[::],ctypes.addressof(array)) # Returns the address of the memory buffer as integer. obj must be an instance of a ctypes type.
 
 # ctypes.memmove(dst, src, count)
