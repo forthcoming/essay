@@ -24,9 +24,9 @@ p.value = b"Hi"
 p[2]=65
 print(p.raw,p.value)                          # b'HiAlo\x00\x00\x00\x00\x00' b'HiAlo'
 
-byte_array = (ctypes.c_byte*4)()
-print(byte_array[::])
-print(ctypes.addressof(byte_array))  # Returns the address of the memory buffer as integer. obj must be an instance of a ctypes type.
+c_byte_array = ctypes.c_byte*4
+array = c_byte_array(1,2,3,4)  # 初始化
+print(array[::],ctypes.addressof(array)) # Returns the address of the memory buffer as integer. obj must be an instance of a ctypes type.
 
 # ctypes.memmove(dst, src, count)
 # Same as the standard C memmove library function: copies count bytes from src to dst. dst and src must be integers or ctypes instances that can be converted to pointers.
