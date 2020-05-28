@@ -9,7 +9,7 @@ print(_int.value,_ushort.value)
 pi = ctypes.pointer(_int)
 print(pi.contents)      # Pointer instances have a contents attribute which returns the object to which the pointer points
 pi.contents = _ushort   # 更改指针指向
-pi[0] = 12
+pi[0] = 12              # 如果pi指向数组,可以通过pi[0][0],pi[0][1]等依次访问数组元素
 print(_int,_ushort,pi[0])
 
 # ctypes.create_string_buffer(init_or_size, size=None)
