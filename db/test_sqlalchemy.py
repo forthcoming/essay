@@ -10,6 +10,7 @@ import time
 
 
 '''
+flask项目中db = SQLAlchemy(app),则db.engine相当于engine,db.session相当于session,如db.engine.pool.status()
 pool_size和max_overflow会受到mysql配置文件: max_connections服务器最多可以建立的连接数(会保留一个root登陆的连接);max_user_connections同一个用户最多可建立的连接数影响
 engine线程安全,但不是进程安全,连接池不应该在进程间传递,应为子进程中连接池会带有部分主进程的连接资源,子进程池新加入的连接资源不会影响到主进程,推荐做法是子进程重新申请engine或者子进程最开始处调用engine.dispose()释放连接池中的资源
 惰性连接,并没有连接数据库,until the first time a method like Engine.execute() or Engine.connect() is called
