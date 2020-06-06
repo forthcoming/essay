@@ -77,7 +77,6 @@ persist keyname: 把指定key置为永久有效
 expire keyname 整型值: 设置key的生命周期,以秒为单位(类似的还有pexpire,毫秒数,设置生命周期)
 move keyname db: 将当前数据库的key移动到给定的数据库db当中,若与给定数据库key重名,或key不存在于当前数据库,则MOVE无任何效果
 scan: 遍历所有键,类似的还有sscan,hscan,zscan,他们只遍历特定类型键里面的元素值
-monitor: streams back every command processed by the Redis server. It can help in understanding what is happening to the database
 redis-py存进去的是数字类型,再取出来时都会是字符串类型
 
 unlink key1 key2 ... Keyn: 异步删除1个或多个键,不存在的key忽略掉,return the number of keys that were unlinked,it is not blocking, while del is.
@@ -121,6 +120,13 @@ Examples:
 
  Benchmark a specific command line:
    $ redis-benchmark -r 10000 -n 10000 eval 'return redis.call("ping")' 0
+
+---------------------------------------------------------------------------------------------------------------------------------------
+
+monitor
+streams back every command processed by the Redis server. It can help in understanding what is happening to the database
+如果redis是集群,该命令只会监控指定ip:port下的key,可以看到哪个ip正在执行的所有redis操作
+redis-cli -h 127.0.0.1 -p 8001 monitor |grep "common_service_hbt"
 
 ---------------------------------------------------------------------------------------------------------------------------------------
 
@@ -628,7 +634,6 @@ config restart 更新info命令的信息
 debug object key #调试选项,看一个key的情况
 debug segfault #模拟段错误,让服务器崩溃
 object key (refcount|encoding|idletime)
-monitor #打开控制台,观察命令(调试用)
 client list #列出所有连接
 client kill #杀死某个连接  CLIENT KILL 127.0.0.1:43501
 client getname #获取连接的名称 默认nil
