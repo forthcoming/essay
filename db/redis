@@ -101,6 +101,27 @@ By default, this option is set to 5. To sample the all of the nested values, use
 (integer) 624950853
 这是使用抽样求平均的算法,要想获取key较精确的内存值,就指定更大SAMPLES个数,但过大会占用CPU时间
 
+Usage: redis-benchmark [-h <host>] [-p <port>] [-c <clients>] [-n <requests>]
+ -h <hostname>      Server hostname (default 127.0.0.1)
+ -p <port>          Server port (default 6379)
+ -c <clients>       Number of parallel connections (default 50)
+ -n <requests>      Total number of requests (default 100000)
+ -d <size>          Data size of SET/GET value in bytes (default 3)
+ --dbnum <db>       SELECT the specified db number (default 0)
+ -q                 Quiet. Just show query/sec values
+ -P <numreq>        Pipeline <numreq> requests. Default 1 (no pipeline).
+ -t <tests>         Only run the comma separated list of tests. The test names are the same as the ones produced as output.
+
+Examples:
+ Use 20 parallel clients, for a total of 100k requests, against 192.168.1.1:
+   $ redis-benchmark -h 192.168.1.1 -p 6379 -n 100000 -c 20
+
+ Benchmark 127.0.0.1:6379 for a few commands:
+   $ redis-benchmark -t ping,set,get -n 100000
+
+ Benchmark a specific command line:
+   $ redis-benchmark -r 10000 -n 10000 eval 'return redis.call("ping")' 0
+
 ---------------------------------------------------------------------------------------------------------------------------------------
 
 keys pattern:查找所有符合给定模式pattern的key
