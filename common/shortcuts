@@ -35,7 +35,7 @@ u  取消上一步操作,取消到上次打开文件的点上,并不是上次保
 可以设置一些:set nu   :set ic
 
 
-Pycharm
+Pycharm/Idea
 Ctrl E        打开最近访问过的文件
 Ctrl Shift E  打开最近编辑过的文件
 Ctrl F        查找
@@ -50,10 +50,11 @@ F3            下一个高亮处
 Shift F3      前一个高亮处
 Ctrl Shift V  访问历史粘贴板
 Ctrl Shift N  按文件名查找
+Ctrl Alt L    格式化代码,可以对当前文件和整个包目录使用
+Ctrl Alt O    优化导入的类,可以对当前文件和整个包目录使用
 CTRL /        comment/uncomment
 Alt F7        列出变量/函数在哪些地方被使用
 Ctrl Shift F7 高亮某个变量,而且随着鼠标的移动高亮不会消失
-Ctrl B        跳进代码块
 右击选项卡标题区域 -> Split Vertically 即可同时展现多个窗口
 连续按两下Shitf键可以搜索文件名/类名/方法名/目录名,搜索目录的技巧是在在关键字前面加斜杠
 
