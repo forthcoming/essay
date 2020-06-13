@@ -85,7 +85,7 @@ unquote:对字符串解码
 有些网站如1688是对gbk进行编码,所以正确编码姿势是quote('男鞋',encoding='gbk')
 '''
 params={"name":"Mr.王", "color": "red & black"}
-r = requests.get("https://xlzd.me/query", params=params)   # 注意get也有data和json参数,跟post类似
+r = requests.get("https://xlzd.me/query", params=params)   # 注意get也有data和json参数,跟post类似,post也可以有params
 print(r.url) #https://xlzd.me/query?name=Mr.%E7%8E%8B&color=red+%26+black
 r=requests.get(f"http://xlzd.me/query?name={quote(params['name'])}&color={quote(params['color'])}")
 print(r.url) #https://xlzd.me/query?name=Mr.%E7%8E%8B&color=red%20%26%20black
