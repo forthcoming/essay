@@ -6,7 +6,8 @@ If one application gets way too much database traffic, the connection pool is go
 
 processlist 
 show full processlist;  # 如果是root帐号,能看到所有用户的当前连接;如果是其他普通帐号,则只能看到自己占用的连接
-kill Id;                # 杀死指定Id的sql语句,常用于mysql死锁情况                              
+kill Id;                # 杀死指定Id的sql语句,常用于mysql死锁情况  
+select concat('kill ',id,';') from information_schema.processlist where user ='root';  # 批量杀死
 +----+------+-----------------+------+---------+------+----------+-----------------------+
 | Id | User | Host            | db   | Command | Time | State    | Info                  |
 +----+------+-----------------+------+---------+------+----------+-----------------------+
