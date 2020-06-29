@@ -134,7 +134,6 @@ tcp        0      0 coolshell.cn:80        183.60.212.163:51082        TIME_WAIT
 tcp        0      0 coolshell.cn:80        117.136.20.85:50025         FIN_WAIT2
 awk 'NR!=1 {print $4,$5 > $6}' netstat.txt   # 把指定的列输出到文件
 awk 'NR!=1 {if($6 ~/TIME|ESTABLISHED/) print > "1.txt"; else if($6 ~/FIN/) print > "2.txt"; else print > "3.txt" }' netstat.txt 
-cat webapi.log | grep 'send_msg' | awk -F "\t" '{ if($8>5)  print $0  }' 
 ---------------------------------------------------------------------------------------------------------------------------------
 ab
 sudo apt install apache2-utils
