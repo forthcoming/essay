@@ -188,6 +188,12 @@ pip install --proxy=http://127.0.0.1:8118 scrapy==1.4.0
 pip install --proxy=socks5://127.0.0.1:1080 scrapy==1.4.0
 pip uninstall
 ---------------------------------------------------------------------------------------------------------------------------------
+virtualenv
+pip install virtualenv
+virtualenv .sing_report
+source /data1/sing_report/.sing_report/bin/activate
+deactivate   # 退出虚拟环境
+---------------------------------------------------------------------------------------------------------------------------------
 conda
 conda list  # 列出当前虚拟环境的所有安装包(包括conda和pip安装的包,这两个命令install作用差不多)
 conda create -n scrapy # 创建虚拟环境
