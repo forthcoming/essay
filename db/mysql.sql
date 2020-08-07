@@ -155,6 +155,8 @@ partition by range(tid)(      # 还支持hash,list等分区
     partition t1 values less than(2000),
     partition t2 values less than(maxvalue)
 )
+ALTER TABLE topic REMOVE PARTITIONING;
+ALTER TABLE topic partition by hash(tid) partitions 5;
 
 
 Myisam & InnoDB(默认)
