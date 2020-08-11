@@ -1346,6 +1346,8 @@ print(5//-2)   #-3
 #########################################################################################################################################
 
 延时绑定
+延迟绑定出现在闭包问题和lambda表达式中,特点是变量在调用时才会去检测是否存在,如果存在则使用现有值,如果不存在,直接报错
+默认参数会在函数定义时就必须初始化
 # because y is not local to the lambdas, but is defined in the outer scope and it is accessed when the lambda is called — not when it is defined.
 squares = [lambda: y**2 for _ in range(3)]
 y=5
