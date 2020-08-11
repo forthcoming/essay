@@ -1352,14 +1352,16 @@ y=5
 for square in squares:
     print(square()) # 25 25 25
 
-squares = [lambda y=x: y**2 for x in range(3)]
+squares = [lambda y=x: y**2 for x in range(3)]  # lambda参数也可以有默认值
 for square in squares:
     print(square()) # 0 1 4  
       
-squares=(lambda: x**2 for x in range(3))  # generator
+squares=(lambda: x**2 for x in range(3))  # generator,并不会立马执行for循环
 for square in squares:
     print(square()) # 0 1 4
 
-
+squares= [lambda: x**2 for x in range(3)]  # 会立马执行for循环
+for square in squares:
+    print(square()) # 4 4 4
 
 
