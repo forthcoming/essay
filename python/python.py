@@ -941,7 +941,7 @@ print(B - A)  #Counter({3: 1})
 
 #########################################################################################################################################
 
-heap
+heap(小顶堆)
 from heapq import heapify,heappop,heappush,nlargest,nsmallest,heappushpop
 
 heap=[3,54,64,4,34,24,2,4,24,33]
