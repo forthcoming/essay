@@ -1118,7 +1118,7 @@ bool is_big_endian() //如果字节序为big-endian,返回1,反之返回0
     return false;
 }
 /*
-big-endian:内存顺序和数字的书写顺序是一致的,方便阅读理解。
+big-endian: 低位地址保存高位数字,方便阅读理解
 little-endian:在变量指针转换的时候地址保持不变,比如int64*转到int32*
 目前看来是little-endian成为主流了
 */
