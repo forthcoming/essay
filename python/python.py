@@ -1089,7 +1089,7 @@ for i,j,k in zip(*matrix):  # <class 'zip'>
 
 字典(py3.6中字典已经有序)
 d = {'a': 1, 'b': 2}
-d.update({'a':3,'c':4})             # {'c': 4, 'a': 3, 'b': 2}
+d.update({'a':3,'c':4})  # {'a': 3, 'b': 2, 'c': 4}
 print(d.pop('a','无a'))  # 类似于get,3
 print(d.setdefault('d')) # None
 print(d.setdefault('e','avatar')) # avatar
