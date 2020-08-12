@@ -1278,8 +1278,8 @@ match: 从头开始匹配,最多匹配一个,可指定起始位置跟结束位�
 import re
 s='avatar cao nihao 1234,'
 regex=re.compile(r'(ava\w+) cao (nihao)')
+# group默认是group(0),返回全部,groups是以tuple类型返回括号内所有内容
 print(regex.search(s).group())     #avatar cao nihao
-#group默认是group(0),返回全部
 print(regex.search(s).groups())    #('avatar', 'nihao')
 
 s='avat1ar cao avat2ar cao,'
