@@ -967,21 +967,12 @@ print(heappop(h),h)
 #########################################################################################################################################
 
 format(最新版Python的f字符串可以看作format的简写)
-string = "My name is: {}, I am {} years old, {} Engineer".format(*["ansheng",20,"Python"])
-string #'My name is: ansheng, I am 20 years old, Python Engineer'
-
-string = "My name is: {0}, I am {1} years old, {0} Engineer".format(*["ansheng",20,"Python"])
-string #'My name is: ansheng, I am 20 years old, ansheng Engineer'
-
-string = "My name is: {name}, I am {age} years old, {job} Engineer".format(**{"name":"ansheng","age":20,"job":"Python"})
-string #'My name is: ansheng, I am 20 years old, Python Engineer'
-
-string = "My name is: {:s}, I am {:d} years old, {:f} wage".format("Ansheng",20,66666.55)
-string #'My name is: Ansheng, I am 20 years old, 66666.550000 wage'
-
-string = "numbers: {0:b},{0:f},{0:d},{0:#x},{0:X}, {0:%}".format(15)
-string #'numbers: 1111,15.000000,15,0xf,F, 1500.000000% '
-print(f"numbers: {15:b},{15:f},{15:d},{15:#x},{15:X}, {15:%}")
+string = "My name is: {}, I am {} years old, {} Engineer".format(*["ansheng",20,"Python"])  # 'My name is: ansheng, I am 20 years old, Python Engineer'
+string = "My name is: {0}, I am {1} years old, {0} Engineer".format(*["ansheng",20,"Python"]) # 'My name is: ansheng, I am 20 years old, ansheng Engineer'
+string = "My name is: {name}, I am {age} years old, {job} Engineer".format(**{"name":"ansheng","age":20,"job":"Python"}) # 'My name is: ansheng, I am 20 years old, Python Engineer'
+string = "My name is: {:s}, I am {:d} years old, {:f} wage".format("Ansheng",20,66666.55) # 'My name is: Ansheng, I am 20 years old, 66666.550000 wage'
+string = "numbers: {0:b},{0:.3f},{0:d},{0:#x},{0:X}, {0:%}".format(15) # 'numbers: 1111,15.000,15,0xf,F, 1500.000000%'
+print(f"numbers: {15:b},{15:f},{15:d},{15:#x},{15:X}, {15:%}")         # numbers: 1111,15.000000,15,0xf,F, 1500.000000%
 
 #########################################################################################################################################
 
