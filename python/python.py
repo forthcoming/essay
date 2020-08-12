@@ -1011,6 +1011,7 @@ print(first, third,_)  # 0 2 [3, 4, 5, 6, 7, 8, 9]
 
 datetime(有局限性,获取的是本地时间)
 from datetime import datetime,timedelta
+import time
 print(datetime.now())
 print(datetime.now().date())
 print(datetime.now().time())
@@ -1020,22 +1021,7 @@ print(datetime.now().month)
 print(datetime.now().strftime('%Y-%m-%d'))  # <class 'str'>
 print(datetime.now()-timedelta(days=2))    # weeks,minutes
 print(datetime.strptime('2016-9-9 18:19:59', '%Y-%m-%d %H:%M:%S'))  # <class 'datetime.datetime'>
-print(datetime.fromtimestamp(1541755412))  # 2018-11-09 17:23:32
-
-OUT:
-2016-12-17 11:46:32.815229
-2016-12-17
-11:46:32.815229
-5
-2016
-12
-2016-12-17
-2016-12-15 11:46:32.815229
-2016-09-09 18:19:59
-
-import time
-time_struct = time.localtime(1555395365)
-print(time.strftime("%Y-%m-%d %H:%M:%S", time_struct))  # 时间戳转时间字符串
+print(datetime.fromtimestamp(time.time()))  # 2020-08-12 15:48:21.636170
                                        
 #########################################################################################################################################
 
