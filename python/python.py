@@ -837,10 +837,11 @@ while True:
 
 exception
 try: 
+    # os._exit(0)   # 会阻止一切语句的执行,包括finally 
     1/0
 except ValueError:  # 至多只有一个except被执行
     print('That was no valid number.')  
-except ZeroDivisionError:  
+except (ZeroDivisionError,RuntimeError) as e:
     print('The divisor can not be zero.')  
 except:  # 匹配任何类型异常,必须放在最后(default 'except:' must be last)
     print('Handling other exceptions...')  
