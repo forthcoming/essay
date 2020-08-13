@@ -554,7 +554,7 @@ is比较的内存地址,==比较的是字面值
 
 open
 with open('test.txt','r') as f:
-    for _ in f:  #无需要各种read()函数
+    for _ in f:  #无需各种read()函数
     print(_)
 
 f = open('/Users/michael/gbk.txt', 'r', encoding='gbk', errors='ignore')
@@ -563,9 +563,9 @@ f = open('/Users/michael/gbk.txt', 'r', encoding='gbk', errors='ignore')
 
 with open('log1') as obj1, open('log2') as obj2:  #同时打开多个
     file=list(obj1)   #等价于obj1.readlines()
-        obj2.seek(33)
-        print(obj2.tell())
-        print(obj2.readline())
+    obj2.seek(33)
+    print(obj2.tell())
+    print(obj2.readline())
 
 r:read,default
 w:write
