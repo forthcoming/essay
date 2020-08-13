@@ -529,7 +529,7 @@ class Slots:
         self.d='d'
         self.e=123
 
-    def test():pass
+    def test(self):pass
 
 slots = Slots()
 print(Slots.__dict__)
