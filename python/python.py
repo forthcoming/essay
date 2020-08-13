@@ -739,14 +739,14 @@ followlinks -- 设置为true,则通过软链接访问目录
 #########################################################################################################################################
 
 __call__: 一个类实例也可以变成一个可调用对象
-class Person(object):
-  def __init__(self, name, gender):
+class Person:
+  def __init__(self, name):
     self.name = name
 
   def __call__(self, friend):
     print('My name is {},My friend is {}.'.format(self.name,friend))
 
-p = Person('Bob', 'male')
+p = Person('Bob')
 p('Tim')    #My name is Bob,My friend is Tim.
 
 #########################################################################################################################################
@@ -797,21 +797,6 @@ isinstance(p, Student) #False
 isinstance(s, Person)  #True
 isinstance(s, Student) #True
 # 子类实例可以看成它本身的类型,也可以看成它父类的类型
-
-#########################################################################################################################################
-
-enumerate(iterable, start=0): 返回一个可迭代的enumerate object,对其使用next()得到的是包含索引和元素的tuple,通常用于同时遍历索引和元素
-seasons = ['Spring', 'Summer', 'Fall', 'Winter']
-list(enumerate(seasons))  #[(0, 'Spring'), (1, 'Summer'), (2, 'Fall'), (3, 'Winter')]
-for x in enumerate(seasons):
-  print(x, end=' ')  #(0, 'Spring') (1, 'Summer') (2, 'Fall') (3, 'Winter')
-
-means:
-def enumerate(sequence, start=0):
-  n = start
-  for elem in sequence:
-    yield n, elem
-    n += 1
 
 #########################################################################################################################################
 
