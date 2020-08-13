@@ -489,7 +489,7 @@ b=B()
 class Sample:
     def __enter__(self):
         print("In __enter__")
-        return self  # 返回的值赋值给with后面的as变量
+        return 'test'  # 返回值赋给with后面的as变量
 
     def __exit__(self, type, value, trace):
         '''
@@ -504,11 +504,11 @@ class Sample:
     def do_something(self):
         1/0
 
-with Sample() as sample:  # 相当于s=Sample().__enter__(),但不等价
-    print(sample.__class__)  # <class '__main__.Sample'>
+sample = Sample()
+with sample as f:             # 相当于f = sample.__enter__()
+    print(f)                  # test
     sample.do_something()
     print('after do something')
-print('out of code block')
 
 #########################################################################################################################################
 
