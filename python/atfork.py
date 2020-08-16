@@ -65,8 +65,7 @@ def _print_exception_list(exceptions, message, output_file=None):
         output_file.write('\n')
 
 def prepare_to_fork_acquire():  # Acquire our lock and call all prepare callables.
-    _fork_lock.acquire()
-    _prepare_call_exceptions.extend(_call_atfork_list(_prepare_call_list))
+
 
 def parent_after_fork_release():
     """
@@ -90,7 +89,8 @@ def child_after_fork_release():
 
 def os_fork_wrapper():  # Wraps os.fork() to run atfork handlers.
     pid = None
-    prepare_to_fork_acquire()
+    _fork_lock.acquire()
+    _prepare_call_exceptions.extend(_call_atfork_list(_prepare_call_list))
     try:
         pid = _orig_os_fork()
     finally:
