@@ -64,9 +64,6 @@ def _print_exception_list(exceptions, message, output_file=None):
         traceback.print_exception(exc_type, exc_value, exc_traceback, file=output_file)
         output_file.write('\n')
 
-def prepare_to_fork_acquire():  # Acquire our lock and call all prepare callables.
-
-
 def parent_after_fork_release():
     """
     Call all parent after fork callables, release the lock and print all prepare and parent callback exceptions.
