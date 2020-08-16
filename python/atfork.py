@@ -12,9 +12,9 @@ import os, sys, threading, traceback
 __all__ = ('monkeypatch_os_fork_functions', 'atfork')
 
 _fork_lock = threading.Lock()   # This lock protects all of the lists below.
-_prepare_call_list = []
-_parent_call_list = []
-_child_call_list = []
+_prepare_call_list = []    # fork执行前在父进程中调用
+_parent_call_list = []     # fork执行后在父进程中调用
+_child_call_list = []      # fork执行后在子进程中调用
 _prepare_call_exceptions = []
 
 def monkeypatch_os_fork_functions():
