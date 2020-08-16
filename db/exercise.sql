@@ -1,4 +1,4 @@
-有AA(id,sex,c1,c2),BB(id,age,c1,c2)两张表,其中A.id与B.id关联,现在要求写一条SQL语句,将B中age>50的记录的c1.c2更新到A表中统一记录中的c1.c2字段中.
+有AA(id,sex,c1,c2),BB(id,age,c1,c2)两张表,其中A.id与B.id关联,现在要求写一条SQL语句,将BB中age>50的记录的c1,c2更新到A表中同一记录中的c1,c2字段中.
 AA:
 create table AA(id int,sex char,c1 int,c2 int);
 insert into AA values(1,'m',34,45),(2,'m',4,5),(3,'w',30,4),(4,'m',94,85);
@@ -69,7 +69,7 @@ mysql> select * from student order by class,score desc;
 +--------+-------+-------+
 
 2) 查出每个班的不及格数和及格数
-mysql> select class,sum(score<60) 不及格数,sum(score>=60) 及格数 from student group by class;
+mysql> select class,sum(score<60) 不及格数,sum(score>=60) 及格数 from student group by class;  -- 注意不能使用count
 +-------+----------+--------+
 | class | 不及格数 | 及格数 |
 +-------+----------+--------+
