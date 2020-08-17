@@ -8,6 +8,7 @@ primary key = unique +  not null
 
 
 联合索引(观察key_len和Extra,group by和order by都可以利用联合索引)
+最左匹配原则在遇到范围查询时,会阻断后续索引
 create table idx(
 c1 char(1) not null default '',
 c2 char(1) not null default '',
