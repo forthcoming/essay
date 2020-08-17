@@ -7,7 +7,8 @@ primary key = unique +  not null
 3. Primary Key一般在逻辑设计中用作记录标识,这也是设置Primary Key的本来用意,而Unique Key只是为了保证域/域组的唯一性
 
 
-联合索引(观察key_len和Extra,group by和order by都可以利用联合索引)
+联合索引
+观察key_len和Extra,group by和order by都可以利用联合索引
 最左匹配原则在遇到范围查询时,会阻断后续索引
 create table idx(
 c1 char(1) not null default '',
@@ -77,7 +78,7 @@ possible_keys: c1
           ref: const
          rows: 3
      filtered: 33.33
-        Extra: Using where
+        Extra: Using where    # 注意此处并没有Using filesort,也是利用索引的最左匹配原则
         
 mysql> explain select * from idx where c1='a' and c5='e' order by c3,c2\G
 *************************** 1. row ***************************
