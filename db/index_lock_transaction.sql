@@ -405,7 +405,8 @@ serializable        N           N                  N            Y  写会加"写
 MySQL默认开启一个事务,自动提交,每成功执行一个SQL,一个事务就会马上COMMIT,所以不能Rollback
 MySQL事务是基于UNDO/REDO日志
 UNDO日志记录修改前状态,ROLLBACK基于UNDO日志实现; REDO日志记录修改后的状态,COMMIT基于REDO日志实现,执行COMMIT数据才会被写入磁盘
-
+Innodb支持跨库级别的分布式事务
+                                        
 show variables like "%autocommit%";  # mysql默认是on,可通过set autocommit=off;关闭
 set autocommit=off;   # 关闭自动提交功能,当前会话有效,绝大部分sql语句都会自动开启事(个别语句如建表等除外),即begin可以省略
 begin;     -- 在存储过程中,mysql会将begin识别为begin···end,所以在存储过程中,只能使用start transaction来表示开始一个事务
