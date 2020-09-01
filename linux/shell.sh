@@ -324,6 +324,7 @@ cat file1 file2 | sort | uniq
 cat file1 file2 | sort | uniq -d
 合并两个文件,删除行交集,留下其他的行,结果按行排序
 cat file1 file2 | sort | uniq -u
+sort filename -r  # 逆序排序
 ---------------------------------------------------------------------------------------------------------------------------------
 date
 [root@local ~]# date
