@@ -80,7 +80,7 @@ scan: 遍历所有键,类似的还有sscan,hscan,zscan,他们只遍历特定类�
 redis-py存进去的是数字类型,再取出来时都会是字符串类型
 
 unlink key1 key2 ... Keyn: 异步删除1个或多个键,不存在的key忽略掉,return the number of keys that were unlinked,it is not blocking, while del is.
-redis-cli -h 10.1.138.63 -n 1 --bigkeys: 分析数据库中的大key
+redis-cli -h 10.1.138.63 -n 1 --bigkeys -i 0.01   # 分析数据库中的大key,-i参数表示扫描过程中每次扫描的时间间隔,单位是秒
 
 memory usage(时间复杂度：O(N) where N is the number of samples)
 The MEMORY USAGE command reports the number of bytes that a key and its value require to be stored in RAM.Longer keys and values show asymptotically linear usage.
