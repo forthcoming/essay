@@ -1021,7 +1021,8 @@ print(datetime.now().strftime('%Y-%m-%d'))  # <class 'str'>
 print(datetime.now()-timedelta(days=2))    # weeks,minutes
 print(datetime.strptime('2016-9-9 18:19:59', '%Y-%m-%d %H:%M:%S'))  # <class 'datetime.datetime'>
 print(datetime.fromtimestamp(time.time()))  # 2020-08-12 15:48:21.636170
-                                       
+deadline = datetime(2020,10,9,11,12,13)  # 2020-10-09 11:12:13
+
 #########################################################################################################################################
 
 random(random是伪随机,默认随机数生成种子是从/dev/urandom或者是系统时间戳获取,所以种子肯定不会是一样的)
