@@ -11,7 +11,6 @@ redis-cli --eval Desktop/test.lua key1 key2 , argv1 argv2 # 注意逗号两边�
 
 cluster
 cluster info 
-cluster nodes 
 cluster slots  # returns details about which cluster slots map to which Redis instances
 cluster keyslot key # 计算键key被放置在哪个槽上
 cluster countkeysinslot <slot(num)>  # 计算槽上有多少个键值对
