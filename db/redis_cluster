@@ -14,6 +14,44 @@ cluster setslot <slot> migrating <destination-node-id>
 3. 如果命令包含多个keys,如果都不存在处理方式同2;如果都存在,处理方式同1;
    如果只是部分存在,针对即将完成迁移至目标节点的keys按序返回TRYAGAIN错误,以便批量keys命令可以执行,The client can try the operation after some time, or report back the error.
 
+# slave节点可以直接删除
+# The first argument is just a random node in the cluster, the second argument is the ID of the node you want to remove.
+# You can remove a master node in the same way as well, however in order to remove a master node it must be empty. 
+# If the master is not empty you need to reshard data away from it to all the other master nodes before.
+# An alternative to remove a master node is to perform a manual failover of it over one of its slaves and remove the node after it turned into a slave of the new master.
+# Obviously this does not help when you want to reduce the actual number of masters in your cluster, in that case, a resharding is needed.
+redis-cli --cluster del-node 127.0.0.1:8001 43c59528a792f3758c2df3b2c9fb18f86651904a
+>>> Removing node 43c59528a792f3758c2df3b2c9fb18f86651904a from cluster 127.0.0.1:8001
+>>> Sending CLUSTER FORGET messages to the cluster...
+>>> SHUTDOWN the node.
+
+redis-cli --cluster del-node 127.0.0.1:8006 9dd8ecfd28eae160d8c19d4184c4777f9bde49e8
+>>> Removing node 9dd8ecfd28eae160d8c19d4184c4777f9bde49e8 from cluster 127.0.0.1:8006
+[ERR] Node 127.0.0.1:8005 is not empty! Reshard data away and try again.
+
+# 从节点不分配槽位
+redis-cli --cluster check 127.0.0.1:8005
+127.0.0.1:8005 (9dd8ecfd...) -> 13 keys | 5461 slots | 0 slaves.
+127.0.0.1:8003 (1bf1f4e2...) -> 9 keys | 5461 slots | 1 slaves.
+127.0.0.1:8002 (cba9eef5...) -> 21 keys | 5462 slots | 0 slaves.
+[OK] 43 keys in 3 masters.
+0.00 keys per slot on average.
+>>> Performing Cluster Check (using node 127.0.0.1:8005)
+M: 9dd8ecfd28eae160d8c19d4184c4777f9bde49e8 127.0.0.1:8005
+   slots:[0-5460] (5461 slots) master
+S: f72e454d7a592aef786ce318c4b73de6a0385a9d 127.0.0.1:8004
+   slots: (0 slots) slave
+   replicates 1bf1f4e2cefde5099452aec9dbc9386fea369777
+M: 1bf1f4e2cefde5099452aec9dbc9386fea369777 127.0.0.1:8003
+   slots:[10923-16383] (5461 slots) master
+   1 additional replica(s)
+M: cba9eef5cf1b30a7b7dea7f2c8543ba2fe8b5e15 127.0.0.1:8002
+   slots:[5461-10922] (5462 slots) master
+[OK] All nodes agree about slots configuration.
+>>> Check for open slots...
+>>> Check slots coverage...
+[OK] All 16384 slots covered.
+
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 创建集群(客户端连接集群redis-cli需要带上-c,redis-cli -c -p port): 
