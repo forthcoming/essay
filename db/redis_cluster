@@ -1,12 +1,13 @@
-集群命令:
 cluster info 
 cluster slots  # returns details about which cluster slots map to which Redis instances
 cluster nodes  # 返回信息跟cluster slots差不多,一行显示
 cluster keyslot key # 计算键key被放置在哪个槽上
 cluster countkeysinslot <slot(num)>  # 计算槽上有多少个键值对
 cluster getkeysinslot <slot(num)> <count> # 返回count个slot槽中的键
+
 cluster setslot <slot> importing <source-node-id>
 将一个槽设置为importing状态,槽下的keys从指定源节点导入目标节点,该命令仅能在目标节点不是指定槽的所有者时生效
+
 cluster setslot <slot> migrating <destination-node-id>
 将一个槽设置为migrating状态,该命令的节点必须是该哈希槽的所有者,节点将会有如下操作: 
 1. 如果处理的是存在的key,命令正常执行
@@ -14,12 +15,38 @@ cluster setslot <slot> migrating <destination-node-id>
 3. 如果命令包含多个keys,如果都不存在处理方式同2;如果都存在,处理方式同1;
    如果只是部分存在,针对即将完成迁移至目标节点的keys按序返回TRYAGAIN错误,以便批量keys命令可以执行,The client can try the operation after some time, or report back the error.
 
-# slave节点可以直接删除
+cluster forget node-id
+The command is used in order to remove a node, specified via its node ID, In other words the specified node is removed from the nodes table of the node receiving the command.
+we'll show why the command must not just remove a given node from the nodes table, but also prevent it for being re-inserted again for some time.
+Let's assume we have four nodes, A, B, C and D. In order to end with just a three nodes cluster A, B, C we may follow these steps:
+Reshard all the hash slots from D to nodes A, B, C.
+D is now empty, but still listed in the nodes table of A, B and C.
+We contact A, and send CLUSTER FORGET D.
+B sends node A a heartbeat packet, where node D is listed.
+A does no longer known node D (see step 3), so it starts an handshake with D.
+D ends re-added in the nodes table of A.
+As you can see in this way removing a node is fragile, we need to send CLUSTER FORGET commands to all the nodes ASAP hoping there are no gossip sections processing in the meantime.
+Because of this problem the command implements a ban-list with an expire time for each entry.
+
+cluster replicate <master-node-id>
+In Redis Cluster it is possible to reconfigure a slave to replicate with a different master
+手动更改从节点不受cluster-migration-barrier配置影响,集群重启时会再次replicas migration
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+# Removing nodes from a cluster(slave节点可以直接删除)
 # The first argument is just a random node in the cluster, the second argument is the ID of the node you want to remove.
 # You can remove a master node in the same way as well, however in order to remove a master node it must be empty. 
 # If the master is not empty you need to reshard data away from it to all the other master nodes before.
 # An alternative to remove a master node is to perform a manual failover of it over one of its slaves and remove the node after it turned into a slave of the new master.
 # Obviously this does not help when you want to reduce the actual number of masters in your cluster, in that case, a resharding is needed.
+# u can remove a node from a cluster,However, the other nodes will still remember its node ID and address, and will attempt to connect with it.
+# For this reason, when a node is removed we want to also remove its entry from all the other nodes tables. This is accomplished by using the CLUSTER FORGET <node-id> command.
+# The command does two things:
+# It removes the node with the specified node ID from the nodes table.
+# It sets a 60 second ban which prevents a node with the same node ID from being re-added.
+# The second operation is needed because Redis Cluster uses gossip in order to auto-discover nodes, so removing the node X from node A, could result in node B gossiping about node X to A again. 
+# Because of the 60 second ban, the Redis Cluster administration tools have 60 seconds in order to remove the node from all the nodes, preventing the re-addition of the node due to auto discovery.
 redis-cli --cluster del-node 127.0.0.1:8001 43c59528a792f3758c2df3b2c9fb18f86651904a
 >>> Removing node 43c59528a792f3758c2df3b2c9fb18f86651904a from cluster 127.0.0.1:8001
 >>> Sending CLUSTER FORGET messages to the cluster...
@@ -141,6 +168,14 @@ so if your client writes something, B acknowledges the write, but crashes before
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+Upgrading slave nodes is easy since you just need to stop the node and restart it with an updated version of Redis. 
+Upgrading masters is a bit more complex, and the suggested procedure is:
+Use CLUSTER FAILOVER to trigger a manual failover of the master to one of its slaves.Wait for the master to turn into a slave.Finally upgrade the node as you do for slaves.
+If you want the master to be the node you just upgraded, trigger a new manual failover in order to turn back the upgraded node into a master.
+Following this procedure you should upgrade one node after the other until all the nodes are upgraded.
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 in practical terms, what do you get with Redis Cluster?
 The ability to automatically split your dataset among multiple nodes.
 The ability to continue operations when a subset of the nodes are experiencing failures or are unable to communicate with the rest of the cluster.
@@ -157,10 +192,15 @@ redis集群只支持db0,不支持mget,mset,multi,lua脚本,除非这些key落在
 redis-py-cluster的StrictRedisCluster对keys,mget,mset,pipeline做了处理,使用时不需要再考虑key落在不同slot问题,但对于lua脚本则必须落在同一个slot上
 其中pipeline原理是先根据for key in keys:crc16(key)%16384给keys分组,再批量执行,效率仍然比单条命令依次执行要高
 参考:https://github.com/Grokzen/redis-py-cluster/blob/unstable/rediscluster/pipeline.py#L139 , send_cluster_commands
+Note that the minimal cluster that works as expected requires to contain at least three master nodes.
 
 什么时候整个集群不可用(cluster_state:fail)?
 如果集群任意master挂掉,且当前master没有slave.集群进入fail状态,也可以理解成集群的slot映射[0-16383]不完整时进入fail状态
 如果集群超过半数以上master挂掉,无论是否有slave,集群进入fail状态
+
+The redis-cli cluster support is very basic so it always uses the fact that Redis Cluster nodes are able to redirect a client to the right node.
+A serious client is able to do better than that, and cache the map between hash slots and nodes addresses, to directly use the right connection to the right node.
+The map is refreshed only when something changed in the cluster configuration, for example after a failover or after the system administrator changed the cluster layout by adding or removing nodes.
 
 Redis集群中内置了16384(2的14次方)个哈希槽,当需要在Redis集群中放置一个key-value时,先对key使用crc16算法算出一个结果,然后把结果对16384求余数,
 这样每个key都会对应一个编号在0-16383之间的哈希槽,redis会根据节点数量大致均等的将哈希槽映射到不同的节点(没使用一致性哈希)
