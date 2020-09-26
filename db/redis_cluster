@@ -1,0 +1,71 @@
+集群命令:
+cluster info 
+cluster slots  # returns details about which cluster slots map to which Redis instances
+cluster nodes  # 返回信息跟cluster slots差不多,一行显示
+cluster keyslot key # 计算键key被放置在哪个槽上
+cluster countkeysinslot <slot(num)>  # 计算槽上有多少个键值对
+cluster getkeysinslot <slot(num)> <count> # 返回count个slot槽中的键
+cluster setslot <slot> importing <source-node-id>
+将一个槽设置为importing状态,槽下的keys从指定源节点导入目标节点,该命令仅能在目标节点不是指定槽的所有者时生效
+cluster setslot <slot> migrating <destination-node-id>
+将一个槽设置为migrating状态,该命令的节点必须是该哈希槽的所有者,节点将会有如下操作: 
+1. 如果处理的是存在的key,命令正常执行
+2. 如果要处理的key不存在,接收命令的节点将发出一个重定向ASK,让客户端在destination-node重试该查询.在这种情况下客户端不应该将该哈希槽更新为节点映射.
+3. 如果命令包含多个keys,如果都不存在处理方式同2;如果都存在,处理方式同1;
+   如果只是部分存在,针对即将完成迁移至目标节点的keys按序返回TRYAGAIN错误,以便批量keys命令可以执行,The client can try the operation after some time, or report back the error.
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+创建集群(客户端连接集群redis-cli需要带上-c,redis-cli -c -p port): 
+1. redis-server 8001[8002|8003|8004|8005|8006|].conf,手动开启每个节点
+2. redis-cli --cluster create 127.0.0.1:8001 127.0.0.1:8002 127.0.0.1:8003 127.0.0.1:8004 127.0.0.1:8005 127.0.0.1:8006 --cluster-replicas 1
+The option --cluster-replicas 1 means that we want a slave for every master created.(create a cluster with 3 masters and 3 slaves)
+The other arguments are the list of addresses of the instances I want to use to create the new cluster.
+集群中的主从是在创建集时分配,并不需要在每个节点的配置文件中设置
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+集群最小配置文件
+daemonize yes
+port 8003
+cluster-enabled yes
+cluster-config-file nodes8003.conf
+cluster-node-timeout 5000
+appendonly yes
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+in practical terms, what do you get with Redis Cluster?
+The ability to automatically split your dataset among multiple nodes.
+The ability to continue operations when a subset of the nodes are experiencing failures or are unable to communicate with the rest of the cluster.
+
+redis集群不支持事物
+In redis-py-cluster, pipelining is all about trying to achieve greater network efficiency. 
+Transaction support is disabled in redis-py-cluster. Use pipelines to avoid extra network round-trips, not to ensure atomicity.
+
+Redis Cluster supports multiple key operations as long as all the keys involved into a single command execution (or whole transaction, or Lua script execution) all belong to the same hash slot. 
+The user can force multiple keys to be part of the same hash slot by using a concept called hash tags.
+Hash tags are documented in the Redis Cluster specification, but the gist is that if there is a substring between {} brackets in a key, only what is inside the string is hashed, 
+so for example this{foo}key and another{foo}key are guaranteed to be in the same hash slot, and can be used together in a command with multiple keys as arguments.
+redis集群只支持db0,不支持mget,mset,multi,lua脚本,除非这些key落在同一个slot上,keys *只会返回该节点的数据(主从数据一样)
+redis-py-cluster的StrictRedisCluster对keys,mget,mset,pipeline做了处理,使用时不需要再考虑key落在不同slot问题,但对于lua脚本则必须落在同一个slot上
+其中pipeline原理是先根据for key in keys:crc16(key)%16384给keys分组,再批量执行,效率仍然比单条命令依次执行要高
+参考:https://github.com/Grokzen/redis-py-cluster/blob/unstable/rediscluster/pipeline.py#L139 , send_cluster_commands
+
+什么时候整个集群不可用(cluster_state:fail)?
+如果集群任意master挂掉,且当前master没有slave.集群进入fail状态,也可以理解成集群的slot映射[0-16383]不完整时进入fail状态
+如果集群超过半数以上master挂掉,无论是否有slave,集群进入fail状态
+
+Redis集群中内置了16384(2的14次方)个哈希槽,当需要在Redis集群中放置一个key-value时,先对key使用crc16算法算出一个结果,然后把结果对16384求余数,
+这样每个key都会对应一个编号在0-16383之间的哈希槽,redis会根据节点数量大致均等的将哈希槽映射到不同的节点(没使用一致性哈希)
+投票过程是集群中所有master参与,如果半数以上master节点与master节点通信超时(cluster-node-timeout),认为当前master节点挂掉.
+手动杀死集群中的某个master,其slave会自动被晋选为master
+
+# an implementation of the HASH_SLOT function in python language. 
+def hash_slot(key):
+    left = key.find('{')   # 首次出现的位置
+    if left>=0:
+        right = key.find('}')
+        if right-left>=2:  # 确保{}之间有字符
+            return crc16(key[left+1:right]) & 0b11111111111111  # 16383
+    return crc16(key) & 0b11111111111111  # 16383
