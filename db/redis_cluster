@@ -34,6 +34,14 @@ In Redis Cluster it is possible to reconfigure a slave to replicate with a diffe
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+Redis Cluster supports the ability to add and remove nodes while the cluster is running.
+Adding or removing a node is abstracted into the same operation: moving a hash slot from one node to another. 
+To add a new node to the cluster an empty node is added to the cluster and some set of hash slots are moved from existing nodes to the new node.
+To remove a node from the cluster the hash slots assigned to that node are moved to other existing nodes.
+Moving a hash slot means moving all the keys that happen to hash into this hash slot.
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 # Removing nodes from a cluster(slave节点可以直接删除)
 # The first argument is just a random node in the cluster, the second argument is the ID of the node you want to remove.
 # You can remove a master node in the same way as well, however in order to remove a master node it must be empty. 
@@ -272,6 +280,9 @@ Note that the minimal cluster that works as expected requires to contain at leas
 The redis-cli cluster support is very basic so it always uses the fact that Redis Cluster nodes are able to redirect a client to the right node.
 A serious client is able to do better than that, and cache the map between hash slots and nodes addresses, to directly use the right connection to the right node.
 The map is refreshed only when something changed in the cluster configuration, for example after a failover or after the system administrator changed the cluster layout by adding or removing nodes.
+Clients usually need to fetch a complete list of slots and mapped node addresses in two different situations:
+At startup in order to populate the initial slots configuration.
+When a MOVED redirection is received.
 
 Redis集群中内置了16384(2的14次方)个哈希槽,当需要在Redis集群中放置一个key-value时,先对key使用crc16算法算出一个结果,然后把结果对16384求余数,
 这样每个key都会对应一个编号在0-16383之间的哈希槽,redis会根据节点数量大致均等的将哈希槽映射到不同的节点(没使用一致性哈希)
