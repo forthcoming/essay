@@ -25,20 +25,6 @@ The other arguments are the list of addresses of the instances I want to use to 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-集群最小配置文件
-appendonly yes
-daemonize yes
-port 8003
-cluster-enabled yes
-cluster-config-file nodes8003.conf
-cluster-node-timeout 5000
-cluster-migration-barrier N 
-某个主节点的从节点个数超过N个时,主节点才会触发节点分配,With replicas migration what happens is that if a master is left without slaves,
-a replica from a master that has multiple slaves will migrate to the orphaned master. So after your slave goes down at 4am as in the example we made above,
-another slave will take its place, and when the master will fail as well at 5am, there is still a slave that can be elected so that the cluster can continue to operate.
-
-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
 epoch(epoch is used in order to give incremental versioning to events)
 
 The currentEpoch is a 64 bit unsigned number.At node creation every Redis Cluster node, both slaves and master nodes, set the currentEpoch to 0.
