@@ -26,12 +26,49 @@ The other arguments are the list of addresses of the instances I want to use to 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 集群最小配置文件
+appendonly yes
 daemonize yes
 port 8003
 cluster-enabled yes
 cluster-config-file nodes8003.conf
 cluster-node-timeout 5000
-appendonly yes
+cluster-migration-barrier N 
+某个主节点的从节点个数超过N个时,主节点才会触发节点分配,With replicas migration what happens is that if a master is left without slaves,
+a replica from a master that has multiple slaves will migrate to the orphaned master. So after your slave goes down at 4am as in the example we made above,
+another slave will take its place, and when the master will fail as well at 5am, there is still a slave that can be elected so that the cluster can continue to operate.
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+epoch(epoch is used in order to give incremental versioning to events)
+
+The currentEpoch is a 64 bit unsigned number.At node creation every Redis Cluster node, both slaves and master nodes, set the currentEpoch to 0.
+Every time a packet is received from another node, if the epoch of the sender (part of the cluster bus messages header) is greater than the local node epoch, the currentEpoch is updated to the sender epoch.
+Because of these semantics, eventually all the nodes will agree to the greatest configEpoch in the cluster.
+This information is used when the state of the cluster is changed and a node seeks agreement in order to perform some action.
+Currently this happens only during slave promotion
+In order to be elected, the first step for a slave is to increment its currentEpoch counter, and request votes from master instances.
+Votes are requested by the slave by broadcasting a FAILOVER_AUTH_REQUEST packet to every master node of the cluster. 
+Then it waits for a maximum time of two times the NODE_TIMEOUT for replies to arrive (but always for at least 2 seconds).
+Once the slave receives ACKs from the majority of masters, it wins the election. Otherwise if the majority is not reached within the period of two times NODE_TIMEOUT (but always at least 2 seconds), 
+the election is aborted and a new one will be tried again after NODE_TIMEOUT * 4 (and always at least 4 seconds).
+
+The configEpoch is set to zero in masters when a new node is created.
+the configEpoch helps to resolve conflicts when different nodes claim divergent configurations (a condition that may happen because of network partitions and node failures).
+Slave nodes also advertise the configEpoch field in ping and pong packets, but in the case of slaves the field represents the configEpoch of its master as of the last time they exchanged packets. 
+This allows other instances to detect when a slave has an old configuration that needs to be updated (master nodes will not grant votes to slaves with an old configuration).
+Every time the configEpoch changes for some known node, it is permanently stored in the nodes.conf file by all the nodes that receive this information. The same also happens for the currentEpoch value. 
+These two variables are guaranteed to be saved and fsync-ed to disk when updated before a node continues its operations.
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Redis Cluster is not able to guarantee strong consistency. 
+In practical terms this means that under certain conditions it is possible that Redis Cluster will lose writes that were acknowledged by the system to the client.
+The first reason why Redis Cluster can lose writes is because it uses asynchronous replication. This means that during writes the following happens:
+Your client writes to the master B.
+The master B replies OK to your client.
+The master B propagates the write to its slaves B1, B2 and B3.
+As you can see, B does not wait for an acknowledgement from B1, B2, B3 before replying to the client, since this would be a prohibitive latency penalty for Redis, 
+so if your client writes something, B acknowledges the write, but crashes before being able to send the write to its slaves, one of the slaves (that did not receive the write) can be promoted to master, losing the write forever.
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
