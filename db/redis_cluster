@@ -1,3 +1,40 @@
+Redis集群中内置了16384(2的14次方)个哈希槽,当需要在Redis集群中放置一个key-value时,先对key使用crc16算法算出一个结果,然后把结果对16384求余数
+这样每个key都会对应一个编号在0-16383之间的哈希槽,redis会根据节点数量大致均等的将哈希槽映射到不同的节点(没使用一致性哈希)
+当主节点A挂掉后其从节点B会自动升级为主节点,重启A后A会成为B的从节点
+the minimal cluster that works as expected requires to contain at least three master nodes.
+
+Redis Cluster supports multiple key operations as long as all the keys involved into a single command execution (or whole transaction, or Lua script execution) all belong to the same hash slot. 
+The user can force multiple keys to be part of the same hash slot by using a concept called hash tags.
+only string in {} is hashed, so for example this{foo}key and another{foo}key are guaranteed to be in the same hash slot, and can be used together in a command with multiple keys as arguments.
+redis集群只支持db0,不支持mget,mset,multi,lua脚本,除非这些key落在同一个slot上,keys *只会返回该节点的数据(主从数据一样)
+redis-py-cluster的StrictRedisCluster对keys,mget,mset,pipeline做了处理,使用时不需要再考虑key落在不同slot问题,但对于lua脚本则必须落在同一个slot上
+其中pipeline原理是先根据for key in keys:crc16(key)%16384给keys分组,再批量执行,效率仍然比单条命令依次执行要高
+参考:https://github.com/Grokzen/redis-py-cluster/blob/unstable/rediscluster/pipeline.py#L139 , send_cluster_commands
+
+redis集群不支持事物,In redis-py-cluster, pipelining is all about trying to achieve greater network efficiency. 
+Transaction support is disabled in redis-py-cluster. Use pipelines to avoid extra network round-trips, not to ensure atomicity.
+
+def crc16(message):
+    crc = 0
+    for char in message:
+        crc ^= char << 8
+        for i in range(8):
+          if crc & 0x8000:
+              crc = (crc << 1 ^ 0x1021) & 0xffff
+          else:
+              crc <<= 1
+    return crc
+
+def hash_slot(key):
+    left = key.find('{')   # 首次出现的位置
+    if left>=0:
+        right = key.find('}')
+        if right-left>=2:  # 确保{}之间有字符
+            return crc16(key[left+1:right]) & 0b11111111111111  # 16383
+    return crc16(key) & 0b11111111111111  # 16383
+    
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 cluster info 
 cluster slots  # returns details about which cluster slots map to which Redis instances
 cluster nodes  # 返回信息跟cluster slots差不多,一行显示
@@ -258,21 +295,6 @@ in practical terms, what do you get with Redis Cluster?
 The ability to automatically split your dataset among multiple nodes.
 The ability to continue operations when a subset of the nodes are experiencing failures or are unable to communicate with the rest of the cluster.
 
-redis集群不支持事物
-In redis-py-cluster, pipelining is all about trying to achieve greater network efficiency. 
-Transaction support is disabled in redis-py-cluster. Use pipelines to avoid extra network round-trips, not to ensure atomicity.
-
-Redis Cluster supports multiple key operations as long as all the keys involved into a single command execution (or whole transaction, or Lua script execution) all belong to the same hash slot. 
-The user can force multiple keys to be part of the same hash slot by using a concept called hash tags.
-Hash tags are documented in the Redis Cluster specification, but the gist is that if there is a substring between {} brackets in a key, only what is inside the string is hashed, 
-so for example this{foo}key and another{foo}key are guaranteed to be in the same hash slot, and can be used together in a command with multiple keys as arguments.
-redis集群只支持db0,不支持mget,mset,multi,lua脚本,除非这些key落在同一个slot上,keys *只会返回该节点的数据(主从数据一样)
-redis-py-cluster的StrictRedisCluster对keys,mget,mset,pipeline做了处理,使用时不需要再考虑key落在不同slot问题,但对于lua脚本则必须落在同一个slot上
-其中pipeline原理是先根据for key in keys:crc16(key)%16384给keys分组,再批量执行,效率仍然比单条命令依次执行要高
-参考:https://github.com/Grokzen/redis-py-cluster/blob/unstable/rediscluster/pipeline.py#L139 , send_cluster_commands
-Note that the minimal cluster that works as expected requires to contain at least three master nodes.
-当主节点A挂掉后其从节点B会自动升级为主节点,重启A后A会成为B的从节点
-
 什么时候整个集群不可用(cluster_state:fail)?
 如果集群任意master挂掉,且当前master没有slave.集群进入fail状态,也可以理解成集群的slot映射[0-16383]不完整时进入fail状态
 如果集群超过半数以上master挂掉,无论是否有slave,集群进入fail状态
@@ -283,17 +305,3 @@ The map is refreshed only when something changed in the cluster configuration, f
 Clients usually need to fetch a complete list of slots and mapped node addresses in two different situations:
 At startup in order to populate the initial slots configuration.
 When a MOVED redirection is received.
-
-Redis集群中内置了16384(2的14次方)个哈希槽,当需要在Redis集群中放置一个key-value时,先对key使用crc16算法算出一个结果,然后把结果对16384求余数,
-这样每个key都会对应一个编号在0-16383之间的哈希槽,redis会根据节点数量大致均等的将哈希槽映射到不同的节点(没使用一致性哈希)
-投票过程是集群中所有master参与,如果半数以上master节点与master节点通信超时(cluster-node-timeout),认为当前master节点挂掉.
-手动杀死集群中的某个master,其slave会自动被晋选为master
-
-# an implementation of the HASH_SLOT function in python language. 
-def hash_slot(key):
-    left = key.find('{')   # 首次出现的位置
-    if left>=0:
-        right = key.find('}')
-        if right-left>=2:  # 确保{}之间有字符
-            return crc16(key[left+1:right]) & 0b11111111111111  # 16383
-    return crc16(key) & 0b11111111111111  # 16383
