@@ -52,6 +52,51 @@ M: cba9eef5cf1b30a7b7dea7f2c8543ba2fe8b5e15 127.0.0.1:8002
 >>> Check slots coverage...
 [OK] All 16384 slots covered.
 
+# 添加一个新节点8006到集群作为主节点,8006相关集群配置必须有且要运行起来,如果有cluster-config-file设置的文件,需要先删除
+redis-cli --cluster add-node 127.0.0.1:8006 127.0.0.1:8002 
+>>> Adding node 127.0.0.1:8006 to cluster 127.0.0.1:8002
+>>> Performing Cluster Check (using node 127.0.0.1:8002)
+M: cba9eef5cf1b30a7b7dea7f2c8543ba2fe8b5e15 127.0.0.1:8002
+   slots:[5461-10922] (5462 slots) master
+M: 1bf1f4e2cefde5099452aec9dbc9386fea369777 127.0.0.1:8003
+   slots:[10923-16383] (5461 slots) master
+   1 additional replica(s)
+S: f72e454d7a592aef786ce318c4b73de6a0385a9d 127.0.0.1:8004
+   slots: (0 slots) slave
+   replicates 1bf1f4e2cefde5099452aec9dbc9386fea369777
+M: 9dd8ecfd28eae160d8c19d4184c4777f9bde49e8 127.0.0.1:8005
+   slots:[0-5460] (5461 slots) master
+[OK] All nodes agree about slots configuration.
+>>> Check for open slots...
+>>> Check slots coverage...
+[OK] All 16384 slots covered.
+>>> Send CLUSTER MEET to node 127.0.0.1:8006 to make it join the cluster.
+[OK] New node added correctly.
+
+# 在主节点1bf1f4e2cefde5099452aec9dbc9386fea369777(8003)上添加一个新的8006从节点(可用来验证cluster-migration-barrier配置)
+redis-cli --cluster add-node 127.0.0.1:8006 127.0.0.1:8002 --cluster-slave --cluster-master-id 1bf1f4e2cefde5099452aec9dbc9386fea369777 
+>>> Adding node 127.0.0.1:8006 to cluster 127.0.0.1:8002
+>>> Performing Cluster Check (using node 127.0.0.1:8002)
+M: cba9eef5cf1b30a7b7dea7f2c8543ba2fe8b5e15 127.0.0.1:8002
+   slots:[5461-10922] (5462 slots) master
+M: 1bf1f4e2cefde5099452aec9dbc9386fea369777 127.0.0.1:8003
+   slots:[10923-16383] (5461 slots) master
+   1 additional replica(s)
+S: f72e454d7a592aef786ce318c4b73de6a0385a9d 127.0.0.1:8004
+   slots: (0 slots) slave
+   replicates 1bf1f4e2cefde5099452aec9dbc9386fea369777
+M: 9dd8ecfd28eae160d8c19d4184c4777f9bde49e8 127.0.0.1:8005
+   slots:[0-5460] (5461 slots) master
+[OK] All nodes agree about slots configuration.
+>>> Check for open slots...
+>>> Check slots coverage...
+[OK] All 16384 slots covered.
+>>> Send CLUSTER MEET to node 127.0.0.1:8006 to make it join the cluster.
+Waiting for the cluster to join
+
+>>> Configure node as replica of 127.0.0.1:8003.
+[OK] New node added correctly.
+
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 创建集群(客户端连接集群redis-cli需要带上-c,redis-cli -c -p port): 
