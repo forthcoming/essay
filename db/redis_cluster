@@ -291,6 +291,65 @@ Following this procedure you should upgrade one node after the other until all t
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+reshard原理
+对目标节点发送 cluster setslot <slot> importing <sourceNodeId> 命令,让目标节点准备导入槽的数据
+对源节点发送 cluster setslot <slot> migrating <targetNodeId> 命令,让源节点准备迁出槽的数据
+源节点循环执行 cluster getkeysinslot <slot> <count> 命令,获取count个属于槽slot的键
+在源节点上执行 migrate target_host target_port key target_database id timeout 命令,把获取的键批量迁移到目标节点
+重复执行步骤3和步骤4直到槽下所有的键值数据迁移到目标节点
+Use cluster setslot <slot> node <destination-node-id>.为了保证槽节点映射变更及时传播,需要遍历发送给所有节点更新被迁移的槽指向新节点
+步骤1和步骤2的顺序很重要,我们希望在源节点配置了重定向之后目的节点已经可以接受ASK重定向
+
+MIGRATE will send a serialized version of the key, and once an OK code is received, the old key from its own dataset will be deleted. 
+From the point of view of an external client a key exists either in A or B at any given time.
+In Redis Cluster there is no need to specify a database other than 0, but MIGRATE is a general command that can be used for other tasks not involving Redis Cluster. 
+
+in order to migrate a hash slot from one node to another.
+When a slot is set as MIGRATING, the node will accept all queries that are about this hash slot, but only if the key in question exists, 
+otherwise the query is forwarded using a -ASK redirection to the node that is target of the migration.
+When a slot is set as IMPORTING, the node will accept all queries that are about this hash slot, but only if the request is preceded by an ASKING command. 
+If the ASKING command was not given by the client, the query is redirected to the real hash slot owner via a -MOVED redirection error, as would happen normally.
+Let's make this clearer with an example of hash slot migration. Assume that we have two Redis master nodes A and B. We want to move hash slot 8 from A to B:
+We send B: CLUSTER SETSLOT 8 IMPORTING A
+We send A: CLUSTER SETSLOT 8 MIGRATING B
+All the other nodes will continue to point clients to node "A" every time they are queried with a key that belongs to hash slot 8, so what happens is that:
+All queries about existing keys are processed by "A".
+All queries about non-existing keys in A are processed by "B", because "A" will redirect clients to "B".
+
+ASK redirection
+In the previous section we briefly talked about ASK redirection.Why can't we simply use MOVED redirection? 
+Because while MOVED means that we think the hash slot is permanently served by a different node and the next queries should be tried against the specified node, 
+ASK means to send only the next query to the specified node.
+This is needed because the next query about hash slot 8 can be about a key that is still in A, so we always want the client to try A and then B if needed. 
+Since this happens only for one hash slot out of 16384 available, the performance hit on the cluster is acceptable.
+We need to force that client behavior, so to make sure that clients will only try node B after A was tried, 
+node B will only accept queries of a slot that is set as IMPORTING if the client sends the ASKING command before sending the query.
+Basically the ASKING command sets a one-time flag on the client that forces a node to serve a query about an IMPORTING slot.
+The full semantics of ASK redirection from the point of view of the client is as follows:
+If ASK redirection is received, send only the query that was redirected to the specified node but continue sending subsequent queries to the old node.
+Start the redirected query with the ASKING command.Don't yet update local client tables to map hash slot 8 to B.
+Once hash slot 8 migration is completed, A will send a MOVED message and the client may permanently map hash slot 8 to the new IP and port pair. 
+Note that if a buggy client performs the map earlier this is not a problem since it will not send the ASKING command before issuing the query, so B will redirect the client to A using a MOVED redirection error.
+
+8005
+cluster setslot 1742 importing cba9eef5cf1b30a7b7dea7f2c8543ba2fe8b5e15
+127.0.0.1:8005> asking
+OK
+127.0.0.1:8005> get {user_info}:avatar
+"guess"
+127.0.0.1:8005> get {user_info}:avatar
+-> Redirected to slot [1742] located at 127.0.0.1:8002
+(error) ASK 1742 127.0.0.1:8005
+cluster setslot 1742 node 9dd8ecfd28eae160d8c19d4184c4777f9bde49e8
+
+8002
+cluster setslot 1742 migrating 9dd8ecfd28eae160d8c19d4184c4777f9bde49e8
+127.0.0.1:8002> get {user_info}:avatar
+(error) ASK 1742 127.0.0.1:8005
+cluster setslot 1742 node cba9eef5cf1b30a7b7dea7f2c8543ba2fe8b5e15
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 in practical terms, what do you get with Redis Cluster?
 The ability to automatically split your dataset among multiple nodes.
 The ability to continue operations when a subset of the nodes are experiencing failures or are unable to communicate with the rest of the cluster.
