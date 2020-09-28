@@ -1,3 +1,29 @@
+#include <stdio.h>
+#include <string.h>
+#include <cstdlib>
+#include <unistd.h>
+int main()
+{
+    printf("%d\n", getpid());
+    int test = 0;
+  
+    char * p = (char *)malloc(1024*1024*512);  // new效果类似,分配512M,未使用
+    scanf("%d", &test);                  // VIRT: 526740     RES: 752    SHR: 688
+
+    memset(p, 0, 1024 * 1024 * 10);      // 使用10M
+    scanf("%d", &test);                  // VIRT: 526740     RES: 11808  SHR: 1516
+
+    memset(p, 0, 1024 * 1024 * 50);      // 使用50M
+    scanf("%d", &test);                  // VIRT: 526740     RES: 52728  SHR: 1516
+
+    free(p);
+    scanf("%d", &test);                  // VIRT: 2448       RES: 1444   SHR: 1364
+}
+# 堆、栈分配的内存,如果没有使用是不会占用实存的,只会记录到虚存
+# g++ test.c -o out
+# ./out 运行
+# top -p 15870
+---------------------------------------------------------------------------------------------------------------------------------
 lsof(list open files)
 lsof file_name              # 查看哪些进程正在使用这个文件
 lsof -t -u user_name        # 查看某个用户打开的文件,-t选项只返回PID
