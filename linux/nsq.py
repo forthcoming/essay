@@ -60,10 +60,11 @@ defer - the time in ms to delay message delivery (optional)
 r=requests.post(  
     url='http://127.0.0.1:4151/pub?topic=test&defer=3000',   
     data='你好'.encode('utf-8'),
+    # json={'name':'伟大的QQ',score:10},
 )
 print(r.text)
 
-# by default /mpub expects messages to be delimited by \n
+# by default /mpub expects messages to be delimited by \n, 如果mpub改为pub,则data会认为是一条数据
 r=requests.post(  
     url='http://127.0.0.1:4151/mpub?topic=test',   
     data='message\n中国\nmessage'.encode('utf-8'),
