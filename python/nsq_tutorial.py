@@ -1,4 +1,9 @@
 '''
+消息队列用来快速消费队列中的消息,比如日志处理场景,我们需要把不同服务器上的日志合并到一起,这时就需要用到消息队列
+任务队列(celery)是用来异步执行一个耗时任务,比如用户在购买的一件物品后,通常需要计算用户的积分以及等级,并把它们保存到数据库,这时就需要用到任务队列
+利用消息队列的生长者和消费者的概念,也可以实现任务队列的功能,但是还需要进行额外的开发
+任务队列新增了许多任务相关的定制,如重试,任务状态,结果返回,任务执行频率等等,但没有发布订阅的概念
+
 A single nsqd can have many topics and each topic can have many channels,a channel can, and generally does, have multiple clients connected. 
 To summarize, messages are multicast from topic -> channel (every channel receives a copy of all messages for that topic).
 but evenly distributed from channel -> consumers (each consumer or named client receives a portion of the messages for that channel).
