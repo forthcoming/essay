@@ -19,11 +19,12 @@ nsqd is the daemon that receives, queues, and delivers messages to clients.
 nsqlookupd is the daemon that manages topology information and provides an eventually consistent discovery service.
 nsqadmin is a web UI to introspect the cluster in realtime (and perform various administrative tasks).
 
+nsq_tail -topic=test -channel=c0 -lookupd-http-address=127.0.0.1:4161
 nsq_tail -topic=test -channel=c1 -lookupd-http-address=127.0.0.1:4161
 nsq_tail -topic=test -channel=c1 -lookupd-http-address=127.0.0.1:4161
 nsq_tail -topic=test -channel=c1 -lookupd-http-address=127.0.0.1:4161
 Consumes the specified topic/channel and writes to stdout (in the spirit of tail(1))
-相同的channel名会认为是同一个channel的多个consumers,消息会均匀分配到他们之中
+相同的channel名会认为是同一个channel的多个consumers,消息会均匀分配到他们之中,但同一条消息会同时分发给c0和c1
 
 nsq_to_http -topic=test -lookupd-http-address=127.0.0.1:4161 -get=http://localhost:8080/select?message=%s
 Consumes the specified topic/channel and performs HTTP requests (GET/POST) to the specified endpoints.
