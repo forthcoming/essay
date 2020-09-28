@@ -119,3 +119,38 @@ print(r.text) # {"topics":["T2","test"]}
 # Returns a list of all known nsqd
 r=requests.get('http://127.0.0.1:4161/nodes')
 print(r.text) # {"producers":[{"remote_address":"127.0.0.1:54246","hostname":"macbook.local","broadcast_address":"127.0.0.1","tcp_port":4150,"http_port":4151,"version":"1.1.0","tombstones":[false,false],"topics":["test","T2"]}]}
+
+############################################################################################################################
+
+import nsq
+
+buf = []
+def handler(message):   # 同步
+    print(message.body)
+    return True
+
+def process_message(message):  # 异步
+    global buf
+    message.enable_async()
+    buf.append(message)      # cache the message for later processing
+    if len(buf) >= 3:
+        for msg in buf:
+            print(msg.body)
+            msg.finish()
+        buf = []
+    else:
+        print('deferring processing')
+        
+r = nsq.Reader(
+    topic='one', 
+    channel='test', 
+    message_handler=handler,
+#     message_handler=process_message,
+    lookupd_http_addresses=['http://127.0.0.1:4161'],
+    max_in_flight=9
+)
+
+nsq.run()
+
+
+
