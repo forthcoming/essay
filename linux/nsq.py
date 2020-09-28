@@ -2,6 +2,7 @@
 A single nsqd can have many topics and each topic can have many channels,a channel can, and generally does, have multiple clients connected. 
 To summarize, messages are multicast from topic -> channel (every channel receives a copy of all messages for that topic).
 but evenly distributed from channel -> consumers (each consumer or named client receives a portion of the messages for that channel).
+当一个客户端以一个新的channel连接上topic时,该topic上的消息会发给客户端,不管之前是否有发给其他客户端
 
 messages are not durable (by default)
 --mem-queue-size number of messages to keep in memory (per topic/channel) (default 10000),can be set to 0 to ensure that all incoming messages are persisted to disk.  
