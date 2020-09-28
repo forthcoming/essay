@@ -8,24 +8,22 @@ messages are not durable (by default)
 adjusts the number of messages queued in memory per topic/channel. Messages over that watermark are transparently written to disk, defined by --data-path.  
 messages received are un-ordered,You cannot rely on the order of messages being delivered to consumers.
 
-nsqd is the daemon that receives, queues, and delivers messages to clients.
-nsqlookupd is the daemon that manages topology information and provides an eventually consistent discovery service.
-nsqadmin is a web UI to introspect the cluster in realtime (and perform various administrative tasks).
-
+启动命令
 nsqlookupd
 nsqd -lookupd-tcp-address=127.0.0.1:4160 -broadcast-address=127.0.0.1
 nsqadmin -lookupd-http-address=127.0.0.1:4161
 
 nsqadmin服务启动后,counter统计的是所有topic下所有channel消费的消息数
 重启nsqd会使nsqadmin的counter重新计数,如果topic或channel被删除,相应的counter会减少
+nsqd is the daemon that receives, queues, and delivers messages to clients.
+nsqlookupd is the daemon that manages topology information and provides an eventually consistent discovery service.
+nsqadmin is a web UI to introspect the cluster in realtime (and perform various administrative tasks).
 
-nsq_tail -topic=test  -lookupd-http-address=127.0.0.1:4161
+nsq_tail -topic=test -channel=c1 -lookupd-http-address=127.0.0.1:4161
+nsq_tail -topic=test -channel=c1 -lookupd-http-address=127.0.0.1:4161
+nsq_tail -topic=test -channel=c1 -lookupd-http-address=127.0.0.1:4161
 Consumes the specified topic/channel and writes to stdout (in the spirit of tail(1))
-如果不指定channel名,则会产生一个新的channel名
 相同的channel名会认为是同一个channel的多个consumers,消息会均匀分配到他们之中
-nsq_tail -topic=test -channel=c1 -lookupd-http-address=127.0.0.1:4161
-nsq_tail -topic=test -channel=c1 -lookupd-http-address=127.0.0.1:4161
-nsq_tail -topic=test -channel=c1 -lookupd-http-address=127.0.0.1:4161
 
 nsq_to_http -topic=test -lookupd-http-address=127.0.0.1:4161 -get=http://localhost:8080/select?message=%s
 Consumes the specified topic/channel and performs HTTP requests (GET/POST) to the specified endpoints.
