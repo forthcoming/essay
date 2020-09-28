@@ -19,10 +19,10 @@ def crc16(message):
     for char in message:
         crc ^= char << 8
         for i in range(8):
-          if crc & 0x8000:
-              crc = (crc << 1 ^ 0x1021) & 0xffff
-          else:
-              crc <<= 1
+            if crc & 0x8000:
+                crc = (crc << 1 ^ 0x1021) & 0xffff
+            else:
+                crc <<= 1
     return crc
 
 def hash_slot(key):
