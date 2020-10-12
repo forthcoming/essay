@@ -19,7 +19,7 @@ git log -p  #查看提交历史,显示每次提交的内容差异
 git log --oneline --decorate --graph --all  #输出你的提交历史、各个分支的指向以及项目的分支分叉情况
 git reflog    #显示所有分支的所有操作包含提交历史,分支切换,pull,reset等操作,只要HEAD发生变化就会产生一条记录
 git merge dev #合并dev分支到当前分支,优先使用Fast-forward模式(直接把当前分支指向dev的当前提交,如果当前分支和dev各自都有新提交,则无法使用该模式)
-git merge --no-ff -m'--no-ff' dev #合并dev分支到当前分支,--no-ff表示禁用Fast-forward模式,合并后的历史有分支
+git merge --no-ff -m'--no-ff' dev #合并dev分支到当前分支,--no-ff表示禁用Fast-forward模式,合并后的历史有(合并的最后多了一条汇总)
 git merge --abort  #取消某次合并
 git revert commit_id  #逆操作之前的某个操作(历史记录仍然在,版本向前推进)
 git reset HEAD filename  #git add的反向操作,使其从Changes to be committed 到 Changes not staged for commit
