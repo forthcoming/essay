@@ -108,8 +108,11 @@ def test2():
     MAP_PRIVATE creates a private copy-on-write mapping, so changes to the contents of the mmap object will be private to this process(A进程更改的数据不会同步到B进程);
     MAP_SHARED creates a mapping that's shared with all other processes mapping the same areas of the file. The default value is MAP_SHARED(A进程更改的数据会同步到B进程).
     在MAP_SHARED情况下各个进程的mm对象独立,意味着close,文件指针等不相互影响,仅共享数据
+    
+    length申请的是虚拟内存VIRT(注意length要大点,应为本身会预申请一定大小的虚拟内存)
+    如果flags=mmap.MAP_PRIVATE,write占用的是驻留内存RES; 如果flags=mmap.MAP_SHARED,write占用的是共享内存SHR,但由于RES包含SHR,所以RES也会相应增大
     '''
-    mm = mmap.mmap(-1, 13,flags=mmap.MAP_SHARED)
+    mm = mmap.mmap(-1, length=13,flags=mmap.MAP_SHARED)
     mm.write(b"Hello world!")
     mm.seek(0)
     pid = os.fork()
