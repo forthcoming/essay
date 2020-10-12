@@ -7,7 +7,7 @@ int main()
     printf("%d\n", getpid());
     int test = 0;
   
-    char * p = (char *)malloc(1024*1024*512);  // new效果类似,分配512M,未使用
+    char * p = (char *)malloc(1024*1024*512);  // new效果类似,分配512M,未使用,下面的VIRT, RES, SHR单位是KB
     scanf("%d", &test);                  // VIRT: 526740     RES: 752    SHR: 688
 
     memset(p, 0, 1024 * 1024 * 10);      // 使用10M
