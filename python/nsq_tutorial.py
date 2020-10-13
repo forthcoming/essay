@@ -139,13 +139,19 @@ def process_message(message):  # 异步
     else:
         print('deferring processing')
         
-r = nsq.Reader(
+nsq.Reader(
     topic='one', 
     channel='test', 
     message_handler=handler,
-#     message_handler=process_message,
     lookupd_http_addresses=['http://127.0.0.1:4161'],
     max_in_flight=9
 )
 
+nsq.Reader(
+    topic='two', 
+    channel='another_test', 
+    message_handler=process_message,
+    lookupd_http_addresses=['http://127.0.0.1:4161'],
+    max_in_flight=9
+)
 nsq.run()
