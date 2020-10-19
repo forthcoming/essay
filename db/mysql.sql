@@ -1,3 +1,9 @@
+如何不锁表修改表结构
+有专门工具,但原理一样,mysql新版本也不用锁表(5.6以后版本,待验证)
+1. 表结构的修改在创建的一张新表中执行,这样不需要锁定原表了,也就不会影响mysql提供服务
+2. 在原表中创建几个触发器针对uptate、delete 、insert操作都记录下来,方便更新到新建立的临时表中去
+3. 对调表名并删除原表
+
 连接池(Faster and safer)
 The connection pool acts as a bounded buffer for the incoming connection requests. 
 If there is a traffic spike the connection pool will level it instead of saturating all available database resources.
