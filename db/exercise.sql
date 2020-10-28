@@ -79,7 +79,7 @@ mysql> select class,sum(score<60) 不及格数,sum(score>=60) 及格数 from stu
 +-------+----------+--------+
 
 3) 查出每个班分数最高的学生信息
-mysql> select * from student t where score=(select max(score) from student where t.class=student.class);  #注意理解,score=54只会筛选到class=1不会筛选到class=3
+mysql> select * from student t where score=(select max(score) from student where student.class = t.class);  #注意理解,score=54只会筛选到class=1不会筛选到class=3
 mysql> select * from student t where not exists (select 1 from student where t.class=student.class and t.score<student.score);
 mysql> select student.* from student join (select class,max(score) max_score from student group by class) t on student.class=t.class and student.score=t.max_score;
 +--------+-------+-------+
