@@ -364,3 +364,5 @@ The map is refreshed only when something changed in the cluster configuration, f
 Clients usually need to fetch a complete list of slots and mapped node addresses in two different situations:
 At startup in order to populate the initial slots configuration.
 When a MOVED redirection is received.
+
+数据预热: 预先访问接口或者程序,填充缓存,防止单位时间内大量请求访问数据库
