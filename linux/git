@@ -1,7 +1,7 @@
 git remote -v  #显示需要读写远程仓库的简写与其对应的URL
 origin    https://github.com/xxoome/Spiders.git (fetch)
 origin    https://github.com/xxoome/Spiders.git (push)
-git remote add <shortname> <url>
+vim .git/config 修改[remote "origin"]下面的url即可更改项目远程仓库路径
 git diff              #比较工作区与暂存区
 git diff --staged     #比较暂存区跟已提交的文件
 git tag # 在控制台打印出当前仓库的所有tag
