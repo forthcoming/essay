@@ -133,6 +133,8 @@ mysql -uroot -p db_name -v -f < db_name.sql   // use dbname;  +  source db_name.
 mysqlbinlog binlog-file   // 查看binlog
 mysqlbinlog --stop-position='120' binlog-file |mysql -uroot -p db_name   // 用binlog日志恢复数据,stop-position指定结束位置,-d指定只要某个数据库
 
+mysql不建议使用text blob类似这种数据类型
+尽量不要使用 text 和 blob 这种可能特别大的字段,会影响表的查询性能,一般情况下用 varchar(2000~4000),还是不够的话一定要用text/blob,单独建表
 
 基本数据类型
 tinyint    //1b,默认为signed
