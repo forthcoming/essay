@@ -43,7 +43,7 @@ from datetime import datetime
 from bson import ObjectId
 import os
 
-client=MongoClient('mongodb://192.168.105.20:27017')
+client=MongoClient('mongodb://username:password@10.73.20.11:27017,10.73.20.10:27017/admin?authSource=admin')
 db=client['Atlas']
 test=db['test']
 
