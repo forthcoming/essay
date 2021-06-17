@@ -323,15 +323,12 @@ lock table t1 write # 只有本人可以增删改查,其他人增删改查都不
 在使用lock table之后,解锁之前,当前会话不能操作未加锁的表
 MyISAM在执行查询语句(SELECT)前,会自动给涉及的所有表加读锁,在执行更新操(UPDATE/DELETE/INSERT)前会自动给涉及的表加写锁
 
-SELECT … FOR UPDATE
+SELECT … FOR UPDATE # 显式地给一条记录加写锁(行锁),其他事务不能获取该记录的任何锁(FOR UPDATE和LOCK IN SHARE MODE)
+SELECT … LOCK IN SHARE MODE # 显式地给记录加读锁(行锁),其他事务能够获取该记录的读锁(lock in share mode),不能获取该记录的写锁(for update)
 必须在一个事物中才会生效,事务提交后才会释放锁
-显式地给一条记录加写锁(行锁),其他事务不能获取该记录的任何锁(FOR UPDATE和LOCK IN SHARE MODE)
 其他事物无法更新该记录,依然可以select该记录,此时读取的是快照
-
-SELECT … LOCK IN SHARE MODE 
-必须在一个事物中才会生效,事务提交后才会释放锁
-显式地给记录加读锁(行锁),其他事务能够获取该记录的读锁(lock in share mode),不能获取该记录的写锁(for update)
-其他事物无法更新该记录,依然可以select该记录,此时读取的是快照
+LOCK IN SHARE MODE适合两张表存在业务关系时的一致性要求,而FOR UPDATE适用于操作同一张表时保证业务的一致性要求
+refer: https://dev.mysql.com/doc/refman/8.0/en/innodb-locking-reads.html
 
 MyISAM只支持表锁;InnoDB支持表锁和行锁,行锁是实现在索引上的,如果访问没有命中索引,也无法使用行锁,将退化为表锁
 行锁对提高并发帮助很大;事务对数据一致性帮助很大
