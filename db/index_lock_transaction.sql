@@ -323,8 +323,8 @@ lock table t1 write # 只有本人可以增删改查,其他人增删改查都不
 在使用lock table之后,解锁之前,当前会话不能操作未加锁的表
 MyISAM在执行查询语句(SELECT)前,会自动给涉及的所有表加读锁,在执行更新操(UPDATE/DELETE/INSERT)前会自动给涉及的表加写锁
 
-select … for share # 显式地给一条记录加写锁(行锁),其他事务不能获取该记录的任何锁(for update和for share)
-select … for update # 显式地给记录加读锁(行锁),其他事务能够获取该记录的读锁(for share),不能获取该记录的写锁(for update)
+select … for update # 显式地给一条记录加写锁(行锁),其他事务不能获取该记录的任何锁(for update和for share)
+select … for share # 显式地给记录加读锁(行锁),其他事务能够获取该记录的读锁(for share),不能获取该记录的写锁(for update)
 必须在一个事物中才会生效,事务提交或回滚后才会释放锁
 其他事物无法更新该记录,依然可以select该记录,此时读取的是快照
 for share适合两张表存在业务关系时的一致性要求,而for update适用于操作同一张表时保证业务的一致性要求
