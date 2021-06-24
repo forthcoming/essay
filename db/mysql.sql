@@ -154,7 +154,7 @@ datetime   // YYYY-MM-DD HH:MM:SS 如:2010-03-14 19:26:32, The supported range i
 数据量太大可考虑分表,例如根据用户id与10取模,将用户信息存储到不同的十张表里面
 create table topic(
     tid int primary key auto_increment,
-    update_time datetime not null default current_timestamp on update current_timestamp comment '消息更新时间',
+    update_time datetime not null default current_timestamp on update current_timestamp comment '消息更新时间', --如果update set没有更新数据时update_time不会被更新 
     title char(20) not null default ''
 )engine innodb charset utf8   # 不支持myisam
 # partition by hash( tid ) partitions 4   # 只能用数字类型,根据tid%4分区(默认名字p0,p1,p2,p3),可通过explain查看查询需要的分区
