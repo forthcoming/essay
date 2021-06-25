@@ -32,7 +32,7 @@ engine = create_engine(
 )
 
 
-def working_pool(index,engine):
+def working_pool(index):
     with engine.connect() as conn: # 每调用一次,按engine的连接池配置规则取出一条连接资源,块结束才会归还该资源,默认autocommit=True(每条语句都包含一个事务的开始与结束)
         # The connection is retrieved from the connection pool at the point at which Connection is created.
         # the context manager provided for a database connection and also framed the operation inside of a transaction
@@ -116,20 +116,19 @@ def working_session(index):
     user = User(id=index+1, name='avatar', password='123456')
     session.add(user)  # 仅仅缓存到session,数据库方未做任何操作
     print(session.query(User).filter_by(id=index+1).first()) # 产生事务,如果sessionmaker的autoflush=True,则会查到数据,当并未真正写到数据库(对其他事务仍不可见)
-    time.sleep(3)
     # session.delete(user)  # 删除数据
     # session.flush()  # Regardless of the autoflush setting, a flush can always be forced by issuing flush()
     session.commit()  # 如果不及时归还连接到连接池,当牵出连接达最大值,则程序将被阻塞(池中无连接且无法申请新连接)
     session.remove()  # scoped_session尤其是自定义了scopefunc函数的dict型,一定要记得释放,应为每个新的线程都会新建一个session,可通过session.registry.registry查看
 
 def main():
-    # working_session(4)
+    working_pool(4)
 
-    threadings = [Process(target=working_session, args=(idx,)) for idx in range(7)]
-    for thread in threadings:
-        thread.start()
-    for thread in threadings:
-        thread.join()
+#     threadings = [Process(target=working_session, args=(idx,)) for idx in range(7)]
+#     for thread in threadings:
+#         thread.start()
+#     for thread in threadings:
+#         thread.join()
 
 
 
