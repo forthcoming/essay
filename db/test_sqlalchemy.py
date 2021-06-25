@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine,text
 from sqlalchemy.pool import QueuePool,NullPool
 from sqlalchemy.orm import sessionmaker,scoped_session
 from sqlalchemy.ext.declarative import declarative_base
@@ -6,9 +6,9 @@ from sqlalchemy import Column, Integer, String
 from multiprocessing.dummy import Process
 from contextlib import contextmanager
 from threading import get_ident
-import time
 
 
+# https://docs.sqlalchemy.org/en/14/tutorial/dbapi_transactions.html
 '''
 flask项目中db = SQLAlchemy(app),则db.engine相当于engine,db.session相当于session,如db.engine.pool.status()
 pool_size和max_overflow会受到mysql配置文件: max_connections服务器最多可以建立的连接数(会保留一个root登陆的连接);max_user_connections同一个用户最多可建立的连接数影响
@@ -28,7 +28,35 @@ engine = create_engine(
     pool_pre_ping=True,
     poolclass=QueuePool,  # Disabling pooling using NullPool
     pool_use_lifo=False,  # lifo mode allows excess connections to remain idle in the pool, allowing server-side timeout schemes to close these connections out.
+    future=True,
 )
+
+
+def working_pool(index,engine):
+    with engine.connect() as conn: # 每调用一次,按engine的连接池配置规则取出一条连接资源,块结束才会归还该资源,默认autocommit=True(每条语句都包含一个事务的开始与结束)
+        # The connection is retrieved from the connection pool at the point at which Connection is created.
+        # the context manager provided for a database connection and also framed the operation inside of a transaction
+        # The default behavior of the Python DBAPI includes that a transaction is always in progress;
+        # when the scope of the connection is released, a ROLLBACK is emitted to end the transaction. The transaction is not committed automatically;
+        # when we want to commit data we normally need to call Connection.commit()
+        # the Connection.close() method is automatically invoked at the end of the block,the referenced DBAPI connection is released to the connection pool.
+        conn.execute(text("create table if not exists test(id int auto_increment primary key,name char(9));"))
+        conn.execute(text("select sleep(1);"))
+        conn.execute(text("insert into test(name) values('avatar');"))  # non-auto-committing,有操作(增删改查表数据等)之后数据库才会真正开启事物
+        print('index: {}\t'.format(index), engine.pool.status())
+        conn.commit()  # 即使退出语句快,也不会提交,需要手动调用,连接不会进连接池
+        print('index: {}\t'.format(index), engine.pool.status())
+
+        # when using textual SQL, a Python literal value, even non-strings like integers or dates, should never be stringified into SQL string directly;
+        # a parameter should always be used. This is most famously known as how to avoid SQL injection attacks when the data is untrusted.
+        # However it also allows the SQLAlchemy dialects and/or DBAPI to correctly handle the incoming input for the backend.
+        result_cursor=conn.execute(text("select * from test where id>:id;"), {'id':2})  # cursor对象
+        # result_cursor=conn.execute(text(f"select * from test where id>{4};"))  # cursor对象,不推荐
+        print(result_cursor.fetchone())  # 取出游标第一条数据
+        for result in result_cursor:     # 遍历剩余游标,如果想多次使用结果,需要使用results=result_cursor.all(),此时游标再无数据
+            print(result.id,result.name) # 属性与表列名一致,否则会报错
+        print(result_cursor.rowcount)    # 影响的数据行数,不会随遍历游标而改变,乐观锁会用到该属性
+
 
 '''
 The scoped_session.remove() method, as always, removes the current Session associated with the thread, if any.
@@ -41,6 +69,7 @@ Session = sessionmaker(
     bind=engine,
     autocommit=False,  # default
     autoflush=True,   # flush意思就是将当前session存在的变更发给数据库执行,如果想真正存在于数据库,还需要commit操作. When True, all query operations will issue a flush call to this Session before proceeding, session.execute查询不受此参数影响
+    future=True,
 )
 session = scoped_session(Session,scopefunc=get_ident)  # 线程安全的session,只需要全局定义一次,给出scopefunc则线程的session会存到一个名为register的字典中
 
@@ -51,45 +80,6 @@ class User(Base):
     name = Column(String(50))
     password = Column(String(12))
 # Base.metadata.create_all(engine) # 在数据库建表
-
-
-def working_engine(engine):
-    engine.table_names() # Return a list of all table names available in the database.
-    engine.execute("select sleep(2);")   # 每调用一次,按engine的连接池配置规则取出一条连接资源,用完便归还该资源至连接池
-    engine.execute("insert into test values (323, 3,1);")  # autocommit
-
-    # ret = engine.execute("select * from test limit 2;")
-    # print(ret.fetchone())
-    # print(ret.fetchall())
-    # for item in ret:
-    #     print(item)
-
-
-def working_pool(index,engine):
-    with engine.connect() as connection: # 每调用一次,按engine的连接池配置规则取出一条连接资源,块结束才会归还该资源,默认autocommit=True(每条语句都包含一个事务的开始与结束)
-        # The DBAPI connection is retrieved from the connection pool at the point at which Connection is created.
-        # the Connection.close() method is automatically invoked at the end of the block,the referenced DBAPI connection is released to the connection pool.
-        connection.execute("select 1 from test;")
-        # connection.execute("insert into test values(13, 'url1', 'title1');")  # autocommit
-        # connection.execute("insert into test values(%s, %s, %s)", [(31, "url31", "title31"), (32, "url32", "title32")])  # autocommit
-        print('index: {}\t'.format(index), engine.pool.status())
-        # time.sleep(9)
-
-
-def working_transaction(index,engine):
-    '''
-    每调用一次,按engine的连接池配置规则取出一条连接资源,块结束才会归还该资源
-    the transaction is committed when the block completes.
-    If an exception is raised, the transaction is instead rolled back, and the exception propagated outwards.
-    with语法等价于
-    with engine.connect() as connection:
-        with connection.begin():
-    '''
-    with engine.begin() as connection:
-        connection.execute("truncate table test;")
-        connection.execute("insert into test values({}, 'url1', 2);".format(index))  # not autocommit,有操作(增删改查等)之后数据库才会真正开启事物
-        print('index: {}\t'.format(index), engine.pool.status())
-        time.sleep(9)
 
 
 @contextmanager
@@ -133,7 +123,6 @@ def working_session(index):
     session.remove()  # scoped_session尤其是自定义了scopefunc函数的dict型,一定要记得释放,应为每个新的线程都会新建一个session,可通过session.registry.registry查看
 
 def main():
-    # working_transaction(0,engine)
     # working_session(4)
 
     threadings = [Process(target=working_session, args=(idx,)) for idx in range(7)]
