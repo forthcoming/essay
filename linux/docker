@@ -7,7 +7,7 @@ docker rm -f container_id|container_name   # 删除容器
 docker rmi -f image_id   # 删除镜像(如果镜像对应的容器正在运行则无法删除,需先stop再-f强制删除)
 docker inspect image_id|container_id  # 查看镜像或容器的详细信息  
 docker stop container_id   # 关闭正在运行的容器
-docker exec -it container_id sh  # 进入到容器内部
+docker exec -it container_id cmd  # 在容器环境执行命令并显示,进入到容器内部使用sh
 docker logs -f container_id   # 查看容器控制台输出日志,比如Dockerfile中CMD ["ping","127.0.0.1"],和tail -f类似
 
 
