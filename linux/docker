@@ -5,13 +5,18 @@ docker images    # 查看本地镜像列表
 docker ps -a   # 查看正在运行的容器和运行后退出的容器
 docker rm -f container_id|container_name   # 删除容器
 docker rmi -f image_id   # 删除镜像(如果镜像对应的容器正在运行则无法删除,需先stop再-f强制删除)
-docker inspect image_id|container_id  # 查看镜像或容器的详细信息  
+docker inspect image_id|container_id  # 查看镜像或容器的详细信息
+docker inspect --format='{{.NetworkSettings.IPAddress}}' container_id  # 查看容器ip(针对容器不含ifconfig命令)
 docker stop container_id   # 关闭正在运行的容器
 docker exec -it container_id cmd  # 在容器环境执行命令并显示,进入到容器内部使用sh
 docker logs -f container_id   # 查看容器控制台输出日志,比如Dockerfile中CMD ["ping","127.0.0.1"],和tail -f类似
+docker network ls   # 容器默认使用的是桥接网络
+docker network create my_net  # 默认创建的是桥接网络
+docker inspect my_net
 
 
-docker run -dp 80:80 image_id  # d means run the container in detached mode (in the background),p 80:80 means map port 80 of the host to port 80 in the container
+docker run --network my_net --name test_net -d redis   # 使用自定义网桥,容器之间可通过容器名互连,默认的bridge只能通过ip互连,互连前提是位于同一个网络
+docker run -dp 90:80 image_id  # d means run the container in detached mode (in the background),p 80:80 means map port 80 of the host to port 80 in the container,可通过宿主机ip+宿主机端口90访问容器80端口程序
 docker run -dit --rm --name local image_id # 容器运行不退出,如果本地镜像不存在,会先去dockerhub拉取镜像
 docker run -v /conf:/etc/redis redis redis-server /etc/redis/redis.conf  # 容器目录不存在会创建,存在则覆盖,改动本机或容器,则另一端目录内容也会改变.The mapped directory should be writable
 --add-host list                  Add a custom host-to-IP mapping (host:ip)
