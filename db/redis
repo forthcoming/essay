@@ -83,7 +83,7 @@ Examples:
 monitor
 streams back every command processed by the Redis server. It can help in understanding what is happening to the database
 如果redis是集群,该命令只会监控指定ip:port下的key,可以看到哪个ip正在执行的所有redis操作
-redis-cli -h 127.0.0.1 -p 8001 -a -a 'password' monitor |grep "common_service_hbt"   # redis没有用户名
+redis-cli -h 127.0.0.1 -p 8001 -a 'password' monitor |grep "common_service_hbt"   # redis没有用户名
 
 ---------------------------------------------------------------------------------------------------------------------------------------
 
