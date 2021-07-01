@@ -26,8 +26,15 @@ ttl keyname: 返回key剩余的过期时间秒数(不过期的key返回-1,不存
 persist keyname: 把指定key置为永久有效
 expire keyname 整型值: 设置key的生命周期,以秒为单位(类似的还有pexpire,毫秒数,设置生命周期)
 move keyname db: 将当前数据库的key移动到给定的数据库db当中,若与给定数据库key重名,或key不存在于当前数据库,则MOVE无任何效果
-scan: 遍历所有键,类似的还有sscan,hscan,zscan,他们只遍历特定类型键里面的元素值
 redis-py存进去的是数字类型,再取出来时都会是字符串类型
+
+scan: 遍历所有键,类似的还有sscan,hscan,zscan,他们只遍历特定类型键里面的元素值
+scan 0 match free_premissions:* count 100  
+游标从0开始,到0遍历结束; 
+不会阻塞线程; count只是个hint,返回的结果可多可少
+返回的结果可能会有重复
+遍历过程中如果有数据修改,改动后的数据能不能遍历到是不确定的
+单次返回的结果是空并不意味着遍历结束,而要看返回的游标值是否为零
 
 unlink key1 key2 ... Keyn: 异步删除1个或多个键,不存在的key忽略掉,return the number of keys that were unlinked,it is not blocking, while del is.
 redis-cli -h 10.1.138.63 -n 1 --bigkeys -i 0.01   # 分析数据库中的大key,-i参数表示扫描过程中每次扫描的时间间隔,单位是秒
