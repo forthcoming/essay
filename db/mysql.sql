@@ -214,7 +214,7 @@ utf8mb4是utf8的超集,有存储4字节例如表情符号时使用它
 ? int     //显示int的具体属性
 ? show    //显示show的语法
 \s        //查看当前用户的信息
-mysql -u[username] -p[password] -h[host] -P[port]
+mysql -u[username] -p[password] -h[host] -P[port] -D[database] -A 
 create database [dname];
 create table t_name like t1_name;  // 完全复制表结构(包括主键,分区等)
 insert into t_name(...,...,...) select ...,...,... from t1_name;
