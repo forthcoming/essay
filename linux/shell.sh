@@ -213,6 +213,7 @@ pip freeze > requirements.txt
 pip install -r requirements.txt
 pip install --proxy=http://127.0.0.1:8118 scrapy==1.4.0
 pip install --proxy=socks5://127.0.0.1:1080 scrapy==1.4.0
+pip install redis -i http://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com    # -i指定库的安装源
 pip uninstall
 ---------------------------------------------------------------------------------------------------------------------------------
 virtualenv
