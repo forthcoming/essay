@@ -4,7 +4,8 @@
 FROM python:3.9-alpine   
 
 ENV REDIS_DOWNLOAD_URL http://download.redis.io/releases/redis-6.2.4.tar.gz
-RUN wget -O redis.tar.gz "$REDIS_DOWNLOAD_URL"; \
+RUN apk upgrade; \
+    wget -O redis.tar.gz "$REDIS_DOWNLOAD_URL"; \
     mkdir -p /usr/src/redis; \
     tar -xzf redis.tar.gz -C /usr/src/redis --strip-components=1; \
     rm redis.tar.gz;

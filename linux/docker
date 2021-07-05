@@ -13,7 +13,8 @@ docker logs -f container_id   # 查看容器控制台输出日志,比如Dockerfi
 docker network ls   # 容器默认使用的是桥接网络
 docker network create my_net  # 默认创建的是桥接网络
 docker inspect my_net
-
+docker tag redis YOUR-USER-NAME/redis:latest   # rename, If you don’t specify a tag, Docker will use a tag called latest. 需提前在dockerhub创建好仓库
+docker push akatsuki404/all-in-one:tagname
 
 docker run --network my_net --name test_net -d redis   # 使用自定义网桥,容器之间可通过容器名互连,默认的bridge只能通过ip互连,互连前提是位于同一个网络
 docker run -dp 90:80 image_id  # d means run the container in detached mode (in the background),p 80:80 means map port 80 of the host to port 80 in the container,可通过宿主机ip+宿主机端口90访问容器80端口程序
