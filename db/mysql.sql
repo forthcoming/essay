@@ -241,6 +241,7 @@ show create table t_name;
 show create database db_name;	
 select now(),SUBDATE(now(),INTERVAL 1 MINUTE),SUBDATE(now(),INTERVAL -1 MINUTE) from dual; -- 2019-07-29 18:00:59 | 2019-07-29 17:59:59 | 2019-07-29 18:01:59
 alter table t_name add name varchar(255) not null default avatar after created_time; //加在列created_time后面,add之后的旧列名之后的语法和创建表时的列声明一样
+alter table t_name add (column_1,column_2);  // 同时新增多列
 alter table t_name change 旧列名 新列名 列类型 列参数
 rename table old_name to new_name;
 (select aid,title from article limit 2) union all (select bid,title from blog limit 2);  //在UNION中如果对SELECT子句做限制,需要对SELECT添加圆括号,ORDER BY类似
