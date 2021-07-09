@@ -248,6 +248,8 @@ rename table old_name to new_name;
 # 创建一个从2019-02-22 16:30:00开始到10分钟后结束,每隔1分钟运行pro的事件
 create event if not exists test on schedule every 1 minute starts '2019-02-22 16:30:00' ends '2019-02-22 16:30:00'+ interval 10 minute do call pro( );
 互联网项目不要使用外键,可通过程序保证数据完整性
+一般不需要给create_time索引,应为有自增id索引
+ip建议用无符号整型(uint32)存储
 
 # upsert,当唯一索引/主键索引冲突时会执行update操作,否则执行insert操作                                     
 insert into test(_id, version, flag) values( 1, '1.0', 1 ) on duplicate key update version = '2.0',flag = 0; 
