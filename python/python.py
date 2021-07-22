@@ -1163,6 +1163,7 @@ regex.sub(repl, string, count=0):
 当repl是一个字符串时,任何在其中的反斜杠都会被处理
 count用于指定最多替换次数,不指定时全部替换
 subn同sub,只不过返回值是一个二元tuple,即(sub函数返回值, 替换次数)
+r'^[a-zA-Z0-9]+$'   # 匹配全部由数字字母组成的字符串
 
 import re
 pattern = re.compile(r"like")  # compile内部也会有缓存,因此少量正则匹配不需要compile,refer: https://github.com/python/cpython/blob/master/Lib/re.py#L289
