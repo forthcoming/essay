@@ -1,3 +1,4 @@
+git cherry-pick commitID  # 将某个分支的某次提交合并到当前分支
 git remote -v  #显示需要读写远程仓库的简写与其对应的URL
 origin    https://github.com/xxoome/Spiders.git (fetch)
 origin    https://github.com/xxoome/Spiders.git (push)
