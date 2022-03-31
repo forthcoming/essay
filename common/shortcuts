@@ -1,3 +1,7 @@
+Chrome
+command + option + i   等同于windows的f12
+
+
 vim
 :w [filename]   保存[另存为]
 :wq             写入并离开vi,等价于ZZ
