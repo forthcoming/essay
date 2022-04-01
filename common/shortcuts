@@ -61,6 +61,8 @@ Alt F7        列出变量/函数在哪些地方被使用
 Ctrl Shift F7 高亮某个变量,而且随着鼠标的移动高亮不会消失
 右击选项卡标题区域 -> Split Vertically 即可同时展现多个窗口
 连续按两下Shitf键可以搜索文件名/类名/方法名/目录名,搜索目录的技巧是在在关键字前面加斜杠
+文件 -> locate history 可以查到误删文件
+IDE前进后退键： settings -> Appearance & Behavior -> Menus and Toolbars -> Navigation Bar Toolbar -> Toolbar Run Actions -> +号(add action) -> back+forward
 
 
 Sublime
