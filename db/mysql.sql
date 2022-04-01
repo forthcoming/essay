@@ -140,17 +140,18 @@ mysql不建议使用text blob类似这种数据类型
 尽量不要使用 text 和 blob 这种可能特别大的字段,会影响表的查询性能,一般情况下用 varchar(2000~4000),还是不够的话一定要用text/blob,单独建表
 
 基本数据类型
-tinyint    //1b,默认为signed
-smallint   //2b
-mediumint  //3b
-int        //4b
-bigint     //8b
-float(M,D) //默认为signed,M代表总位数,D代表小数位的个数
-char(N)    //定长,N表示字符个数,不表示字节,不够N个长度时在末尾用空格补充,取出时又将尾部的空格省掉(若数据末尾自身含有空格,取出时也将被去掉),相对于变长访问速度更快
-varchar(N) //变长,不够长度时不用空格补齐,但内容前有1之2个字节来标记该列的长度
-date       // YYYY-MM-DD  如:2010-03-14, The supported range is '1000-01-01' to '9999-12-31'.
-time       // HH:MM:SS    如:19:26:32
-datetime   // YYYY-MM-DD HH:MM:SS 如:2010-03-14 19:26:32, The supported range is '1000-01-01 00:00:00' to '9999-12-31 23:59:59'.
+tinyint      //1b,默认为signed
+smallint     //2b
+mediumint    //3b
+int          //4b
+bigint       //8b
+float(M,D)   //默认为signed,M代表总位数,D代表小数位的个数
+char(N)      //定长,N表示字符个数,不表示字节,不够N个长度时在末尾用空格补充,取出时又将尾部的空格省掉(若数据末尾自身含有空格,取出时也将被去掉),相对于变长访问速度更快
+varchar(N)   //变长,不够长度时不用空格补齐,但内容前有1之2个字节来标记该列的长度
+varbinary(N) //变长,字节最多为N,对于字母数字等没区别,但对于汉字等有区别
+date         // YYYY-MM-DD  如:2010-03-14, The supported range is '1000-01-01' to '9999-12-31'.
+time         // HH:MM:SS    如:19:26:32
+datetime     // YYYY-MM-DD HH:MM:SS 如:2010-03-14 19:26:32, The supported range is '1000-01-01 00:00:00' to '9999-12-31 23:59:59'.
 
 
 分表 & partition
