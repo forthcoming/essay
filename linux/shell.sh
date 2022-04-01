@@ -41,6 +41,7 @@ find /mnt -type d|f|l                           # 查找/mnt下目录/文件/链
 find /mnt -name "init*" -a -type l              # 查找/mnt目录下名字带有init的软连接文件,-a 逻辑与(and),可省略;-o 逻辑或(or);! 逻辑非(not)
 find /mnt -perm 444                             # 查找/mnt下文件权限为444的文件
 find /mnt -size +20K                            # 查找/mnt下文件大小大于20k的文件
+find /mnt -mtime -10                            # 查找/mnt下10天内有修改的文件 
 find /mnt -size -20K                            # 查找/mnt下文件大小小于20k的文件
 find /mnt -name '*.conf' -exec rm -rf {} +      # 删除/mnt名称中带有.conf的文件,每条命令以+分隔,{}代表find的结果
 如何删除形如"-a","a b"等文件?
