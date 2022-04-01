@@ -362,6 +362,7 @@ Thu Dec 15 16:55:22 CST 2016
 2016-12-14
 ---------------------------------------------------------------------------------------------------------------------------------
 common
+好用的终端工具推荐 MobaXterm
 telnet 10.73.20.5 3306 测试ip端口是否被监听
 zip -r data.zip data/   # -r代表压缩文件夹
 curl -i -X POST -H 'admin:test' -H "Content-Type:application/json" -d '{"room_id":5330380,"rp_id":"b22634cd1acdfa83"}' 'http://10.1.4.63:5678/room/talk'
