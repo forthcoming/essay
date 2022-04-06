@@ -436,4 +436,11 @@ apt upgrade
 ufw enable   #开启防火墙
 ufw disable  #关闭防火墙
 ufw status
+--------------------------------------------------------------------------------------------------------------------------------
+#! /usr/bin/expect
+spawn ssh ccktv@10.1.169.215
+expect "*password:" 
+send "ccktv@123\r"   
+interact
+
 
