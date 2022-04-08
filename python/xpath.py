@@ -71,7 +71,7 @@ If you want to select elements by a CSS class, the XPath way to do that is the r
 from lxml.html import fromstring
 web='''
   <p class="content-author">Someone</p>
-  <p class="content text-wrap">Some content</p>
+  <div class="content text-wrap">Some content</div>
 '''
 res=fromstring(web)
 print(res.xpath('//*[@class="content"]/text()'))   #[]   注意
