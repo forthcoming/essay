@@ -10,7 +10,7 @@ im.thumbnail((200,200)) #会维持原来的比例不变
 im.save('nail.jpg')
 print(im.format,im.size,im.mode,im.width,im.height)
 
-region=im.crop((100,100,300,300))
+region=im.crop((100,100,300,300))  # The box is a 4-tuple defining the left, upper, right, and lower pixel coordinate.
 region = region.transpose(Image.ROTATE_90)
 im.paste(region,(200,200,400,400))   #尺寸必须与region大小完全一致
 
