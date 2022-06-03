@@ -68,7 +68,7 @@ print(res.xpath('(//ul/li)[1]/text()'))   #['1']
 When selecting by class, be as specific as necessary
 If you want to select elements by a CSS class, the XPath way to do that is the rather verbose:
 '''
-from lxml.html import fromstring
+from lxml.html import fromstring,tostring
 web='''
   <p class="content-author">Someone</p>
   <div class="content text-wrap">Some content</div>
@@ -77,7 +77,7 @@ res=fromstring(web)
 print(res.xpath('//*[@class="content"]/text()'))   #[]   注意
 print(res.xpath('//*[@class="content text-wrap"]/text()'))   #['Some content']
 print(res.xpath('//*[contains(@class,"content")]/text()'))   #['Someone', 'Some content']
-
+print(tostring(res.xpath('//*[@class="content text-wrap"]')[0]))  # b'<div class="content text-wrap">Some content</div>\n'
 
 ################################################################################################################
 '''
