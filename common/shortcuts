@@ -40,6 +40,7 @@ u  取消上一步操作,取消到上次打开文件的点上,并不是上次保
 
 
 Pycharm/Idea
+option + command + L  格式化代码
 Ctrl E        打开最近访问过的文件
 Ctrl Shift E  打开最近编辑过的文件
 Ctrl F        查找
