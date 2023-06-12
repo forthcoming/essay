@@ -1,3 +1,7 @@
+compiler是将编程语言翻译成01机器语言的软件
+interpreter是将编程语言一行行翻译成01机器语言的软件
+python属于解释性语言
+
 # ctypes
 import ctypes
 
