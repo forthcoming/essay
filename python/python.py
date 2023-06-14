@@ -4,6 +4,7 @@ list[float]
 dict[str, str | int]
 -> None
 tuple[str, int, bool]
+tuple[float, ...]
 int | str
 value: int = 3
 
