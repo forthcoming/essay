@@ -1,3 +1,12 @@
+Python运行时不强制执行函数和变量类型注解,但这些注解可用于类型检查器、IDE、静态检查器等第三方工具
+常见注解:
+list[float]
+dict[str, str | int]
+-> None
+tuple[str, int, bool]
+int | str
+value: int = 3
+
 compiler是将编程语言翻译成01机器语言的软件
 interpreter是将编程语言一行行翻译成01机器语言的软件
 python属于解释性语言
