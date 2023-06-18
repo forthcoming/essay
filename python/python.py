@@ -1,16 +1,17 @@
 python运算符优先级如下, 与传统c语言运算符优先级有区别
-** 指数运算
-~ + -               按位取反、正号、负号
-* / % // 乘法、除法、取余、整除
-+ -                 加法、减法
->> << 右移、左移
-& 按位与
-^ | 按位异或、按位或
-<= < > >= 小于等于、小于、大于、大于等于
-== != 等于、不等于
-is is not 身份运算符
-in not in 成员运算符
-not or and 逻辑运算符
+refer: https://docs.python.org/3/reference/expressions.html?highlight=operator%20precedence
+**
++x -x ~x
+* @ / // %
++ -
+<< >>
+&
+^
+|
+in not in is is not <= < > >= == !=
+not
+and
+or
 
 Python运行时不强制执行函数和变量类型注解, 但这些注解可用于类型检查器、IDE、静态检查器等第三方工具
 常见注解:
