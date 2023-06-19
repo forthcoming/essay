@@ -81,6 +81,10 @@ x is z  # False
 print(id(x), id(y), id(z))  # 1685786989512 1685786989512 1685786991112
 is比较的内存地址; ==比较的是字面值
 元组的值会随引用的可变对象的变化而变, 元组中不可变的是元素的标识(id)
+
+
+__str__: 自定义打印类的格式,print打印类变量时被调用
+__len__: 自定义类长度,len作用与类变量时被调用
 """
 
 from functools import lru_cache
@@ -190,6 +194,31 @@ def counter_tutorial():
     print(counter_a + counter_b)  # Counter({2: 5, 0: 1, 1: 1, 3: 1})
     print(counter_a - counter_b)  # Counter({0: 1, 1: 1, 2: 1})
     print(counter_b - counter_a)  # Counter({3: 1})
+
+
+def zip_tutorial():
+    arr_a = ['a', 'b', 'c']
+    arr_b = '123'
+    print(list(zip(arr_a, arr_b)))  # [('a', '1'), ('b', '2'), ('c', '3')]
+    print(dict(zip(arr_a, arr_b)))  # {'c': '3', 'b': '2', 'a': '1'}
+    for i, j in zip(arr_a, arr_b):  # 同时遍历两个或更多的序列
+        print(i, j)
+    # a 1
+    # b 2
+    # c 3
+
+    # 解压(原理就是利用了解包参数的特性)
+    matrix = [[1, 2], [3, 4], [5, 6]]
+    for i, j, k in zip(*matrix):  # <class 'zip'>
+        print(i, j, k)
+    # 1 3 5
+    # 2 4 6
+
+    # 矩阵置换
+    [list(_) for _ in zip(*matrix)]  # [[1, 3, 5], [2, 4, 6]]
+    print([[row[i] for row in matrix] for i in range(2)])
+    print([[matrix[j][i] for j in range(3)] for i in range(2)])
+    print([row[i] for i in range(2) for row in matrix])
 
 
 def bin_sect_tutorial():
@@ -306,6 +335,13 @@ def sort_tutorial():
     sorted(peeps, key=lambda x: (x['name'], x['salary']))
     # [{'salary': 1000, 'name': 'Bill'}, {'salary': 500, 'name': 'Bill'}, {'salary': 500, 'name': 'Ted'}]
     sorted(peeps, key=lambda x: (x['name'], -x['salary']))
+
+
+def sum_tutorial():
+    arr = [[1, 2], [3, 4], [5, 6]]
+    _ = sum(arr, [])  # [1, 2, 3, 4, 5, 6]  sum第二个参数默认为0
+    sum(_)  # 21
+    print([element for _arr in arr for element in _arr])  # [1, 2, 3, 4, 5, 6]
 
 
 def cache_tutorial():
@@ -1022,14 +1058,6 @@ print(Slots.__dict__)
 
 #########################################################################################################################################
 
-sum
-a = [[1, 2], [3, 4], [5, 6]]
-_ = sum(a, [])  # [1, 2, 3, 4, 5, 6]  sum第二个参数默认为0
-sum(_)  # 21
-[x for l in a for x in l]  # [1, 2, 3, 4, 5, 6]
-
-#########################################################################################################################################
-
 property(fget=None, fset=None, fdel=None, doc=None)：函数
 property()
 的作用就是把类中的方法当作属性来访问
@@ -1158,41 +1186,6 @@ p = Person('Bob')
 p('Tim')  # My name is Bob,My friend is Tim.
 
 #########################################################################################################################################
-
-__len__: 要让
-len()
-函数工作正常, 类必须提供一个特殊方法__len__(), 它返回元素的个数
-
-
-class Students(object):
-    def __init__(self, *args):
-        self.names = args
-
-    def __len__(self):
-        return len(self.names)
-
-
-student = Students('Bob', 'Alice', 'Tim')
-print(len(student))  # 3
-
-#########################################################################################################################################
-
-__str__: 自定义打印类的格式
-
-
-class Node:
-    def __init__(self, data, right=None):
-        self.data = data
-        self.right = right
-
-    def __str__(self):
-        return 'data:{}'.format(self.data)
-
-
-print(Node(1))
-
-#########################################################################################################################################
-
 isinstance(object,
 
 
@@ -1369,33 +1362,6 @@ a, b = b, a  # 使用拆箱进行变量交换
 
 first, _, third, *_ = range(10)
 print(first, third, _)  # 0 2 [3, 4, 5, 6, 7, 8, 9]
-
-#########################################################################################################################################
-
-zip
-# 压缩
-a = ['a', 'b', 'c']
-b = '123'
-print(list(zip(a, b)))  # [('a', '1'), ('b', '2'), ('c', '3')]
-print(dict(zip(a, b)))  # {'c': '3', 'b': '2', 'a': '1'}
-for i, j in zip(a, b):  # 同时遍历两个或更多的序列
-    print(i, j)
-# a 1
-# b 2
-# c 3
-
-# 解压(原理就是利用了解包参数的特性)
-matrix = [[1, 2], [3, 4], [5, 6]]
-for i, j, k in zip(*matrix):  # <class 'zip'>
-    print(i, j, k)
-# 1 3 5
-# 2 4 6
-
-# 矩阵置换
-[list(_) for _ in zip(*matrix)]  # [[1, 3, 5], [2, 4, 6]]
-[[row[i] for row in matrix] for i in range(2)]
-[[matrix[j][i] for j in range(3)] for i in range(2)]
-[row[i] for i in range(2) for row in matrix]
 
 #########################################################################################################################################
 
