@@ -342,26 +342,23 @@ def random_tutorial():
     print(arr)
 
 
-def dec2bin(string):  # 方便理解c语言浮点数的内存表示, dec2bin('19.625') => 10011.101
+def dec2bin(string, precision=10):  # 方便理解c语言浮点数的内存表示, dec2bin('19.625') => 10011.101
     result = deque()
-    integer, decimal = re.match(r'(\d*)\.?(\d*)', string).groups()
-    integer = int(integer or 0)
-    radix = 10 ** len(decimal)
-    decimal = int(decimal or 0)
+    integer, decimal = re.match(r'(\d*)(\.?\d*)', string).groups()
+    integer, decimal = int(integer or 0), float(decimal or 0)
     while integer:
         result.appendleft(str(integer & 1))
         integer >>= 1
     if decimal:
         result.append('.')
-        for idx in range(100):
-            if not decimal:
-                break
-            decimal <<= 1
-            if decimal // radix:
-                result.append('1')
-                decimal -= radix
-            else:
-                result.append('0')
+    while precision and decimal:
+        decimal *= 2
+        if decimal >= 1:
+            result.append('1')
+            decimal -= 1
+        else:
+            result.append('0')
+        precision -= 1
     return ''.join(result)
 
 
