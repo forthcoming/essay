@@ -1,3 +1,4 @@
+"""
 python运算符优先级如下, 与传统c语言运算符优先级有区别
 refer: https://docs.python.org/3/reference/expressions.html?highlight=operator%20precedence
 **
@@ -13,6 +14,7 @@ not
 and
 or
 
+
 Python运行时不强制执行函数和变量类型注解, 但这些注解可用于类型检查器、IDE、静态检查器等第三方工具
 常见注解:
 list[float]
@@ -23,44 +25,315 @@ tuple[float, ...]
 int | str
 value: int = 3
 
+
 compiler是将编程语言翻译成01机器语言的软件
 interpreter是将编程语言一行行翻译成01机器语言的软件
 python属于解释性语言
 
-# ctypes
-import ctypes
 
-_int = ctypes.c_int(12)
-_ushort = ctypes.c_ushort(-3)  # 溢出,2 byte
-_int.value = 10
-print(_int.value, _ushort.value)
+__init__.py
+主要作用是将文件夹变为一个Python模块, 我们在python中导入一个包时, 实际上是导入了它的__init__.py文件
+被导入的文件中的全局代码, 类静态区都会被执行
 
-pi = ctypes.pointer(_int)
-print(pi.contents)  # Pointer instances have a contents attribute which returns the object to which the pointer points
-pi.contents = _ushort  # 更改指针指向
-pi[0] = 12  # 如果pi指向数组,可以通过pi[0][0],pi[0][1]等依次访问数组元素
-print(_int, _ushort, pi[0])
+变量sys.path是一个字符串列表, 它为解释器指定了模块的搜索路径,包括 当前程序所在目录、标准库的安装目录、操作系统环境变量PYTHONPATH所包含的目录
+vim ~/.bashrc  # vim /etc/profile 全局
+export PYTHONPATH=$PYTHONPATH:/root/Desktop/atlas
+source ~/.bashrc
 
-# ctypes.create_string_buffer(init_or_size, size=None)
-# This function creates a mutable character buffer. The returned object is a ctypes array of c_char.if you want to access it as NUL terminated string, use the value property
-# init_or_size must be an integer which specifies the size of the array, or a bytes object which will be used to initialize the array items.
-# If a bytes object is specified as first argument, the buffer is made one item larger than its length so that the last element in the array is a NUL termination character. An integer can be passed as second argument
-p = ctypes.create_string_buffer(3)  # create a 3 byte buffer, initialized to NUL bytes
-print(ctypes.sizeof(p), p.raw)  # 3 b'\x00\x00\x00'
-p = ctypes.create_string_buffer(b"Hello", 10)  # create a buffer containing a NUL terminated string
-print(ctypes.sizeof(p), p.raw)  # 10 b'Hello\x00\x00\x00\x00\x00'
-p.value = b"Hi"
-p[2] = 65
-print(p.raw, p.value)  # b'HiAlo\x00\x00\x00\x00\x00' b'HiAlo'
+import sys
+sys.path.append('/root/Desktop')   # 添加python查询路径
 
-c_byte_array = ctypes.c_byte * 4
-array = c_byte_array(1, 2, 3, 4)  # 初始化,只有到数组是c_char型数组时才有value属性,返回整个字符串
-print(array[::], ctypes.addressof(
-    array))  # Returns the address of the memory buffer as integer. obj must be an instance of a ctypes type.
 
-# ctypes.memmove(dst, src, count)
-# Same as the standard C memmove library function: copies count bytes from src to dst. dst and src must be integers or ctypes instances that can be converted to pointers.
+原码 & 补码
+原码: 用最高位表示符号位, 1表示负, 0表示正, 其他位存放该数的二进制的绝对值
+补码: 正数的补码等于他的原码, 负数的补码等于正数的原码取反加一
+计算机存的是补码
+-5转化为补码: (0b00000101 ^ 0xff) + 1 = > 0b11111011
+0b11111011转化为整数: -((0b11111011 ^ 0xff) + 1) = > -5
 
+
+and, or, not
+x and y返回的结果是决定表达式结果的值
+如果x为真, 则y决定结果, 返回y; 如果x为假, x决定了结果为假, 返回x
+x or y返回的结果是决定表达式结果的值
+not 返回表达式结果的相反的值, 如果表达式结果为真则返回false, 如果表达式结果为假则返回true
+
+关系运算符
+以下为True
+(1, 2, 3) < (1, 2, 4))
+[1, 2, 3] < [1, 2, 4]
+'ABCD' < 'bar' < 'bloom'
+(1, 2, 3, 4) < (1, 2, 4)
+(1, 2) < (1, 2, -1)
+(1, 2, ('aa', 'ab')) < (1, 2, ('abc', 'a'), 4)
+以下为False
+{1} < {2}
+{2} < {1}
+
+
+is和==区别
+x = y = [4, 5, 6]
+z = [4, 5, 6]
+x == y  # True
+x == z  # True
+x is y  # True
+x is z  # False
+print(id(x), id(y), id(z))  # 1685786989512 1685786989512 1685786991112
+is比较的内存地址; ==比较的是字面值
+元组的值会随引用的可变对象的变化而变, 元组中不可变的是元素的标识(id)
+"""
+
+from functools import lru_cache
+from datetime import datetime, timedelta
+import time
+from random import randrange, choice, sample, shuffle, random
+from heapq import heapify, heappop, heappush, nlargest, nsmallest, heappushpop
+from collections import Counter
+
+
+def str_tutorial():
+    # split
+    string = "Line1-abcdef \nLine2-abc \nLine4-abcd"
+    print(string.split())  # ['Line1-abcdef', 'Line2-abc', 'Line4-abcd']
+    print(string.split(' ', 1))  # ['Line1-abcdef', '\nLine2-abc \nLine4-abcd']
+    print(string.split(' '))  # ['Line1-abcdef', '\nLine2-abc', '\nLine4-abcd']
+    # 应用: 去除字符串中空白符content =''.join(content.split())
+
+
+def list_tutorial():
+    # 列表切片赋值
+    arr = [1, 2, 3, 4, 5]
+    arr[2:3] = [0, 0]  # 注意这里的用法(区别于a[2] = [0, 0])   [1, 2, 0, 0, 4, 5]
+    arr[1:1] = [8, 9]  # [1, 8, 9, 2, 0, 0, 4, 5]
+    arr[1:-1] = []  # [1,5] ,等价于del a[1:-1]
+
+    # __add__ & __iadd__
+    '''
+    += tries to call the __iadd__ special method, and if that isn't available it tries to use __add__ instead.
+    + operator tries to call the  __add__ special method returns a new object.
+    The __iadd__ special method is for an in-place addition, that is it mutates the object that it acts on.
+    For immutable types (where you don't have an __iadd__) a += b and a = a + b are equivalent.
+    '''
+    a1 = a2 = [1, 2]
+    b1 = b2 = [1, 2]
+    a1 += [3]  # Uses __iadd__, modifies a1 in-place
+    b1 = b1 + [3]  # Uses __add__, creates new list, assigns it to b1
+    print(a2)  # [1, 2, 3]   a1 and a2 are still the same list
+    print(b2)  # [1, 2]      whereas only b1 was changed
+
+
+def set_tutorial():  # 无序不重复, 添加元素用add
+    # (set_a ^ set_b) == ((set_a - set_b) | (set_b - set_a)),numbers in set_a or in set_b but not both
+    # 区别于位运算符中的& ,| ,^和逻辑运算符 and or not
+    set_a = {1, 2, 3, 3}
+    set_b = {3, 4, 5, 6, 7}
+    print(set_a == set_b)  # False
+    print(set_a < set_b)  # False,set_a不是set_b的子集
+    print(set_a | set_b)  # set([1, 2, 3, 4, 5, 6, 7])
+    print(set_a & set_b)  # set([3])
+    print(set_a - set_b)  # set([1, 2])
+    print(set_b - set_a)  # set([4, 5, 6, 7])
+    print(set_a ^ set_b)  # set([1, 2, 4, 5, 6, 7])
+
+
+def dict_tutorial():  # 字典有序
+    d = {'a': 1, 'b': 2}
+    d.update({'a': 3, 'c': 4})  # {'a': 3, 'b': 2, 'c': 4}
+    print(d.pop('a', '无a'))  # 类似于get,3
+    print(d.setdefault('d'))  # None
+    print(d.setdefault('e', 'avatar'))  # avatar
+    print(d.setdefault('b', 'akatsuki'))  # 2
+    print(d)  # {'b': 2, 'c': 4, 'd': None, 'e': 'avatar'}
+
+    one = {'a': 1, 'b': 2}
+    two = {'a': 3, 'c': 2}
+    _ = one | two  # {'a': 3, 'b': 2, 'c': 2},合并两个字典
+
+
+def common_tutorial():
+    # collections.deque([iterable[, maxlen]])
+    """
+    Deques support memory efficient appends and pops from either side of the deque with approximately the same O(1) performance in either direction.
+    Though list objects support similar operations, they are optimized for fast fixed-length operations and incur O(n) memory movement
+    costs for pop(0) and insert(0, v) operations which change both the size and position of the underlying data representation.
+    If maxlen is not specified or is None, deques may grow to an arbitrary(任意的) length.
+    Otherwise the maxlen is full, when new items are added, a corresponding number of items are discarded from the opposite end.
+    deque是链式存储结构, 可以当栈和队列来使用,一般情况下list可以代替stack,但不能代替queue
+    """
+
+    # os.walk(top[, topdown=True[, onerror=None[, followlinks=False]]])
+    """
+    top - - 根目录下的每一个文件夹(包含它自己), 产生3 - 元组(dirpath, dirnames, filenames)[文件夹路径, 文件夹名字, 文件名]
+    topdown - -为True或者没有指定, 目录自上而下.如果topdown为False, 目录自下而上
+    followlinks - - 设置为true, 则通过软链接访问目录
+    """
+
+
+def counter_tutorial():
+    count = Counter([1, 1, 2, 2, 3, 3, 3, 3, 4, 5])
+    print(count)  # Counter({3: 4, 1: 2, 2: 2, 4: 1, 5: 1})
+    print(count[3], count['y'])  # 4 0 ,访问不存在的元素返回0
+    print(count.most_common(1))  # [(3, 4)]
+    print(count.most_common(3))  # [(3, 4), (1, 2), (2, 2)]
+    count.update('plus')  # 计数器更新
+    count.subtract('minus')  # 计数器更新
+    print(count)  # Counter({3: 4, 1: 2, 2: 2, 4: 1, 5: 1, 'l': 1, 'p': 1, 'u': 0, 's': 0, 'i': -1, 'n': -1, 'm': -1})
+    print(list(count.elements()))  # [1, 1, 2, 2, 3, 3, 3, 3, 4, 5, 'l', 'p']
+
+    counter_a = Counter([0, 1, 2, 2, 2])  # Counter({2: 3, 0: 1, 1: 1})
+    counter_b = Counter([2, 2, 3])  # Counter({2: 2, 3: 1})
+    print(counter_a | counter_b)  # Counter({2: 3, 0: 1, 1: 1, 3: 1})
+    print(counter_a & counter_b)  # Counter({2: 2})
+    print(counter_a + counter_b)  # Counter({2: 5, 0: 1, 1: 1, 3: 1})
+    print(counter_a - counter_b)  # Counter({0: 1, 1: 1, 2: 1})
+    print(counter_b - counter_a)  # Counter({3: 1})
+
+
+def exception_tutorial():
+    try:
+        # os._exit(0)   # 会阻止一切语句的执行,包括finally
+        1 / 0
+    except ValueError as e:  # 至多只有一个except被执行
+        print('That was no valid number.', e)
+    except (ZeroDivisionError, RuntimeError):
+        print('The divisor can not be zero.')
+    except:  # 匹配任何类型异常,必须放在最后(default 'except:' must be last)
+        print('Handling other exceptions...')
+    else:  # 必须放在所有except后面,当没有异常发生时执行
+        print('no exception happen')
+    finally:  # 定义一些清理工作,异常发生/捕捉与否,是否有return都会执行
+        print('Some clean-up actions!')
+
+
+def format_tutorial():  # 最新版Python的f字符串可以看作format的简写
+    # 'My name is: ansheng, I am 20 years old'
+    string = "My name is: {}, I am {} years old".format(*["ansheng", 20])
+    # 'My name is: ansheng, I am 20 years old, ansheng Engineer'
+    string = "My name is: {0}, I am {1} years old, {0} Engineer".format(*["ansheng", 20, "Python"])
+    # 'My name is: ansheng, I am 20 years old'
+    string = "My name is: {name}, I am {age} years old".format(**{"name": "ansheng", "age": 20})
+    # 'My name is: Ansheng, I am 20 years old, 66666.550000 wage'
+    string = "My name is: {:s}, I am {:d} years old, {:f} wage".format("Ansheng", 20, 66666.55)
+    # 'numbers: 1111,15.000,15,0xf,F, 1500.000000%'
+    string = "numbers: {0:b},{0:.3f},{0:d},{0:#x},{0:X}, {0:%}".format(15)
+    # numbers: 1111,15.000000,15,0xf,F, 1500.000000%
+    print(f"numbers: {15:b},{15:f},{15:d},{15:#x},{15:X}, {15:%}")
+
+
+def open_tutorial():
+    """
+    r: read, default
+    w: write
+    b: binary
+    a: append
+    r +: 从头开始读, 从头开始往后覆盖
+    w +: 读写, 注意其w特性
+    a +: 从头读, 追加写
+    """
+    # 读取非UTF-8文件,要给open传入encoding参数,例如读取GBK文件
+    # 遇到编码不规范的文件,会提示UnicodeDecodeError,errors参数表示如果遇到编码错误后如何处理,最简单的方式是直接忽略
+    with open('/Users/michael/test.txt', 'r', encoding='gbk', errors='ignore') as file:
+        for line in file:  # 无需各种read()函数
+            print(line)
+
+    with open('log1') as file1, open('log2') as file2:  # 同时打开多个
+        print(list(file1))  # 等价于file1.readlines()
+        file2.seek(33)
+        print(file2.tell())
+        print(file2.readline())
+
+
+def datetime_tutorial():
+    print(datetime.now())  # 获取的是本地时间
+    print(datetime.now().date())
+    print(datetime.now().time())
+    print(datetime.now().weekday())
+    print(datetime.now().year)
+    print(datetime.now().month)
+    print(datetime.now().strftime('%Y-%m-%d'))  # <class 'str'>
+    print(datetime.now() - timedelta(days=2))  # weeks,minutes
+    print(datetime.strptime('2016-9-9 18:19:59', '%Y-%m-%d %H:%M:%S'))  # <class 'datetime.datetime'>
+    print(datetime.fromtimestamp(time.time()))  # 2020-08-12 15:48:21.636170
+    _ = datetime(2020, 10, 9, 11, 12, 13)  # 2020-10-09 11:12:13
+
+
+def heap_tutorial():
+    heap = [3, 54, 64, 4, 34, 24, 2, 4, 24, 33]
+    heapify(heap)  # 小顶堆
+    print(heap)
+    print([heappop(heap) for _ in range(len(heap))])  # 此时heap为空
+
+    h = []
+    heappush(h, (3, 'create tests'))
+    heappush(h, (5, 'write code'))
+    heappush(h, (7, 'release product'))
+    heappush(h, (1, 'write spec'))
+    print(h)
+    print(nsmallest(3, h))
+    print(nlargest(2, h))
+    print(heappushpop(h, (4, 'for tests')))
+    print(h[0])  # 查看堆中最小值，不弹出
+    print(heappop(h), h)
+
+
+def sort_tutorial():
+    """
+    if you don’t need the original list, list.sort is slightly more efficient than sorted.
+    By default the sort and the sorted built-in function notices that the items are tuples so it sorts on the first element first and on the second element second.
+    """
+    items = [(1, 'B'), (1, 'A'), (2, 'A'), (0, 'B'), (0, 'a')]
+    sorted(items)  # [(0, 'B'), (0, 'a'), (1, 'A'), (1, 'B'), (2, 'A')]
+    sorted(items, key=lambda x: (x[0], x[1].lower()))  # [(0, 'a'), (0, 'B'), (1, 'A'), (1, 'B'), (2, 'A')]
+    peeps = [
+        {'name': 'Bill', 'salary': 1000},
+        {'name': 'Bill', 'salary': 500},
+        {'name': 'Ted', 'salary': 500}
+    ]
+    # [{'salary': 500, 'name': 'Bill'}, {'salary': 1000, 'name': 'Bill'}, {'salary': 500, 'name': 'Ted'}]
+    sorted(peeps, key=lambda x: (x['name'], x['salary']))
+    # [{'salary': 1000, 'name': 'Bill'}, {'salary': 500, 'name': 'Bill'}, {'salary': 500, 'name': 'Ted'}]
+    sorted(peeps, key=lambda x: (x['name'], -x['salary']))
+
+
+def cache_tutorial():
+    """
+    maxsize代表能缓存几个函数执行结果,当超过限制时会删除最久一次未使用的元素
+    typed代表参数类型改变时是否重新缓存
+    记忆确定性的函数,因为它总是会为相同的参数返回相同的结果
+    """
+
+    @lru_cache(maxsize=100, typed=True)
+    def fib(number: int) -> int:
+        print(number, end='\t')
+        if number < 2:
+            return number
+        return fib(number - 1) + fib(number - 2)
+
+    print(fib.cache_info())  # CacheInfo(hits=0, misses=0, maxsize=100, currsize=0)
+    print(f'answer: {fib(10)}')  # 10   9   8   7   6   5   4   3   2   1   0   answer: 55
+    print(fib.cache_info())  # CacheInfo(hits=8, misses=11, maxsize=100, currsize=11) hits表示缓存命中次数
+    print(f'answer: {fib(10)}')  # answer: 55
+    print(fib.cache_info())  # CacheInfo(hits=9, misses=11, maxsize=100, currsize=11)
+    fib.cache_clear()
+    print(fib.cache_info())  # CacheInfo(hits=0, misses=0, maxsize=100, currsize=0)
+
+
+def random_tutorial():
+    # random是伪随机, 默认随机数生成种子是从 /dev/urandom或系统时间戳获取, 所以种子肯定不会是一样的
+    print(random())  # 随机生成一个[0,1)范围内实数
+    print(randrange(1, 10, 2))  # 从range(start, stop[, step])范围内选取一个值并返回(不包含stop)
+    arr = [1, 2, 3, 4, 5, 6, 6, 6, 6]
+    print(choice(arr))  # 返回一个列表,元组或字符串的随机项
+    print(sample(arr, 3))  # 返回列表指定长度个不重复位置的元素
+    shuffle(arr)  # 方法将序列的所有元素随机排序
+    print(arr)
+
+
+# memoryview
+# It allows you to share memory between data-structures (things like PIL images, SQLlite data-bases, NumPy arrays, etc.) without first copying. 
+# This is very important for large data sets.With it you can do things like memory-map to a very large file, slice a piece of that file and do calculations on that piece
+# A memoryview supports slicing and indexing to expose its data. One-dimensional slicing will result in a subview
+# 当memoryview实例mm跨进程传递时,相当于子进程拷贝了一份数据,mm重新指向了子进程的数据,指针对象ctypes.pointer也是一样
 # ctypes.memset(dst, c, count)
 # Same as the standard C memset library function: fills the memory block at address dst with count bytes of value c. dst must be an integer specifying an address, or a ctypes instance.
 
@@ -68,17 +341,6 @@ print(array[::], ctypes.addressof(
 # This method returns a ctypes instance that shares the buffer of the source object. The source object must support the writeable buffer interface.
 # The optional offset parameter specifies an offset into the source buffer in bytes; the default is zero. If the source buffer is not large enough a ValueError is raised.
 
-# 参数是指针:
-# 1. 希望改变原有数据
-# 2. the data is too large to be passed by value
-
-##################################################################################################################################
-
-# memoryview
-# It allows you to share memory between data-structures (things like PIL images, SQLlite data-bases, NumPy arrays, etc.) without first copying. 
-# This is very important for large data sets.With it you can do things like memory-map to a very large file, slice a piece of that file and do calculations on that piece
-# A memoryview supports slicing and indexing to expose its data. One-dimensional slicing will result in a subview
-# 当memoryview实例mm跨进程传递时,相当于子进程拷贝了一份数据,mm重新指向了子进程的数据,指针对象ctypes.pointer也是一样
 import time
 
 
@@ -266,26 +528,6 @@ xxxooooxxxxxooooxxxoooo
 
 ##################################################################################################################################
 
-__init__.py
-主要作用是将文件夹变为一个Python模块, 我们在python中导入一个包时, 实际上是导入了它的__init__.py文件, 该文件内的语句都将被执行
-被导入的文件中的全局代码, 类静态区都会被执行
-
-添加python查询路径
-import sys
-
-sys.path.append('/root/Desktop')
-变量sys.path是一个字符串列表, 它为解释器指定了模块的搜索路径, 它通过环境变量PATHONPATH初始化为一个默认路径
-当导入名为a的模块时, 解释器会先从内建模块尝试匹配, 如果没找到, 则将在sys.path记录的所有目录中搜索a.py文件, 而sys.path则包括
-当前程序所在目录
-标准库的安装目录
-操作系统环境变量PYTHONPATH所包含的目录
-vim
-~ /.bashrc    # vim /etc/profile 全局
-export
-PYTHONPATH =$PYTHONPATH: / root / Desktop / atlas
-source
-~ /.bashrc
-
 int('0x01002', 16)   # 字符串是16进制,并将其转换成10进制
 列表推导式效率比map, reduce, filter等高阶函数效率更高
 
@@ -298,18 +540,6 @@ print(x)   # 11
 
 ##################################################################################################################################
 
-原码 & 补码
-原码: 用最高位表示符号位, 1
-表示负, 0
-表示正, 其他位存放该数的二进制的绝对值
-补码: 正数的补码等于他的原码, 负数的补码等于正数的原码取反加一
--5
-转化为补码: (0b00000101 ^ 0xff) + 1 = > 0b11111011
-0b11111011
-转化为整数: -((0b11111011 ^ 0xff) + 1) = > -5
-计算机存的是补码
-
-##################################################################################################################################
 
 from collections import deque
 import re
@@ -339,45 +569,6 @@ def dec2bin(string):  # 方便理解c语言浮点数的内存表示
 
 
 print(dec2bin('19.625'))  # 10011.101
-
-##################################################################################################################################
-
-from functools import lru_cache
-
-
-# maxsize代表能缓存几个函数执行结果,当超过限制时会删除最久一次未使用的元素
-# typed代表参数类型改变时是否重新缓存;
-# 记忆确定性的函数,因为它总是会为相同的参数返回相同的结果
-@lru_cache(maxsize=100, typed=True)
-def fib(number: int) -> int:
-    print(number, end='\t')
-    if number < 2:
-        return number
-    return fib(number - 1) + fib(number - 2)
-
-
-print(fib.cache_info())  # CacheInfo(hits=0, misses=0, maxsize=512, currsize=0)
-print(f'answer: {fib(10)}')
-print(fib.cache_info())  # CacheInfo(hits=8, misses=11, maxsize=512, currsize=11) hits表示缓存命中次数
-print(f'answer: {fib(10)}')
-print(fib.cache_info())  # CacheInfo(hits=9, misses=11, maxsize=512, currsize=11)
-fib.cache_clear()
-print(fib.cache_info())  # CacheInfo(hits=0, misses=0, maxsize=512, currsize=0)
-
-##################################################################################################################################
-
-# Type hinting
-from typing import List
-
-
-def greater(a: int, b: int) -> bool:
-    return a > b
-
-
-a: int = 123
-b: str = 'hello'
-l: List[int] = [1, 2, 3]  # 指明一个全部由整数组成的列表
-print(greater.__annotations__)  # {'a': <class 'int'>, 'b': <class 'int'>, 'return': <class 'bool'>}
 
 ##################################################################################################################################
 
@@ -478,23 +669,6 @@ outer()
 print("global:", x)
 
 #########################################################################################################################################
-
-sort
-# if you don’t need the original list, list.sort is slightly more efficient than sorted.
-# By default the sort and the sorted built-in function notices that the items are tuples so it sorts on the first element first and on the second element second.
-items = [(1, 'B'), (1, 'A'), (2, 'A'), (0, 'B'), (0, 'a')]
-sorted(items)  # [(0, 'B'), (0, 'a'), (1, 'A'), (1, 'B'), (2, 'A')]
-sorted(items, key=lambda x: (x[0], x[1].lower()))  # [(0, 'a'), (0, 'B'), (1, 'A'), (1, 'B'), (2, 'A')]
-
-peeps = [{'name': 'Bill', 'salary': 1000}, {'name': 'Bill', 'salary': 500}, {'name': 'Ted', 'salary': 500}]
-sorted(peeps, key=lambda x: (x['name'], x[
-    'salary']))  # [{'salary': 500, 'name': 'Bill'}, {'salary': 1000, 'name': 'Bill'}, {'salary': 500, 'name': 'Ted'}]
-# Bill comes before Ted and 500 comes before 1000. But how do you sort it like that on the name but reverse on the salary?
-sorted(peeps, key=lambda x: (x['name'], -x[
-    'salary']))  # [{'salary': 1000, 'name': 'Bill'}, {'salary': 500, 'name': 'Bill'}, {'salary': 500, 'name': 'Ted'}]
-
-#########################################################################################################################################
-
 What
 kinds
 of
@@ -847,83 +1021,11 @@ print(Slots.__dict__)
 
 #########################################################################################################################################
 
-is & ==
-x = y = [4, 5, 6]
-z = [4, 5, 6]
-x == y  # True
-x == z  # True
-x is y  # True
-x is z  # False
-print(id(x), id(y), id(z))  # 1685786989512 1685786989512 1685786991112
-is比较的内存地址, == 比较的是字面值
-元组的值会随引用的可变对象的变化而变, 元组中不可变的是元素的标识(id)
-
-#########################################################################################################################################
-
-open
-with open('test.txt', 'r') as f:
-    for _ in f:  # 无需各种read()函数
-        print(_)
-
-f = open('/Users/michael/gbk.txt', 'r', encoding='gbk', errors='ignore')
-# 读取非UTF-8文件,要给open传入encoding参数,例如读取GBK文件
-# 遇到编码不规范的文件,会提示UnicodeDecodeError,errors参数表示如果遇到编码错误后如何处理,最简单的方式是直接忽略
-
-with open('log1') as obj1, open('log2') as obj2:  # 同时打开多个
-    file = list(obj1)  # 等价于obj1.readlines()
-    obj2.seek(33)
-    print(obj2.tell())
-    print(obj2.readline())
-
-r: read, default
-w: write
-b: binary
-a: append
-r +: 从头开始读, 从头开始往后覆盖
-w +: 读写, 注意其w特性
-a +: 从头读, 追加写
-
-#########################################################################################################################################
-
 sum
 a = [[1, 2], [3, 4], [5, 6]]
 _ = sum(a, [])  # [1, 2, 3, 4, 5, 6]  sum第二个参数默认为0
 sum(_)  # 21
 [x for l in a for x in l]  # [1, 2, 3, 4, 5, 6]
-
-#########################################################################################################################################
-
-split
-mystr = "Line1-abcdef \nLine2-abc \nLine4-abcd"
-print(mystr.split())  # ['Line1-abcdef', 'Line2-abc', 'Line4-abcd']
-print(mystr.split(' ', 1))  # ['Line1-abcdef', '\nLine2-abc \nLine4-abcd']
-print(mystr.split(' '))  # ['Line1-abcdef', '\nLine2-abc', '\nLine4-abcd']
-# 应用: 去除字符串中空白符content =''.join(content.split())
-
-#########################################################################################################################################
-
-__add__ & __iadd__
-a1 = a2 = [1, 2]
-b1 = b2 = [1, 2]
-a1 += [3]  # Uses __iadd__, modifies a1 in-place
-b1 = b1 + [3]  # Uses __add__, creates new list, assigns it to b1
-print(a2)  # [1, 2, 3]   a1 and a2 are still the same list
-print(b2)  # [1, 2]      whereas only b1 was changed
-
-'''
-The general answer is that += tries to call the __iadd__ special method, and if that isn't available it tries to use __add__ instead.
-So the issue is with the difference between these special methods.
-The __iadd__ special method is for an in-place addition, that is it mutates the object that it acts on.
-The __add__ special method returns a new object and is also used for the standard + operator.
-So when the += operator is used on an object which has an __iadd__ defined the object is modified in place.
-Otherwise it will instead try to use the plain __add__ and return a new object.
-That is why for mutable types like lists += changes the object's value,
-whereas for immutable types like tuples, strings and integers a new object is returned instead (a += b becomes equivalent to a = a + b).
-For types that support both __iadd__ and __add__ you therefore have to be careful which one you use.
-a += b will call __iadd__ and mutate a, whereas a = a + b will create a new object and assign it to a. They are not the same operation!
-For immutable types (where you don't have an __iadd__) a += b and a = a + b are equivalent.
-This is what lets you use += on immutable types, which might seem a strange design decision until you consider that otherwise you couldn't use += on immutable types like numbers!
-'''
 
 #########################################################################################################################################
 
@@ -1040,27 +1142,6 @@ print(Tests.__base__, Tests.__name__)  # <class 'object'> Tests
 
 #########################################################################################################################################
 
-关系运算符
-(1, 2, 3) < (1, 2, 4)
-[1, 2, 3] < [1, 2, 4]
-'ABC' < 'C' < 'Pascal' < 'Python'
-(1, 2, 3, 4) < (1, 2, 4)
-(1, 2) < (1, 2, -1)
-(1, 2, 3) == (1.0, 2.0, 3.0)
-(1, 2, ('aa', 'ab')) < (1, 2, ('abc', 'a'), 4)
-{1} < {2}  # False,子集运算符
-{2} < {1}  # False,子集运算符
-
-#########################################################################################################################################
-
-walk
-os.walk(top[, topdown=True[, onerror=None[, followlinks=False]]])
-top - - 根目录下的每一个文件夹(包含它自己), 产生3 - 元组(dirpath, dirnames, filenames)[文件夹路径, 文件夹名字, 文件名]
-topdown - -为True或者没有指定, 目录自上而下.如果topdown为False, 目录自下而上
-followlinks - - 设置为true, 则通过软链接访问目录
-
-#########################################################################################################################################
-
 __call__: 一个类实例也可以变成一个可调用对象
 
 
@@ -1171,23 +1252,6 @@ while True:
 
 #########################################################################################################################################
 
-exception
-try:
-    # os._exit(0)   # 会阻止一切语句的执行,包括finally 
-    1 / 0
-except ValueError:  # 至多只有一个except被执行
-    print('That was no valid number.')
-except (ZeroDivisionError, RuntimeError) as e:
-    print('The divisor can not be zero.')
-except:  # 匹配任何类型异常,必须放在最后(default 'except:' must be last)
-    print('Handling other exceptions...')
-else:  # 必须放在所有except后面,当没有异常发生时执行
-    print('no exception happen')
-finally:  # 定义一些清理工作,异常发生/捕捉与否,是否有return都会执行
-    print('Some clean-up actions!')
-
-#########################################################################################################################################
-
 ipdb
 whatis
 Prints
@@ -1295,83 +1359,6 @@ for row in range(df.shape[0]):
 
 #########################################################################################################################################
 
-set(无序不重复, 添加元素用add)
-A = {1, 2, 3, 3}
-B = {3, 4, 5, 6, 7}
-print(A == B)  # False
-print(A < B)  # False,A不是B的子集
-print(A | B)  # set([1, 2, 3, 4, 5, 6, 7])
-print(A & B)  # set([3])
-print(A - B)  # set([1, 2])
-print(B - A)  # set([4, 5, 6, 7])
-print(A ^ B)  # set([1, 2, 4, 5, 6, 7])
-# (A ^ B) == ((A - B) | (B - A)),numbers in A or in B but not both
-# 区别于位运算符中的& ,| ,^和逻辑运算符 and or not
-
-#########################################################################################################################################
-
-Counter
-from collections import Counter
-
-count = Counter([1, 1, 2, 2, 3, 3, 3, 3, 4, 5])
-print(count)  # Counter({3: 4, 1: 2, 2: 2, 4: 1, 5: 1})
-print(count[3], count['y'])  # 4 0 ,访问不存在的元素返回0
-print(count.most_common(1))  # [(3, 4)]
-print(count.most_common(3))  # [(3, 4), (1, 2), (2, 2)]
-count.update('plus')  # 计数器更新
-count.subtract('minus')  # 计数器更新
-print(count)  # Counter({3: 4, 1: 2, 2: 2, 4: 1, 5: 1, 'l': 1, 'p': 1, 'u': 0, 's': 0, 'i': -1, 'n': -1, 'm': -1})
-print(list(count.elements()))  # [1, 1, 2, 2, 3, 3, 3, 3, 4, 5, 'l', 'p']
-
-A = Counter([0, 1, 2, 2, 2])  # Counter({2: 3, 0: 1, 1: 1})
-B = Counter([2, 2, 3])  # Counter({2: 2, 3: 1})
-print(A | B)  # Counter({2: 3, 0: 1, 1: 1, 3: 1})
-print(A & B)  # Counter({2: 2})
-print(A + B)  # Counter({2: 5, 0: 1, 1: 1, 3: 1})
-print(A - B)  # Counter({0: 1, 1: 1, 2: 1})
-print(B - A)  # Counter({3: 1})
-
-#########################################################################################################################################
-
-heap(小顶堆)
-from heapq import heapify, heappop, heappush, nlargest, nsmallest, heappushpop
-
-heap = [3, 54, 64, 4, 34, 24, 2, 4, 24, 33]
-heapify(heap)
-print(heap)
-print([heappop(heap) for i in range(len(heap))])
-
-'''
-Heap elements can be tuples.
-This is useful for assigning comparison values (such as task priorities) alongside the main record being tracked:
-'''
-h = []
-heappush(h, (5, 'write code'))
-heappush(h, (7, 'release product'))
-heappush(h, (1, 'write spec'))
-heappush(h, (3, 'create tests'))
-print(nsmallest(3, h))
-print(nlargest(2, h))
-print(heappushpop(h, (4, 'for tests')))
-print(h[0])  # 查看堆中最小值，不弹出
-print(heappop(h), h)
-
-#########################################################################################################################################
-
-format(最新版Python的f字符串可以看作format的简写)
-string = "My name is: {}, I am {} years old, {} Engineer".format(
-    *["ansheng", 20, "Python"])  # 'My name is: ansheng, I am 20 years old, Python Engineer'
-string = "My name is: {0}, I am {1} years old, {0} Engineer".format(
-    *["ansheng", 20, "Python"])  # 'My name is: ansheng, I am 20 years old, ansheng Engineer'
-string = "My name is: {name}, I am {age} years old, {job} Engineer".format(
-    **{"name": "ansheng", "age": 20, "job": "Python"})  # 'My name is: ansheng, I am 20 years old, Python Engineer'
-string = "My name is: {:s}, I am {:d} years old, {:f} wage".format("Ansheng", 20,
-                                                                   66666.55)  # 'My name is: Ansheng, I am 20 years old, 66666.550000 wage'
-string = "numbers: {0:b},{0:.3f},{0:d},{0:#x},{0:X}, {0:%}".format(15)  # 'numbers: 1111,15.000,15,0xf,F, 1500.000000%'
-print(f"numbers: {15:b},{15:f},{15:d},{15:#x},{15:X}, {15:%}")  # numbers: 1111,15.000000,15,0xf,F, 1500.000000%
-
-#########################################################################################################################################
-
 subprocess
 # !/root/miniconda3/bin/python
 # 如果指定编译器,则可通过./test来执行，否则只能通过python test来执行
@@ -1394,37 +1381,6 @@ a, b = b, a  # 使用拆箱进行变量交换
 
 first, _, third, *_ = range(10)
 print(first, third, _)  # 0 2 [3, 4, 5, 6, 7, 8, 9]
-
-#########################################################################################################################################
-
-datetime(有局限性, 获取的是本地时间)
-from datetime import datetime, timedelta
-import time
-
-print(datetime.now())
-print(datetime.now().date())
-print(datetime.now().time())
-print(datetime.now().weekday())
-print(datetime.now().year)
-print(datetime.now().month)
-print(datetime.now().strftime('%Y-%m-%d'))  # <class 'str'>
-print(datetime.now() - timedelta(days=2))  # weeks,minutes
-print(datetime.strptime('2016-9-9 18:19:59', '%Y-%m-%d %H:%M:%S'))  # <class 'datetime.datetime'>
-print(datetime.fromtimestamp(time.time()))  # 2020-08-12 15:48:21.636170
-deadline = datetime(2020, 10, 9, 11, 12, 13)  # 2020-10-09 11:12:13
-
-#########################################################################################################################################
-
-random(random是伪随机, 默认随机数生成种子是从 / dev / urandom或者是系统时间戳获取, 所以种子肯定不会是一样的)
-from random import randrange, choice, sample, shuffle, random
-
-print(random())  # 随机生成一个[0,1)范围内实数
-print(randrange(1, 10, 2))  # 从range(start, stop[, step])范围内选取一个值并返回(不包含stop)
-a = [1, 2, 3, 4, 5, 6, 6, 6, 6]
-print(choice(a))  # 返回一个列表,元组或字符串的随机项
-print(sample(a, 3))  # 返回列表指定长度个不重复位置的元素
-shuffle(a)  # 方法将序列的所有元素随机排序
-print(a)
 
 #########################################################################################################################################
 
@@ -1452,28 +1408,6 @@ for i, j, k in zip(*matrix):  # <class 'zip'>
 [[row[i] for row in matrix] for i in range(2)]
 [[matrix[j][i] for j in range(3)] for i in range(2)]
 [row[i] for i in range(2) for row in matrix]
-
-#########################################################################################################################################
-
-字典(py3
-.6
-中字典已经有序)
-d = {'a': 1, 'b': 2}
-d.update({'a': 3, 'c': 4})  # {'a': 3, 'b': 2, 'c': 4}
-print(d.pop('a', '无a'))  # 类似于get,3
-print(d.setdefault('d'))  # None
-print(d.setdefault('e', 'avatar'))  # avatar
-print(d.setdefault('b', 'akatsuki'))  # 2
-print(d)  # {'d': None, 'b': 2, 'c': 4, 'e': 'avatar'}
-
-one = {'a': 1, 'b': 2}
-two = {'a': 3, 'c': 2}
-three = one | two  # {'a': 3, 'b': 2, 'c': 2},合并两个字典
-
-# dict.setdefault(key, default=None)
-# key -- 查找的键值
-# default -- 键不存在时,设置的默认键值
-# get()方法类似,如果key在字典中,返回对应的值.如果不在字典中,则插入key及设置的默认值default,并返回default
 
 #########################################################################################################################################
 
@@ -1547,16 +1481,6 @@ deep_copy = [[1, 2, 3, 4] for _ in range(3)]
 
 #########################################################################################################################################
 
-and & or & not
-x and y
-返回的结果是决定表达式结果的值, 如果x为真, 则y决定结果, 返回y;
-如果x为假, x决定了结果为假, 返回x
-x or y
-跟and一样都是返回决定表达式结果的值
-not 返回表达式结果的相反的值, 如果表达式结果为真则返回false, 如果表达式结果为假则返回true
-
-#########################################################################################################################################
-
 sub & subn & split
 regex.sub(repl, string, count=0):
 使用repl替换string中每一个匹配的子串, 返回替换后的字符串.若找不到匹配, 则返回原字符串
@@ -1574,77 +1498,6 @@ print(s1)  # I love you, do you love me?
 print(re.subn(r'(\w+) (\w+)', r'\2 \1', 'i say, hello world!'))  # ('say i, world hello!', 2)
 #  re.split(pattern, string, maxsplit=0, flags=0)   flags用于指定匹配模式
 print(re.split(r'[\s\,\;]+', 'a,b;; c d'))  # ['a', 'b', 'c', 'd']
-
-#########################################################################################################################################
-
-列表切片赋值
-a = [1, 2, 3, 4, 5]
-a[2:3] = [0, 0]  # 注意这里的用法(区别于a[2] = [0, 0])   [1, 2, 0, 0, 4, 5]
-a[1:1] = [8, 9]  # [1, 8, 9, 2, 0, 0, 4, 5]
-a[1:-1] = []  # [1,5] ,等价于del a[1:-1]
-
-#########################################################################################################################################
-
-deque(链式存储结构, 可以当栈和队列来使用)
-'''
-class collections.deque([iterable[, maxlen]])
-Deques are a generalization of stacks and queues (the name is pronounced “deck” and is short for “double-ended queue”).
-Deques support memory efficient appends and pops from either side of the deque with approximately the same O(1) performance in either direction.
-Though list objects support similar operations, they are optimized for fast fixed-length operations and incur O(n) memory movement costs for pop(0) and insert(0, v) operations which change both the size and position of the underlying data representation.
-If maxlen is not specified or is None, deques may grow to an arbitrary(任意的) length.
-Otherwise the maxlen is full, when new items are added, a corresponding number of items are discarded from the opposite end.
-maxlen会影响到append,extend,insert等增加队列长度这一类函数的行为，此时队列是循环队列
-In addition to the above, deques support iteration, pickling, len(d), reversed(d), copy.copy(d), copy.deepcopy(d), membership testing with the in operator, and subscript references such as d[-1].
-Indexed access is O(1) at both ends but slows to O(n) in the middle. For fast random access, use lists instead.
-remove(value) Remove the first occurrence of value. If not found, raises a ValueError.
-index(x[, start[, stop]]) Return the position of x in the deque (at or after index start and before index stop). Returns the first match or raises ValueError if not found.
-Rotate the deque n steps to the right. If n is negative, rotate to the left. Rotating one step to the right is equivalent to: d.appendleft(d.pop()).
-一般情况下list可以代替stack结构,但不能代替queue
-'''
-
-from collections import deque
-
-Q = deque(range(5), maxlen=4)
-Q.append(5)
-Q.appendleft(4)
-print(Q)  # deque([4, 2, 3, 4], maxlen=4)
-print(Q.count(4))  # 2
-Q.clear()
-Q += [4, 5, 6, 7, 8]  # extend
-Q.extendleft([2, 3])  # extendleft() reverses the input order
-print(len(Q), Q)  # 4 deque([3, 2, 5, 6], maxlen=4)，遍历一个list对象，插入一个进deque对象，并不能像list那样直接拼接
-print(4 in Q)
-Q.pop()
-Q.popleft()
-Q.reverse()  # deque([5, 2], maxlen=4)
-print(Q)
-
-Q = deque(range(4))
-Q.insert(1, 5)  # 第一个参数是位置，索引从1开始，数组才是从0开始索引
-Q.insert(-2, 6)
-print(Q)  # deque([0, 5, 1, 6, 2, 3])
-Q.rotate(8)
-print(Q)  # deque([2, 3, 0, 5, 1, 6])
-newQ = deque(reversed(Q))
-
-
-def moving_average(iterable, n=3):
-    # moving_average([40, 30, 50, 46, 39, 44]) --> 40.0 42.0 45.0 43.0
-    it = iter(iterable)
-    d = deque(itertools.islice(it, n - 1))
-    d.appendleft(0)
-    s = sum(d)
-    for elem in it:
-        s += elem - d.popleft()
-        d.append(elem)
-        yield s / n
-
-
-def tail(filename, n=10):
-    'Return the last n lines of a file'
-    with open(filename) as f:
-        return deque(f, n)
-
 
 #########################################################################################################################################
 
