@@ -123,7 +123,6 @@ def list_tutorial():
 
 
 def set_tutorial():  # 无序不重复, 添加元素用add
-    # (set_a ^ set_b) == ((set_a - set_b) | (set_b - set_a)),numbers in set_a or in set_b but not both
     # 区别于位运算符中的& ,| ,^和逻辑运算符 and or not
     set_a = {1, 2, 3, 3}
     set_b = {3, 4, 5, 6, 7}
@@ -133,6 +132,7 @@ def set_tutorial():  # 无序不重复, 添加元素用add
     print(set_a & set_b)  # set([3])
     print(set_a - set_b)  # set([1, 2])
     print(set_b - set_a)  # set([4, 5, 6, 7])
+    # (set_a ^ set_b) == ((set_a - set_b) | (set_b - set_a)),numbers in set_a or in set_b but not both
     print(set_a ^ set_b)  # set([1, 2, 4, 5, 6, 7])
 
 
@@ -532,11 +532,11 @@ int('0x01002', 16)   # 字符串是16进制,并将其转换成10进制
 列表推导式效率比map, reduce, filter等高阶函数效率更高
 
 x = 1
-eval('x+1')   # 2  执行字符串形式的表达式,返回执行结果
+eval('x+1')  # 2  执行字符串形式的表达式,返回执行结果
 
 x = 1
 exec('x += 10')  # 执行字符串形式的代码，返回None
-print(x)   # 11
+print(x)  # 11
 
 ##################################################################################################################################
 
