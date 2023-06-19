@@ -89,6 +89,9 @@ import time
 from random import randrange, choice, sample, shuffle, random
 from heapq import heapify, heappop, heappush, nlargest, nsmallest, heappushpop
 from collections import Counter
+from bisect import insort_right, bisect_left, bisect_right
+from collections import deque
+import re
 
 
 def str_tutorial():
@@ -189,6 +192,16 @@ def counter_tutorial():
     print(counter_b - counter_a)  # Counter({3: 1})
 
 
+def bin_sect_tutorial():
+    arr = []
+    for idx in [3, 1, 6, 4, 1, 3, 6, 5, 1, 4]:
+        insort_right(arr, idx)
+    print(arr)  # [1, 1, 1, 3, 3, 4, 4, 5, 6, 6]
+    print(bisect_left(arr, 3))  # 3
+    print(bisect_right(arr, 3))  # 5
+    insort_right(arr, 2)
+
+
 def exception_tutorial():
     try:
         # os._exit(0)   # 会阻止一切语句的执行,包括finally
@@ -279,7 +292,7 @@ def heap_tutorial():
 def sort_tutorial():
     """
     if you don’t need the original list, list.sort is slightly more efficient than sorted.
-    By default the sort and the sorted built-in function notices that the items are tuples so it sorts on the first element first and on the second element second.
+    By default, the sort and the sorted built-in function notices that the items are tuples, so it sorts on the first element first and on the second element second.
     """
     items = [(1, 'B'), (1, 'A'), (2, 'A'), (0, 'B'), (0, 'a')]
     sorted(items)  # [(0, 'B'), (0, 'a'), (1, 'A'), (1, 'B'), (2, 'A')]
@@ -327,6 +340,29 @@ def random_tutorial():
     print(sample(arr, 3))  # 返回列表指定长度个不重复位置的元素
     shuffle(arr)  # 方法将序列的所有元素随机排序
     print(arr)
+
+
+def dec2bin(string):  # 方便理解c语言浮点数的内存表示, dec2bin('19.625') => 10011.101
+    result = deque()
+    integer, decimal = re.match(r'(\d*)\.?(\d*)', string).groups()
+    integer = int(integer or 0)
+    radix = 10 ** len(decimal)
+    decimal = int(decimal or 0)
+    while integer:
+        result.appendleft(str(integer & 1))
+        integer >>= 1
+    if decimal:
+        result.append('.')
+        for idx in range(100):
+            if not decimal:
+                break
+            decimal <<= 1
+            if decimal // radix:
+                result.append('1')
+                decimal -= radix
+            else:
+                result.append('0')
+    return ''.join(result)
 
 
 # memoryview
@@ -537,38 +573,6 @@ eval('x+1')  # 2  执行字符串形式的表达式,返回执行结果
 x = 1
 exec('x += 10')  # 执行字符串形式的代码，返回None
 print(x)  # 11
-
-##################################################################################################################################
-
-
-from collections import deque
-import re
-
-
-def dec2bin(string):  # 方便理解c语言浮点数的内存表示
-    result = deque()
-    integer, decimal = re.match(r'(\d*)\.?(\d*)', string).groups()
-    integer = int(integer or 0)
-    radix = 10 ** len(decimal)
-    decimal = int(decimal or 0)
-    while integer:
-        result.appendleft(str(integer & 1))
-        integer >>= 1
-    if decimal:
-        result.append('.')
-        for idx in range(100):
-            if not decimal:
-                break
-            decimal <<= 1
-            if decimal // radix:
-                result.append('1')
-                decimal -= radix
-            else:
-                result.append('0')
-    return ''.join(result)
-
-
-print(dec2bin('19.625'))  # 10011.101
 
 ##################################################################################################################################
 
@@ -1332,19 +1336,6 @@ class Color(Enum):  # 不能实例化
 
 
 print(Color(2), Color.red, Color(3) == 3, Color(1) == Color.red)  # Color.orange Color.red False True
-
-#########################################################################################################################################
-
-bisect
-from bisect import insort_right, bisect_left, bisect_right
-
-a = []
-for i in [3, 1, 6, 4, 1, 3, 6, 5, 1, 4]:
-    insort_right(a, i)
-print(a)
-print(bisect_left(a, 3))
-print(bisect_right(a, 3))
-insort_right(a, 2)
 
 #########################################################################################################################################
 
