@@ -1,7 +1,11 @@
 # -*- coding: utf-8 -*-
+import gc
+import objgraph
+import os
+import sys
+import time
+import weakref
 from multiprocessing import Process
-import objgraph,gc,time,sys,os,weakref
-
 
 '''
 引用计数+1情况
@@ -35,17 +39,21 @@ WeakSet
 保持对其元素弱引用的集合类, 当不再有对某个元素的强引用时元素将被丢弃
 '''
 
+
 class OBJ:
     def __init__(self):
         self.data = list(range(10000))
         self.next = None
 
+
 class MyBigFatObject:
     pass
 
-def computate_something(idx,_cache={}):
-    _cache[idx] = {'foo':MyBigFatObject()}  # a very explicit and easy-to-find "leak" but oh well
-    x = MyBigFatObject()                    # this one doesn't leak
+
+def computate_something(idx, _cache={}):
+    _cache[idx] = {'foo': MyBigFatObject()}  # a very explicit and easy-to-find "leak" but oh well
+    x = MyBigFatObject()  # this one doesn't leak
+
 
 def func_to_leak():
     a = OBJ()
@@ -63,8 +71,9 @@ def main0():
         time.sleep(1)
         func_to_leak()
         if idx == 20:
-            print(gc.collect())   # 手动执行垃圾回收,返回不可达(unreachable objects)对象的数目,循环引用需要垃圾回收,无法通过引用计数法消除
-        print(os.getpid(),objgraph.count('OBJ'),gc.get_count())
+            print(gc.collect())  # 手动执行垃圾回收,返回不可达(unreachable objects)对象的数目,循环引用需要垃圾回收,无法通过引用计数法消除
+        print(os.getpid(), objgraph.count('OBJ'), gc.get_count())
+
 
 def main1():
     processes = [Process(target=main0) for _ in range(4)]
@@ -74,19 +83,22 @@ def main1():
         print(objgraph.count('OBJ'))
         time.sleep(.5)
 
+
 def main2():
-    objgraph.show_growth(limit=3)  # We take a snapshot of all the objects counts that are alive before we call our function
+    objgraph.show_growth(
+        limit=3)  # We take a snapshot of all the objects counts that are alive before we call our function
     for idx in range(10):
         computate_something(idx)
         objgraph.show_growth()
 
+
 def main3():
     a = OBJ()
     b = weakref.proxy(a)
-    print(a,b,type(a),type(b))
+    print(a, b, type(a), type(b))
     print(sys.getrefcount(a))
     print(sys.getrefcount(b))
-    print(weakref.getweakrefs(a),weakref.getweakrefcount(a))
+    print(weakref.getweakrefs(a), weakref.getweakrefcount(a))
     print(b is a)  # False
     del a
     # print(b) # ReferenceError: weakly-referenced object no longer exists
@@ -96,13 +108,12 @@ def main3():
     _c = c()
     print(c)
     print(_c is a)
-    del a,_c
+    del a, _c
     print(c)
+
 
 if __name__ == '__main__':
     main0()
     # main1()
     # main2()
     # main3()
-
-

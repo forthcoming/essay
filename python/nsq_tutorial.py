@@ -1,16 +1,16 @@
-'''
+"""
 消息队列用来快速消费队列中的消息,比如日志处理场景,我们需要把不同服务器上的日志合并到一起,这时就需要用到消息队列
 任务队列(celery)是用来异步执行一个耗时任务,比如用户在购买的一件物品后,通常需要计算用户的积分以及等级,并把它们保存到数据库,这时就需要用到任务队列
 利用消息队列的生长者和消费者的概念,也可以实现任务队列的功能,但是还需要进行额外的开发
 任务队列新增了许多任务相关的定制,如重试,任务状态,结果返回,任务执行频率等等,但没有发布订阅的概念
 
-A single nsqd can have many topics and each topic can have many channels,a channel can, and generally does, have multiple clients connected. 
+A single nsqd can have many topics and each topic can have many channels,a channel can, and generally does, have multiple clients connected.
 To summarize, messages are multicast from topic -> channel (every channel receives a copy of all messages for that topic).
 but evenly distributed from channel -> consumers (each consumer or named client receives a portion of the messages for that channel).
 当一个客户端以一个新的channel连接上topic时,该topic上的消息会发给客户端,不管之前是否有发给其他客户端
 messages are not durable (by default)
---mem-queue-size number of messages to keep in memory (per topic/channel) (default 10000),can be set to 0 to ensure that all incoming messages are persisted to disk.  
-adjusts the number of messages queued in memory per topic/channel. Messages over that watermark are transparently written to disk, defined by --data-path.  
+--mem-queue-size number of messages to keep in memory (per topic/channel) (default 10000),can be set to 0 to ensure that all incoming messages are persisted to disk.
+adjusts the number of messages queued in memory per topic/channel. Messages over that watermark are transparently written to disk, defined by --data-path.
 messages received are un-ordered,You cannot rely on the order of messages being delivered to consumers.
 启动命令
 nsqlookupd
@@ -36,13 +36,13 @@ Consumes the specified topic/channel and writes out to a newline delimited file,
 to_nsq -topic=test -nsqd-tcp-address=127.0.0.1:4150
 Takes a stdin stream and splits on newlines (default) for re-publishing to destination nsqd via TCP.
 to_nsq并不是一个channel,他只是往指定的topic上发送消息
-'''
-
+"""
 
 import requests
 
-r=requests.get(url='http://127.0.0.1:4151/info')
-print(r.text)  # {"version":"1.1.0","broadcast_address":"127.0.0.1","hostname":"201810-08571","http_port":4151,"tcp_port":4150,"start_time":1565926763}
+r = requests.get(url='http://127.0.0.1:4151/info')
+print(
+    r.text)  # {"version":"1.1.0","broadcast_address":"127.0.0.1","hostname":"201810-08571","http_port":4151,"tcp_port":4150,"start_time":1565926763}
 
 '''
 format - (optional) `text` or `json` (default = `text`)
@@ -50,23 +50,23 @@ topic - (optional) filter to topic
 channel - (optional) filter to channel
 '''
 # r=requests.get(url='http://127.0.0.1:4151/stats?format=json&topic=test&channel=name')  
-r=requests.get(url='http://127.0.0.1:4151/stats')
-print(r.text) 
+r = requests.get(url='http://127.0.0.1:4151/stats')
+print(r.text)
 
 '''
 defer - the time in ms to delay message delivery (optional)
 如果topic不存在则被创建,生产数据只能生产到topic
 '''
-r=requests.post(  
-    url='http://127.0.0.1:4151/pub?topic=test&defer=3000',   
+r = requests.post(
+    url='http://127.0.0.1:4151/pub?topic=test&defer=3000',
     data='你好'.encode('utf-8'),
     # json={'name':'伟大的QQ',score:10},
 )
 print(r.text)
 
 # by default /mpub expects messages to be delimited by \n, 如果mpub改为pub,则data会认为是一条数据
-r=requests.post(  
-    url='http://127.0.0.1:4151/mpub?topic=test',   
+r = requests.post(
+    url='http://127.0.0.1:4151/mpub?topic=test',
     data='message\n中国\nmessage'.encode('utf-8'),
 )
 print(r.text)
@@ -77,19 +77,19 @@ requests.post('http://127.0.0.1:4151/channel/create?topic=test&channel=name')
 requests.post('http://127.0.0.1:4151/channel/delete?topic=test&channel=name')
 
 # Empty all the queued messages (in-memory and disk) for an existing channel
-r=requests.post('http://127.0.0.1:4151/channel/empty?topic=test&channel=nsq_to_file')
+r = requests.post('http://127.0.0.1:4151/channel/empty?topic=test&channel=nsq_to_file')
 print(r.status_code)
 
 # Empty all the queued messages (in-memory and disk) for an existing topic
-r=requests.post('http://127.0.0.1:4151/topic/empty?topic=test')
+r = requests.post('http://127.0.0.1:4151/topic/empty?topic=test')
 print(r.status_code)
 
 # Pause message flow to all channels on an existing topic (messages will queue at topic)
-r=requests.post('http://127.0.0.1:4151/topic/pause?topic=test')
+r = requests.post('http://127.0.0.1:4151/topic/pause?topic=test')
 print(r.status_code)
 
 # Resume message flow to channels of an existing, paused, topic
-r=requests.post('http://127.0.0.1:4151/topic/unpause?topic=test')
+r = requests.post('http://127.0.0.1:4151/topic/unpause?topic=test')
 print(r.status_code)
 
 # Pause message flow to consumers of an existing channel (messages will queue at channel)
@@ -97,40 +97,44 @@ requests.post('http://127.0.0.1:4151/channel/pause?topic=name&channel=name')
 
 # Resume message flow to consumers of an existing, paused, channel
 requests.post('http://127.0.0.1:4151/channel/unpause?topic=name&channel=name')
- 
- 
+
 ############################################################################################################################
 
 
 # Returns a list of producers for a topic
-r=requests.get('http://127.0.0.1:4161/lookup?topic=test')
-print(r.text) # {"channels":["name","nsq_to_file"],"producers":[{"remote_address":"127.0.0.1:54246","hostname":"macbook.local","broadcast_address":"127.0.0.1","tcp_port":4150,"http_port":4151,"version":"1.1.0"}]}
+r = requests.get('http://127.0.0.1:4161/lookup?topic=test')
+print(
+    r.text)  # {"channels":["name","nsq_to_file"],"producers":[{"remote_address":"127.0.0.1:54246","hostname":"macbook.local","broadcast_address":"127.0.0.1","tcp_port":4150,"http_port":4151,"version":"1.1.0"}]}
 
 # Returns a list of all known channels of a topic
-r=requests.get('http://127.0.0.1:4161/channels?topic=test')
-print(r.text) # {"channels":["nsq_to_file","name"]}
+r = requests.get('http://127.0.0.1:4161/channels?topic=test')
+print(r.text)  # {"channels":["nsq_to_file","name"]}
 
 # Returns a list of all known topics
-r=requests.get('http://127.0.0.1:4161/topics')
-print(r.text) # {"topics":["T2","test"]}
+r = requests.get('http://127.0.0.1:4161/topics')
+print(r.text)  # {"topics":["T2","test"]}
 
 # Returns a list of all known nsqd
-r=requests.get('http://127.0.0.1:4161/nodes')
-print(r.text) # {"producers":[{"remote_address":"127.0.0.1:54246","hostname":"macbook.local","broadcast_address":"127.0.0.1","tcp_port":4150,"http_port":4151,"version":"1.1.0","tombstones":[false,false],"topics":["test","T2"]}]}
+r = requests.get('http://127.0.0.1:4161/nodes')
+print(
+    r.text)  # {"producers":[{"remote_address":"127.0.0.1:54246","hostname":"macbook.local","broadcast_address":"127.0.0.1","tcp_port":4150,"http_port":4151,"version":"1.1.0","tombstones":[false,false],"topics":["test","T2"]}]}
 
 ############################################################################################################################
 
 import nsq
 
 buf = []
-def handler(message):   # 同步
+
+
+def handler(message):  # 同步
     print(message.body)
     return True
+
 
 def process_message(message):  # 异步
     global buf
     message.enable_async()
-    buf.append(message)      # cache the message for later processing
+    buf.append(message)  # cache the message for later processing
     if len(buf) >= 3:
         for msg in buf:
             print(msg.body)
@@ -138,18 +142,19 @@ def process_message(message):  # 异步
         buf = []
     else:
         print('deferring processing')
-        
+
+
 nsq.Reader(
-    topic='one', 
-    channel='test', 
+    topic='one',
+    channel='test',
     message_handler=handler,
     lookupd_http_addresses=['http://127.0.0.1:4161'],
     max_in_flight=9
 )
 
 nsq.Reader(
-    topic='two', 
-    channel='another_test', 
+    topic='two',
+    channel='another_test',
     message_handler=process_message,
     lookupd_http_addresses=['http://127.0.0.1:4161'],
     max_in_flight=9
