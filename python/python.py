@@ -83,8 +83,21 @@ is比较的内存地址; ==比较的是字面值
 元组的值会随引用的可变对象的变化而变, 元组中不可变的是元素的标识(id)
 
 
-__str__: 自定义打印类的格式,print打印类变量时被调用
-__len__: 自定义类长度,len作用与类变量时被调用
+__str__: 自定义打印类的格式,print打印类实例时被调用
+__len__: 自定义类长度,len作用于类实例时被调用
+__call__: 类实例被当作函数调用时调用
+
+
+class Person:
+    def __init__(self, name):
+        self.name = name
+
+    def __call__(self, friend):
+        print('My name is {},My friend is {}.'.format(self.name, friend))
+
+
+p = Person('Bob')
+p('Tim')  # My name is Bob,My friend is Tim.
 """
 
 from functools import lru_cache
@@ -96,6 +109,10 @@ from collections import Counter
 from bisect import insort_right, bisect_left, bisect_right
 from collections import deque
 import re
+import pandas as pd
+import win32api
+import win32con
+import copy
 
 
 def str_tutorial():
@@ -200,25 +217,19 @@ def zip_tutorial():
     arr_a = ['a', 'b', 'c']
     arr_b = '123'
     print(list(zip(arr_a, arr_b)))  # [('a', '1'), ('b', '2'), ('c', '3')]
-    print(dict(zip(arr_a, arr_b)))  # {'c': '3', 'b': '2', 'a': '1'}
+    print(dict(zip(arr_a, arr_b)))  # {'a': '1', 'b': '2', 'c': '3'}
     for i, j in zip(arr_a, arr_b):  # 同时遍历两个或更多的序列
         print(i, j)
     # a 1
     # b 2
     # c 3
 
-    # 解压(原理就是利用了解包参数的特性)
     matrix = [[1, 2], [3, 4], [5, 6]]
-    for i, j, k in zip(*matrix):  # <class 'zip'>
-        print(i, j, k)
-    # 1 3 5
-    # 2 4 6
-
-    # 矩阵置换
-    [list(_) for _ in zip(*matrix)]  # [[1, 3, 5], [2, 4, 6]]
-    print([[row[i] for row in matrix] for i in range(2)])
-    print([[matrix[j][i] for j in range(3)] for i in range(2)])
-    print([row[i] for i in range(2) for row in matrix])
+    [list(_) for _ in zip(*matrix)]  # [[1, 3, 5], [2, 4, 6]], 矩阵置换
+    print([[matrix[j][i] for j in range(3)] for i in range(2)])  # [[1, 3, 5], [2, 4, 6]]
+    print([[row[i] for row in matrix] for i in range(2)])  # [[1, 3, 5], [2, 4, 6]]
+    print([row[i] for row in matrix for i in range(2)])  # [1, 2, 3, 4, 5, 6],注意顺序,先for row in matrix,再for i in range(2)
+    print([element for row in matrix for element in row])  # [1, 2, 3, 4, 5, 6],列表推导式效率比map, reduce, filter等高阶函数效率更高
 
 
 def bin_sect_tutorial():
@@ -262,6 +273,32 @@ def format_tutorial():  # 最新版Python的f字符串可以看作format的简�
     print(f"numbers: {15:b},{15:f},{15:d},{15:#x},{15:X}, {15:%}")
 
 
+def copy_tutorial():
+    a = [0, [1, ], (2,), 'str']
+    b = a  # 相当于&
+    c = a[:]  # 等价于copy.copy(a),相当于部分&
+    d = copy.copy(a)
+    e = copy.deepcopy(a)  # 此时e跟a无任何关系
+    a[0] = 5
+    a[1][0] = 4
+    print('a:', a)
+    print('b:', id(b) == id(a), id(b[0]) == id(a[0]), id(b[1]) == id(a[1]), id(b[2]) == id(a[2]), id(b[3]) == id(a[3]),
+          b)
+    print('c:', id(c) == id(a), id(c[0]) == id(a[0]), id(c[1]) == id(a[1]), id(c[2]) == id(a[2]), id(c[3]) == id(a[3]),
+          c)
+    print('d:', id(d) == id(a), id(d[0]) == id(a[0]), id(d[1]) == id(a[1]), id(d[2]) == id(a[2]), id(d[3]) == id(a[3]),
+          d)
+    print('e:', id(e) == id(a), id(e[0]) == id(a[0]), id(e[1]) == id(a[1]), id(e[2]) == id(a[2]), id(e[3]) == id(a[3]),
+          e)
+    # a: [5, [4], (2,), 'str']
+    # b: True True True True True [5, [4], (2,), 'str']
+    # c: False False True True True [0, [4], (2,), 'str']
+    # d: False False True True True [0, [4], (2,), 'str']
+    # e: False False False True True [0, [1], (2,), 'str']
+    shadow_copy = [[1, 2, 3, 4]] * 3
+    deep_copy = [[1, 2, 3, 4] for _ in range(3)]
+
+
 def open_tutorial():
     """
     r: read, default
@@ -283,6 +320,37 @@ def open_tutorial():
         file2.seek(33)
         print(file2.tell())
         print(file2.readline())
+
+
+def args_tutorial():
+    def test_keywords(name, age, gender):  # 关键字参数/解包参数调用函数(可通过keyword=value形式调用函数,参数顺序无所谓)
+        print('name:', name, 'age:', age, 'gender:', gender)
+
+    test_keywords('Jack', 20, 'man')
+    test_keywords(*['Jack', 20, 'man'])
+    test_keywords(gender='man', name='Jack', age=20)
+    # test_keywords(**{'Gender': 'man', 'name': 'Jack', 'age': 20})  # Error,键必须与参数名相同
+    test_keywords(*{'gender': 'man', 'name': 'Jack', 'age': 20})  # name: gender age: name gender: age
+    test_keywords(**{'gender': 'man', 'name': 'Jack', 'age': 20})  # 解包字典,会得到一系列key=value,本质上是使用关键字参数调用函数
+
+    def test_variable(first_key, *args, **kwargs):  # 在形参前加一个*或**来指定函数可以接收任意数量的实参,关键字参数必须跟随在位置参数后面
+        print(first_key, type(args), args, type(kwargs), kwargs)
+
+    test_variable(1, *[2, 3], c=4, d=5, **{'e': 6})  # 1 <class 'tuple'> (2, 3) <class 'dict'> {'c': 4, 'd': 5, 'e': 6}
+
+    number = 5
+
+    def test_default(element, num=number, arr=[], arr1=None):  # 如果默认值是一个可变对象如列表,字典,大多类对象时,函数在随后调用中会累积参数值
+        arr.append(element)
+        if arr1 is None:  # if u don't want the default to be shared between subsequent calls ,u can write the function like this instead.
+            arr1 = []
+        arr1.append(element)
+        print(num, arr, arr1)
+
+    number = 6
+    test_default(1)  # 5 [1] [1]
+    test_default(2)  # 5 [1, 2] [2]
+    print(test_default.__defaults__)  # (5, [1, 2], None), 默认值在函数定义时已被确定
 
 
 def datetime_tutorial():
@@ -341,7 +409,20 @@ def sum_tutorial():
     arr = [[1, 2], [3, 4], [5, 6]]
     _ = sum(arr, [])  # [1, 2, 3, 4, 5, 6]  sum第二个参数默认为0
     sum(_)  # 21
-    print([element for _arr in arr for element in _arr])  # [1, 2, 3, 4, 5, 6]
+
+
+def instance_tutorial():
+    # isinstance(object,class )    判断对象object是不是类class或其派生类的实例
+    # issubclass(class ,baseclass) 判断一个类是否是另一个类的子类
+    class Person: pass
+
+    class Student(Person): pass
+
+    person = Person()
+    student = Student()
+    print(isinstance(person, Person), isinstance(person, Student))  # True False
+    print(isinstance(student, Person), isinstance(student, Student))  # True True
+    print(issubclass(Student, Person))  # True
 
 
 def cache_tutorial():
@@ -367,6 +448,19 @@ def cache_tutorial():
     print(fib.cache_info())  # CacheInfo(hits=0, misses=0, maxsize=100, currsize=0)
 
 
+def read_excel_tutorial():  # 读excel表格
+    df = pd.read_excel('map.xlsx',
+                       sheet_name='Sheet2',
+                       header=1,  # header指定开始读取的行号
+                       usercols=[2, 4, 6, 7],
+                       dtype={'name': str, 'id': int},
+                       names=['name', 'id', 'score']
+                       )
+    for row in range(df.shape[0]):
+        if pd.isna(df.loc[row]['name']):
+            pass
+
+
 def random_tutorial():
     # random是伪随机, 默认随机数生成种子是从 /dev/urandom或系统时间戳获取, 所以种子肯定不会是一样的
     print(random())  # 随机生成一个[0,1)范围内实数
@@ -376,6 +470,50 @@ def random_tutorial():
     print(sample(arr, 3))  # 返回列表指定长度个不重复位置的元素
     shuffle(arr)  # 方法将序列的所有元素随机排序
     print(arr)
+
+
+def win32_tutorial():
+    x, y = 120, 240
+    win32api.SetCursorPos((x, y))  # 鼠标定位,不同的屏幕分辨率请用百分比换算
+    win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, x, y, 0, 0)  # 鼠标左键按下
+    win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, x, y, 0, 0)  # 鼠标左键弹起
+
+
+var = 0
+
+
+def scope_tutorial():
+    # 变量引用顺序: 当前作用域局部变量->外层作用域变量->当前模块中的全局变量->python内置变量
+    # global: 在局部作用域中修改全局变量
+    # nonlocal: 在局部作用域中修改外层非全局变量
+    def make_counter():
+        count = 0
+
+        def counter():
+            nonlocal count
+            count += 1
+            return count
+
+        return counter
+
+    mc = make_counter()
+    print(mc(), mc(), mc())  # 1,2,3
+
+    def outer():
+        var = 1
+
+        def inner():
+            # nonlocal var # inner: 9 outer: 9 global: 0
+            # global var   # inner: 9 outer: 1 global: 9
+            var = 2
+            var += 7
+            print("inner:", var, end='\t')
+
+        inner()
+        print("outer:", var, end='\t')
+
+    outer()  # inner: 9 outer: 1
+    print("global:", var)  # global: 0
 
 
 def dec2bin(string, precision=10):  # 方便理解c语言浮点数的内存表示, dec2bin('19.625') => 10011.101
@@ -409,8 +547,6 @@ def dec2bin(string, precision=10):  # 方便理解c语言浮点数的内存表�
 # from_buffer(source[, offset])
 # This method returns a ctypes instance that shares the buffer of the source object. The source object must support the writeable buffer interface.
 # The optional offset parameter specifies an offset into the source buffer in bytes; the default is zero. If the source buffer is not large enough a ValueError is raised.
-
-import time
 
 
 def work(data):
@@ -597,8 +733,7 @@ xxxooooxxxxxooooxxxoooo
 
 ##################################################################################################################################
 
-int('0x01002', 16)   # 字符串是16进制,并将其转换成10进制
-列表推导式效率比map, reduce, filter等高阶函数效率更高
+int('0x01002', 16)  # 字符串是16进制,并将其转换成10进制
 
 x = 1
 eval('x+1')  # 2  执行字符串形式的表达式,返回执行结果
@@ -609,103 +744,6 @@ print(x)  # 11
 
 ##################################################################################################################################
 
-函数调用(引用传参)
-
-
-# 关键字参数/解包参数调用函数(可通过keyword=value形式调用函数,参数顺序无所谓)
-def fun(name, age, gender):
-    print('name:', name, 'age:', age, 'gender:', gender)
-
-
-fun('Jack', 20, 'man')
-fun(*['Jack', 20, 'man'])
-fun(gender='man', name='Jack', age=20)
-fun(**{'gender': 'man', 'name': 'Jack', 'age': 20})  # 解包字典,会得到一系列key=value,本质上是使用关键字参数调用函数
-fun(**{'Gender': 'man', 'name': 'Jack', 'age': 20})  # Error,键必须与参数名相同
-
-
-# 可变参数调用函数(在形参前加一个*或**来指定函数可以接收任意数量的实参,关键字参数必须跟随在位置参数后面)
-def fun(a, *args, **kwargs):
-    print(a, end='\t')
-    print(type(args), args, end='\t')
-    print(type(kwargs), kwargs)
-
-
-fun(1, *[2, 3], c=4, d=5, **{'e': 6})  # 1	<class 'tuple'> (2, 3)	<class 'dict'> {'c': 4, 'd': 5, 'e': 6}
-
-
-# 默认实参调用函数(如果默认值是一个可变对象如列表,字典,大多类对象时,函数在随后调用中会累积参数值)
-def fun(a, L=[]):
-    L.append(a)
-    print(L)
-
-
-fun(1)  # 输出[1]  
-fun(2)  # 输出[1, 2]  
-
-
-# if u dont want the default to be shared between subsequent calls ,u can write the function like this instead.
-def f(a, L=None):
-    if L is None:
-        L = []
-    L.append(a)
-    print(L)
-
-
-i = 5
-
-
-def f(arg=i):
-    print(arg)
-
-
-i = 6
-f()  # The default values are evaluated at the point of function definition in the defining scope
-print(f.__defaults__)  # (5,)
-
-#########################################################################################################################################
-
-作用域
-
-
-# 变量引用顺序: 当前作用域局部变量->外层作用域变量->当前模块中的全局变量->python内置变量
-# global: 在局部作用域中修改全局变量
-# nonlocal: 在局部作用域中修改外层非全局变量
-def make_counter():
-    count = 0
-
-    def counter():
-        nonlocal count
-        count += 1
-        return count
-
-    return counter
-
-
-mc = make_counter()
-print(mc(), mc(), mc())  # 1,2,3
-
-x = 0
-
-
-def outer():
-    x = 1
-
-    def inner():
-        # nonlocal x  # inner: 8	outer: 8	global: 0
-        # global x    # inner: 7	outer: 1	global: 7
-        x = 2  # inner: 9	outer: 1	global: 0
-        x += 7
-        print("inner:", x, end='\t')
-
-    inner()
-    print("outer:", x, end='\t')
-
-
-outer()
-print("global:", x)
-
-#########################################################################################################################################
 What
 kinds
 of
@@ -1171,81 +1209,6 @@ print(Tests.__base__, Tests.__name__)  # <class 'object'> Tests
 
 #########################################################################################################################################
 
-__call__: 一个类实例也可以变成一个可调用对象
-
-
-class Person:
-    def __init__(self, name):
-        self.name = name
-
-    def __call__(self, friend):
-        print('My name is {},My friend is {}.'.format(self.name, friend))
-
-
-p = Person('Bob')
-p('Tim')  # My name is Bob,My friend is Tim.
-
-#########################################################################################################################################
-isinstance(object,
-
-
-class ):   判断对象object是不是类class或其派生类的实例
-
-
-issubclass(
-
-
-class ,baseclass): 判断一个类是否是另一个类的子类
-
-
-class Person():
-    def __init__(self, name, gender):
-        self.name = name
-        self.gender = gender
-
-
-class Student(Person):
-    def __init__(self, name, gender, score):
-        super().__init__(name, gender)
-        self.score = score
-
-
-p = Person('Tim', 'Male')
-s = Student('Bob', 'Male', 88)
-
-isinstance(p, Person)  # True
-isinstance(p, Student)  # False
-# 父类实例不能是子类类型,因为子类比父类多了一些属性和方法
-
-isinstance(s, Person)  # True
-isinstance(s, Student)  # True
-# 子类实例可以看成它本身的类型,也可以看成它父类的类型
-
-#########################################################################################################################################
-
-决斗之城挂机
-import win32api
-import time
-import win32con
-import random
-
-
-def LeftClick(x, y, t=0):
-    win32api.SetCursorPos((x, y))  # 鼠标定位,不同的屏幕分辨率请用百分比换算
-    win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, x, y, 0, 0)  # 鼠标左键按下
-    win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, x, y, 0, 0)  # 鼠标左键弹起
-    time.sleep(random.uniform(t, t + 2))
-
-
-while True:
-    LeftClick(460, 380, 6)  # 战斗
-    LeftClick(80, 50, 6)  # 左上角返回
-    LeftClick(32, 140)  # 手动
-    LeftClick(350, 340)  # 返回(等级升级)
-    LeftClick(280, 430, 6)  # 返回
-
-#########################################################################################################################################
-
 ipdb
 whatis
 Prints
@@ -1315,56 +1278,6 @@ object(值, 类型, 长度等信息)
 
 #########################################################################################################################################
 
-enum
-from enum import Enum
-
-
-class Color(Enum):  # 不能实例化
-    red = 1  # 不能给相同变量重复赋值
-    orange = 2
-    yellow = 3
-
-
-print(Color(2), Color.red, Color(3) == 3, Color(1) == Color.red)  # Color.orange Color.red False True
-
-#########################################################################################################################################
-
-读excel表格
-import pandas as pd
-
-df = pd.read_excel('map.xlsx', sheet_name='Sheet2', header=1, usercols=[2, 4, 6, 7], dtype={'name': str, 'id': int},
-                   names=['name', 'id', 'score']) // header指定开始读取的行号
-for row in range(df.shape[0]):
-    if pd.isna(df.loc[row]['name']):
-        pass
-
-#########################################################################################################################################
-
-subprocess
-# !/root/miniconda3/bin/python
-# 如果指定编译器,则可通过./test来执行，否则只能通过python test来执行
-from subprocess import run, PIPE
-
-# run(['mkdir','-p','11'])
-# run('rm -rf 11'.split())
-ret = run('ls -l', shell=True, stdout=PIPE, stderr=PIPE)
-print(ret.args, '\n', ret.returncode, '\n', ret.stdout, '\n', ret.stderr)
-
-#########################################################################################################################################
-
-解包 / 拆箱
-a, b, c = 1, 2, 3
-a, (b, c), d = [1, (2, 3), 4]
-a, *b, c = [1, 2, 3, 4, 5]
-
-a, b = 1, 2
-a, b = b, a  # 使用拆箱进行变量交换
-
-first, _, third, *_ = range(10)
-print(first, third, _)  # 0 2 [3, 4, 5, 6, 7, 8, 9]
-
-#########################################################################################################################################
-
 big - endian & little - endian
 # include <stdbool.h>
 bool
@@ -1402,36 +1315,6 @@ test(3)
 {'z': 1, 'arg': 3}
 {'__loader__': <_frozen_importlib_external.SourceFileLoader object at 0x000001FDBDCC8940>, '__package__': None, '__name__': '__main__', 'a': 5, '__doc__': None, '__file__': 'C:\\Users\\root\\Desktop\\zzzz.py', 'test': <function test at 0x000001FDBDBD7F28>, '__spec__': None, '__cached__': None, '__builtins__': <module 'builtins' (built-in)>}
 '''
-
-#########################################################################################################################################
-
-深拷贝与浅拷贝
-import copy
-
-a = [0, [1, ], (2,), 'str']
-b = a  # 相当于&
-c = a[:]  # 等价于copy.copy(a),相当于部分&
-d = copy.copy(a)
-e = copy.deepcopy(a)  # 此时d跟a无任何关系
-a[0] = 5
-a[1][0] = 4
-
-print('a:', a)
-print('b:', id(b) == id(a), id(b[0]) == id(a[0]), id(b[1]) == id(a[1]), id(b[2]) == id(a[2]), id(b[3]) == id(a[3]), b)
-print('c:', id(c) == id(a), id(c[0]) == id(a[0]), id(c[1]) == id(a[1]), id(c[2]) == id(a[2]), id(c[3]) == id(a[3]), c)
-print('d:', id(d) == id(a), id(d[0]) == id(a[0]), id(d[1]) == id(a[1]), id(d[2]) == id(a[2]), id(d[3]) == id(a[3]), d)
-print('e:', id(e) == id(a), id(e[0]) == id(a[0]), id(e[1]) == id(a[1]), id(e[2]) == id(a[2]), id(e[3]) == id(a[3]), e)
-
-'''
-a: [5, [4], (2,), 'str']
-b: True True True True True [5, [4], (2,), 'str']
-c: False False True True True [0, [4], (2,), 'str']
-d: False False True True True [0, [4], (2,), 'str']
-e: False False False True True [0, [1], (2,), 'str']
-'''
-
-shadow_copy = [[1, 2, 3, 4]] * 3
-deep_copy = [[1, 2, 3, 4] for _ in range(3)]
 
 #########################################################################################################################################
 
@@ -1556,33 +1439,3 @@ print(re.findall(r'\w+\.(?!com)\w+', 'www.com https.org'))  # ['https.org'],不�
 print(re.findall(r'\w+(?<!www)\.\w+', 'www.com https.org'))  # ['https.org'],不以...开头
 print(re.findall(r'\w+\.(?=c.m)', 'www.com https.org'))  # ['www.'],以...结束
 print(re.findall(r'(?<=\w{5})\.\w+', 'www.com https.org'))  # ['.org'],以...开头
-
-#########################################################################################################################################
-
-地板除(不管操作数为何种数值类型, 总是会舍去小数部分, 返回数字序列中比真正的商小的最接近的数字)
-print(5 // 2)  # 2
-print(5 // 2.0)  # 2.0
-print(5 // -2)  # -3
-
-#########################################################################################################################################
-
-延时绑定
-延迟绑定出现在闭包问题和lambda表达式中, 特点是变量在调用时才会去检测是否存在, 如果存在则使用现有值, 如果不存在, 直接报错
-默认参数会在函数定义时就必须初始化
-# because y is not local to the lambdas, but is defined in the outer scope and it is accessed when the lambda is called — not when it is defined.
-squares = [lambda: y ** 2 for _ in range(3)]
-y = 5
-for square in squares:
-    print(square())  # 25 25 25
-
-squares = [lambda y=x: y ** 2 for x in range(3)]  # lambda参数也可以有默认值
-for square in squares:
-    print(square())  # 0 1 4
-
-squares = (lambda: x ** 2 for x in range(3))  # generator,并不会立马执行for循环
-for square in squares:
-    print(square())  # 0 1 4
-
-squares = [lambda: x ** 2 for x in range(3)]  # 会立马执行for循环
-for square in squares:
-    print(square())  # 4 4 4
