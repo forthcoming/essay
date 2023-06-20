@@ -86,6 +86,7 @@ is比较的内存地址; ==比较的是字面值
 __str__: 自定义打印类的格式,print打印类实例时被调用
 __len__: 自定义类长度,len作用于类实例时被调用
 __call__: 类实例被当作函数调用时调用
+__name__: 通过"类.__name__"返回字符串类型的类名,类实例无此属性
 
 
 What kinds of global value mutation are thread-safe?
@@ -139,13 +140,12 @@ pinfo2   Provide extra detailed information about an object(值,类型,长度等
 
 
 big-endian: 低位地址保存高位数字,方便阅读理解
-little-endian:在变量指针转换的时候地址保持不变,比如int64*转到int32*
+little-endian: 低位地址保存低位数字(比特位从右至左),在变量指针转换的时候地址保持不变,比如int64*转到int32*
 目前看来是little-endian成为主流了
-#include <stdbool.h>
 bool is_big_endian() //如果字节序为big-endian,返回1,反之返回0
 {
-  unsigned short test = 0x1122;
-  if(*( (unsigned char*) &test ) == 0x11)
+  unsigned short test = 0x1122;   // 2字节
+  if(*( (unsigned char*) &test ) == 0x11)  // 取低位第一个字节的地址
     return true;
   else
     return false;
@@ -260,6 +260,7 @@ def common_tutorial():
     注意Linux下要去掉字符串末尾的\n
     '''
 
+
 def counter_tutorial():
     count = Counter([1, 1, 2, 2, 3, 3, 3, 3, 4, 5])
     print(count)  # Counter({3: 4, 1: 2, 2: 2, 4: 1, 5: 1})
@@ -338,6 +339,32 @@ def format_tutorial():  # 最新版Python的f字符串可以看作format的简�
     string = "numbers: {0:b},{0:.3f},{0:d},{0:#x},{0:X}, {0:%}".format(15)
     # numbers: 1111,15.000000,15,0xf,F, 1500.000000%
     print(f"numbers: {15:b},{15:f},{15:d},{15:#x},{15:X}, {15:%}")
+
+
+def with_tutorial():
+    class Sample:
+        def __enter__(self):
+            print("In __enter__")
+            return 'test'  # 返回值赋给with后面的as变量
+
+        def __exit__(self, type, value, trace):
+            """
+            没有异常的情况下整个代码块运行完后触发__exit__,他的三个参数均为None
+            当有异常产生时,从异常出现的位置直接触发__exit__
+            __exit__运行完毕就代表整个with语句执行完毕
+            返回值为True代表吞掉了异常,并且结束代码块运行,但是代码块之外的代码会继续运行,否则代表抛出异常,结束所有代码的运行,包括代码块之外的代码
+            """
+            print("In __exit__,type: {}, value: {}, trace: {}".format(type, value, trace))
+            return True
+
+        def do_something(self):
+            1 / 0
+
+    sample = Sample()
+    with sample as f:  # 相当于f = sample.__enter__(),如果不使用with语法,__exit__不会生效
+        print(f)  # test
+        sample.do_something()
+        print('after do something')
 
 
 def copy_tutorial():
@@ -621,6 +648,31 @@ def scope_tutorial():
     print(locals())  # {'make_counter': make_counter at 0x1>, 'mc': <function at 0x2>, 'outer': <function at 0x3>}
     # {'__name__': '__main__', '__file__': '11.py', 'var': 0, 'scope_tutorial': <function scope_tutorial at 0x1>}
     print(globals())
+
+
+def property_tutorial():
+    class C:
+        def __init__(self):
+            self.__x = None
+
+        def get_x(self):
+            print('get_x')
+            return self.__x
+
+        def set_x(self, value):
+            print('set_x')
+            self.__x = value
+
+        def del_x(self):
+            print('del_x')
+            del self.__x
+
+        x = property(get_x, set_x, del_x, "I'm the 'x' property.")  # 把类中的方法当作属性来访问
+
+    c = C()
+    c.x = 20  # 相当于c.set_x(20)
+    print(c.x)  # 相当于c.get_x()
+    del c.x  # 相当于c.del_x()
 
 
 def dec2bin(string, precision=10):  # 方便理解c语言浮点数的内存表示, dec2bin('19.625') => 10011.101
