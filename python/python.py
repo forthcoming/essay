@@ -153,10 +153,7 @@ bool is_big_endian() //如果字节序为big-endian,返回1,反之返回0
 """
 
 import copy
-import ctypes
 import hashlib
-import mmap
-import os
 import re
 import time
 from bisect import insort_right, bisect_left, bisect_right
