@@ -86,21 +86,90 @@ is比较的内存地址; ==比较的是字面值
 __str__: 自定义打印类的格式,print打印类实例时被调用
 __len__: 自定义类长度,len作用于类实例时被调用
 __call__: 类实例被当作函数调用时调用
+
+
+What kinds of global value mutation are thread-safe?
+A global interpreter lock (GIL) is used internally to ensure that only one thread runs in the Python VM at a time.
+In general, Python offers to switch among threads only between bytecode instructions; how frequently it switches can be set via sys.setswitchinterval().
+Each bytecode instruction and therefore all the C implementation code reached from each instruction is therefore atomic from the point of view of a Python program.
+In practice, it means that operations on shared variables of built-in data types (ints, lists, dicts, etc) that “look atomic” really are.
+For example, the following operations are all atomic (L, L1, L2 are lists, D, D1, D2 are dicts, x, y are objects, i, j are ints):
+L.append(x)
+L1.extend(L2)
+x = L[i]
+x = L.pop()
+L1[i:j] = L2
+L.sort()
+x = y
+x.field = y
+D[x] = y
+D1.update(D2)
+D.keys()
+These aren’t:
+i = i+1
+L.append(L[-1])
+L[i] = L[j]
+D[x] = D[x] + 1
+Operations that replace other objects may invoke those other objects’ __del__() method when their reference count reaches zero, and that can affect things.
+This is especially true for the mass updates to dictionaries and lists. When in doubt, use a mutex!
+
+
+pickle
+除个别外(如不能序列化lambda表达式), pickle.dumps可以序列化任何数据类型成b字符串, 并保留原有的数据(比如生成好的树,图结构)
+pickle.loads反序列化后的对象与原对象是等值的副本对象, 类似与deepcopy
+
+
+ipdb
+whatis       Prints the type of the argument.
+enter        重复上次命令
+set_trace()  在该点打断(from ipdb import set_trace,或者直接在该处使用breakpoint(),不需要使用set_trace()函数)
+c(ont(inue))   Continue execution, only stop when a breakpoint is encountered.执行到下个断点处
+l(ist) [first [,last]]   List source code for the current file.Without arguments, list 11 lines around the current line or continue the previous listing.
+j(ump)   程序跳到指定行
+p        打印某个变量
+pp       Pretty-print the value of the expression.
+n(ext)   让程序运行下一行,如果当前语句有一个函数调用,用n是不会进入被调用的函数体中
+s(tep)   跟n相似,但是如果当前有一个函数调用,那么s会进入被调用的函数体中
+q        退出调试
+r(eturn)  继续执行,直到函数体返回(Continue execution until the current function returns.)
+b(reak)  在指定行打断点
+ipdb>    后面跟语句,可以直接改变某个变量
+h(elp)   打印当前版本Pdb可用的命令,如果要查询某个命令,可以输入h [command],例如:"h l"查看list命令
+pinfo2   Provide extra detailed information about an object(值,类型,长度等信息)
+
+
+big-endian: 低位地址保存高位数字,方便阅读理解
+little-endian:在变量指针转换的时候地址保持不变,比如int64*转到int32*
+目前看来是little-endian成为主流了
+#include <stdbool.h>
+bool is_big_endian() //如果字节序为big-endian,返回1,反之返回0
+{
+  unsigned short test = 0x1122;
+  if(*( (unsigned char*) &test ) == 0x11)
+    return true;
+  else
+    return false;
+}
 """
 
-from functools import lru_cache
-from datetime import datetime, timedelta
-import time
-from random import randrange, choice, sample, shuffle, random
-from heapq import heapify, heappop, heappush, nlargest, nsmallest, heappushpop
-from collections import Counter
-from bisect import insort_right, bisect_left, bisect_right
-from collections import deque
+import copy
+import ctypes
+import hashlib
+import mmap
+import os
 import re
-import pandas as pd
+import time
+from bisect import insort_right, bisect_left, bisect_right
+from collections import Counter
+from collections import deque
+from datetime import datetime, timedelta
+from functools import lru_cache
+from heapq import heapify, heappop, heappush, nlargest, nsmallest, heappushpop
+from random import randrange, choice, sample, shuffle, random
+from subprocess import run, PIPE
 import win32api
 import win32con
-import copy
+import pandas as pd
 
 
 def str_tutorial():
@@ -178,6 +247,18 @@ def common_tutorial():
     followlinks - - 设置为true, 则通过软链接访问目录
     """
 
+    int('0x01002', 16)  # 字符串是16进制,并将其转换成10进制
+
+    x = 1
+    print(eval('x+1'), x)  # 2, 1  执行字符串形式的表达式,返回执行结果
+    print(exec('x += 10'), x)  # None, 11  执行字符串形式的代码，返回None
+
+    secret = hashlib.md5(b"hello blockchain world, this is yeasy@github")
+    print(secret.hexdigest())  # 1ee216d3ef1d217cd2807348f5f7ce19
+    '''
+    echo -n "hello blockchain world, this is yeasy@github"|md5sum
+    注意Linux下要去掉字符串末尾的\n
+    '''
 
 def counter_tutorial():
     count = Counter([1, 1, 2, 2, 3, 3, 3, 3, 4, 5])
@@ -260,7 +341,7 @@ def format_tutorial():  # 最新版Python的f字符串可以看作format的简�
 
 
 def copy_tutorial():
-    a = [0, [1, ], (2,), 'str']
+    a = [0, [1, ], (2,)]
     b = a  # 相当于&
     c = a[:]  # 等价于copy.copy(a),相当于部分&
     d = copy.copy(a)
@@ -268,21 +349,32 @@ def copy_tutorial():
     a[0] = 5
     a[1][0] = 4
     print('a:', a)
-    print('b:', id(b) == id(a), id(b[0]) == id(a[0]), id(b[1]) == id(a[1]), id(b[2]) == id(a[2]), id(b[3]) == id(a[3]),
-          b)
-    print('c:', id(c) == id(a), id(c[0]) == id(a[0]), id(c[1]) == id(a[1]), id(c[2]) == id(a[2]), id(c[3]) == id(a[3]),
-          c)
-    print('d:', id(d) == id(a), id(d[0]) == id(a[0]), id(d[1]) == id(a[1]), id(d[2]) == id(a[2]), id(d[3]) == id(a[3]),
-          d)
-    print('e:', id(e) == id(a), id(e[0]) == id(a[0]), id(e[1]) == id(a[1]), id(e[2]) == id(a[2]), id(e[3]) == id(a[3]),
-          e)
-    # a: [5, [4], (2,), 'str']
-    # b: True True True True True [5, [4], (2,), 'str']
-    # c: False False True True True [0, [4], (2,), 'str']
-    # d: False False True True True [0, [4], (2,), 'str']
-    # e: False False False True True [0, [1], (2,), 'str']
+    print('b:', b, id(b) == id(a), id(b[0]) == id(a[0]), id(b[1]) == id(a[1]), id(b[2]) == id(a[2]))
+    print('c:', c, id(c) == id(a), id(c[0]) == id(a[0]), id(c[1]) == id(a[1]), id(c[2]) == id(a[2]))
+    print('d:', d, id(d) == id(a), id(d[0]) == id(a[0]), id(d[1]) == id(a[1]), id(d[2]) == id(a[2]))
+    print('e:', e, id(e) == id(a), id(e[0]) == id(a[0]), id(e[1]) == id(a[1]), id(e[2]) == id(a[2]))
+    # a: [5, [4], (2,)]
+    # b: [5, [4], (2,)] True True True True
+    # c: [0, [4], (2,)] False False True True
+    # d: [0, [4], (2,)] False False True True
+    # e: [0, [1], (2,)] False False False True
     shadow_copy = [[1, 2, 3, 4]] * 3
     deep_copy = [[1, 2, 3, 4] for _ in range(3)]
+
+
+def divide_tutorial():
+    # 地板除(不管操作数为何种数值类型, 总是会舍去小数部分, 返回数字序列中比真正的商小的最接近的数字)
+    print(5 // 2)  # 2
+    print(5 // 2.0)  # 2.0
+    print(5 // -2)  # -3
+
+
+def subprocess_tutorial():
+    # !/root/miniconda3/bin/python
+    # 如果指定编译器,则可通过./test来执行，否则只能通过python test来执行
+    # run(['mkdir','-p','11'])
+    ret = run('ls -l', shell=True, stdout=PIPE, stderr=PIPE)
+    print(ret.args, '\n', ret.returncode, '\n', ret.stdout, '\n', ret.stderr)
 
 
 def open_tutorial():
@@ -306,6 +398,11 @@ def open_tutorial():
         file2.seek(33)
         print(file2.tell())
         print(file2.readline())
+
+
+def unpack_tutorial():  # 解包
+    arg0, (arg1, arg2), arg3 = [1, (2, 3), 4]  # 1 2 3 4
+    arg4, *arg5, arg6 = [1, 2, 3, 4, 5]  # 1 [2, 3, 4] 5
 
 
 def args_tutorial():
@@ -337,6 +434,27 @@ def args_tutorial():
     test_default(1)  # 5 [1] [1]
     test_default(2)  # 5 [1, 2] [2]
     print(test_default.__defaults__)  # (5, [1, 2], None), 默认值在函数定义时已被确定
+
+
+def delayed_binding_tutorial():
+    # 延迟绑定出现在闭包问题和lambda表达式中, 特点是变量在调用时才会去检测是否存在, 如果存在则使用现有值, 如果不存在, 直接报错
+    # because y is not local to the lambdas, but is defined in the outer scope and it is accessed when the lambda is called — not when it is defined.
+    squares = [lambda: y ** 2 for _ in range(3)]
+    y = 5
+    for square in squares:
+        print(square())  # 25 25 25
+
+    squares = [lambda y=x: y ** 2 for x in range(3)]  # lambda参数也可以有默认值
+    for square in squares:
+        print(square())  # 0 1 4
+
+    squares = (lambda: x ** 2 for x in range(3))  # generator,并不会立马执行for循环
+    for square in squares:
+        print(square())  # 0 1 4
+
+    squares = [lambda: x ** 2 for x in range(3)]  # 会立马执行for循环
+    for square in squares:
+        print(square())  # 4 4 4
 
 
 def datetime_tutorial():
@@ -496,10 +614,13 @@ def scope_tutorial():
             print("inner:", var, end='\t')
 
         inner()
-        print("outer:", var, end='\t')
+        print("outer:", var)
 
-    outer()  # inner: 9 outer: 1
+    outer()  # inner: 9	outer: 1
     print("global:", var)  # global: 0
+    print(locals())  # {'make_counter': make_counter at 0x1>, 'mc': <function at 0x2>, 'outer': <function at 0x3>}
+    # {'__name__': '__main__', '__file__': '11.py', 'var': 0, 'scope_tutorial': <function scope_tutorial at 0x1>}
+    print(globals())
 
 
 def dec2bin(string, precision=10):  # 方便理解c语言浮点数的内存表示, dec2bin('19.625') => 10011.101
@@ -541,11 +662,8 @@ def main():
 if __name__ == '__main__':
     main()
 
+
 ##################################################################################################################################
-
-# mmap
-import os, time, mmap, re, ctypes
-
 
 def test0():
     mm = mmap.mmap(fileno=-1, length=256,
@@ -582,15 +700,15 @@ def test1():
 
 
 def test2():
-    '''
+    """
     create an anonymous map and exchange data between the parent and child processes
     MAP_PRIVATE creates a private copy-on-write mapping, so changes to the contents of the mmap object will be private to this process(A进程更改的数据不会同步到B进程);
     MAP_SHARED creates a mapping that's shared with all other processes mapping the same areas of the file. The default value is MAP_SHARED(A进程更改的数据会同步到B进程).
     在MAP_SHARED情况下各个进程的mm对象独立,意味着close,文件指针等不相互影响,仅共享数据
-    
+
     length申请的是虚拟内存VIRT(注意length要大点,应为本身会预申请一定大小的虚拟内存)
     如果flags=mmap.MAP_PRIVATE,write占用的是驻留内存RES; 如果flags=mmap.MAP_SHARED,write占用的是共享内存SHR,但由于RES包含SHR,所以RES也会相应增大
-    '''
+    """
     mm = mmap.mmap(-1, length=13, flags=mmap.MAP_SHARED)
     mm.write(b"Hello world!")
     mm.seek(0)
@@ -636,7 +754,6 @@ if __name__ == '__main__':
 
 # thread local
 from multiprocessing.dummy import Process
-from threading import local
 from os import urandom
 
 
@@ -703,17 +820,6 @@ xxxooooxxxxxooooxxxoooo
 xxxooooxxxxxooooxxxoooo
 '''
 
-##################################################################################################################################
-
-int('0x01002', 16)  # 字符串是16进制,并将其转换成10进制
-
-x = 1
-eval('x+1')  # 2  执行字符串形式的表达式,返回执行结果
-
-x = 1
-exec('x += 10')  # 执行字符串形式的代码，返回None
-print(x)  # 11
-
 #########################################################################################################################################
 
 类变量 & 实例变量
@@ -767,112 +873,6 @@ print(obj1.__dict__, obj2.__dict__,
 
 #########################################################################################################################################
 
-inherit
-
-
-# MRO全称Method Resolution Order,用来定义继承方法的调用顺序,MRO采用广度优先
-# 在继承中一旦定义了子类的构造函数,则需要在第一行显示调用基类的构造函数super().__init__()
-# 在类的继承层次结构中,super只想按子类MRO指定的顺序调用"下一个方法",而不是父类的方法(super不总是代理子类的父类,还有可能代理其兄弟类)
-# super的目标就是解决复杂的多重继承问题,保证在类的继承层次结构中每一个方法只被执行一次
-class A:  # 模拟object类
-    def __init__(self):
-        print('init A...')
-
-
-class B(A):
-    def __init__(self):
-        super().__init__()
-        print('init B...')
-
-
-class C(A):
-    def __init__(self):
-        super().__init__()
-        print('init C...')
-
-
-class D(B, C):
-    def __init__(self):
-        super().__init__()
-        print('init D...')
-
-
-print(
-    D.mro())  # [<class '__main__.D'>, <class '__main__.B'>, <class '__main__.C'>, <class '__main__.A'>, <class 'object'>]
-print(B.mro())  # [<class '__main__.B'>, <class '__main__.A'>, <class 'object'>]
-print(A.mro())  # [<class '__main__.A'>, <class 'object'>]
-d = D()
-# init A...
-# init C...
-# init B...
-# init D...
-b = B()
-
-
-# init A...
-# init B...
-
-#########################################################################################################################################
-
-class Sample:
-    def __enter__(self):
-        print("In __enter__")
-        return 'test'  # 返回值赋给with后面的as变量
-
-    def __exit__(self, type, value, trace):
-        '''
-        没有异常的情况下整个代码块运行完后触发__exit__,他的三个参数均为None
-        当有异常产生时,从异常出现的位置直接触发__exit__
-        __exit__运行完毕就代表整个with语句执行完毕
-        返回值为True代表吞掉了异常,并且结束代码块运行,但是代码块之外的代码会继续运行,否则代表抛出异常,结束所有代码的运行,包括代码块之外的代码
-        '''
-        print("In __exit__,type: {}, value: {}, trace: {}".format(type, value, trace))
-        return True
-
-    def do_something(self):
-        1 / 0
-
-
-sample = Sample()
-with sample as f:  # 相当于f = sample.__enter__()
-    print(f)  # test
-    sample.do_something()
-    print('after do something')
-
-#########################################################################################################################################
-
-property(fget=None, fset=None, fdel=None, doc=None)：函数
-property()
-的作用就是把类中的方法当作属性来访问
-
-
-class C:
-    def __init__(self):
-        print('init')
-        self.__x = None
-
-    def getx(self):
-        print('getx')
-        return self.__x
-
-    def setx(self, value):
-        print('setx')
-        self.__x = value
-
-    def delx(self):
-        print('delx')
-        del self.__x
-
-    x = property(getx, setx, delx, "I'm the 'x' property.")
-
-
-c = C()
-c.x = 20  # 相当于c.setx(20)
-print(c.x)  # 相当于c.getx()
-del c.x  # 相当于c.delx()
-
-#########################################################################################################################################
-
 __getattr__ & __setattr__
 
 
@@ -884,11 +884,11 @@ class Rectangle:
         self.length = 0  # 调用__setattr__
 
     def __setattr__(self, name, value):
-        '''
+        """
         会拦截所有属性的的赋值语句,如果定义了这个方法,self.attr = value就会变成self.__setattr__("attr", value)
         当在__setattr__方法内对属性进行赋值時,不可使用self.attr = value,因为他会再次调用self.__setattr__("attr", value)形成无穷递归循环,最后导致堆栈溢出异常
         应该通过对属性字典做索引运算来赋值任何实例属性,也就是使用self.__dict__['name']= value
-        '''
+        """
         print('调用__setattr__', end='\t')
         if name == "size":
             print('in')
@@ -930,185 +930,3 @@ if __name__ == "__main__":
     print(getattr(r, 'test')())  # 获取对象中test方法并执行,不调用__getattr__
     print(getattr(r, 'avatar', 'akatsuki'))  # 调用__getattr__   default, 由于定义了__getattr__,所以这里的默认值akatsuki不会生效
     print(getattr(r, 'keys'))  # keys
-
-#########################################################################################################################################
-
-__base__ & __name__ & __class__
-
-
-class Tests:
-    a = '10'
-
-    def test(self):
-        return 20
-
-
-t = Tests()
-
-print(Tests, type(t),
-      t.__class__)  # <class '__main__.Tests'> <class '__main__.Tests'> <class '__main__.Tests'>  完全等价
-# print(t.__base__ ,t.__name__)       #实例t无此属性
-print(type, type(Tests), Tests.__class__)  # <class 'type'> <class 'type'> <class 'type'>   完全等价
-print(Tests.__base__, Tests.__name__)  # <class 'object'> Tests
-# 注意: 类定义里面的self跟类实例的类型一样
-
-#########################################################################################################################################
-
-big - endian & little - endian
-# include <stdbool.h>
-bool
-is_big_endian() // 如果字节序为big - endian, 返回1, 反之返回0
-{
-    unsigned
-short
-test = 0x1122;
-if (*((unsigned char *) & test) == 0x11)
-return true;
-else
-return false;
-}
-/ *
-big - endian: 低位地址保存高位数字, 方便阅读理解
-little - endian: 在变量指针转换的时候地址保持不变, 比如int64 * 转到int32 *
-                                                   目前看来是little - endian成为主流了
-                                                   * /
-
-                                                   #########################################################################################################################################
-
-                                                   locals() & globals()
-a = 5
-
-
-def test(arg):
-    z = 1
-    print(locals())
-    print(globals())
-
-
-test(3)
-
-'''
-{'z': 1, 'arg': 3}
-{'__loader__': <_frozen_importlib_external.SourceFileLoader object at 0x000001FDBDCC8940>, '__package__': None, '__name__': '__main__', 'a': 5, '__doc__': None, '__file__': 'C:\\Users\\root\\Desktop\\zzzz.py', 'test': <function test at 0x000001FDBDBD7F28>, '__spec__': None, '__cached__': None, '__builtins__': <module 'builtins' (built-in)>}
-'''
-
-#########################################################################################################################################
-
-sub & subn & split
-regex.sub(repl, string, count=0):
-使用repl替换string中每一个匹配的子串, 返回替换后的字符串.若找不到匹配, 则返回原字符串
-当repl是一个字符串时, 任何在其中的反斜杠都会被处理
-count用于指定最多替换次数, 不指定时全部替换
-subn同sub, 只不过返回值是一个二元tuple, 即(sub函数返回值, 替换次数)
-r'^[a-zA-Z0-9]+$'  # 匹配全部由数字字母组成的字符串
-
-pattern = re.compile(
-    r"like")  # compile内部也会有缓存,因此少量正则匹配不需要compile,refer: https://github.com/python/cpython/blob/master/Lib/re.py#L289
-s1 = pattern.sub(r"love", "I like you, do you Like me?")
-print(s1)  # I love you, do you love me?
-print(re.subn(r'(\w+) (\w+)', r'\2 \1', 'i say, hello world!'))  # ('say i, world hello!', 2)
-#  re.split(pattern, string, maxsplit=0, flags=0)   flags用于指定匹配模式
-print(re.split(r'[\s\,\;]+', 'a,b;; c d'))  # ['a', 'b', 'c', 'd']
-
-#########################################################################################################################################
-
-md5
-import hashlib
-
-m = hashlib.md5(b"hello blockchain world, this is yeasy@github")
-print(m.hexdigest())  # 1ee216d3ef1d217cd2807348f5f7ce19
-'''
-echo -n "hello blockchain world, this is yeasy@github"|md5sum
-注意Linux下要去掉字符串末尾的\n
-'''
-
-#########################################################################################################################################
-
-search: 匹配到就终止, 只匹配一个, 可指定起始位置跟结束位置
-findall: 匹配所有, 可指定起始位置跟结束位置
-match: 从头开始匹配, 最多匹配一个, 可指定起始位置跟结束位置
-
-s = 'avatar cao nihao 1234,'
-regex = re.compile(r'(ava\w+) cao (nihao)')
-# group默认是group(0),返回全部,groups是以tuple类型返回括号内所有内容
-print(regex.search(s).group())  # avatar cao nihao
-print(regex.search(s).groups())  # ('avatar', 'nihao')
-
-s = 'avat1ar cao avat2ar cao,'
-regex = re.compile(r'(ava\w+) cao')
-print(regex.findall(s))  # ['avat1ar', 'avat2ar']
-regex = re.compile(r'ava\w+ cao')
-print(regex.findall(s))  # ['avat1ar cao', 'avat2ar cao']
-
-# 注意r''的使用
-re.findall(r'\[q\\w1', '[q\w1')  # ['[q\\w1']
-re.findall('\\[q\\\w1', '[q\w1')  # ['[q\\w1']
-re.findall('\[q\\w1', '[q\w1')  # [],匹配不到的原因是python字符串也是用\转义特殊字符,\[被python理解成[
-re.findall(r'\bor\b', 'which or orange ')  # ['or'] 建议使用\b单词\b形式,如\bw+\b
-re.findall('\bor\b', 'which or orange ')  # []
-
-[]
-匹配所包含的任意一个字符
-连字符 - 如果出现在字符串中间表示字符范围描述;
-如果如果出现在首位则仅作为普通字符
-特殊字符仅有反斜线\保持特殊含义, 用于转义字符.其它特殊字符如 *、+、? 等均作为普通字符匹配
-脱字符 ^ 如果出现在首位则表示匹配不包含其中的任意字符;
-如果 ^ 出现在字符串中间就仅作为普通字符匹配
-
-[\u4e00 -\u9fa5]  # 匹配中文
-^ [ ^ t]+  # 匹配不以t开头的字符串
-
-#########################################################################################################################################
-
-\w
-s = 'as_6の5你ava'
-print(re.findall(r'\w+', s))  # ['as_6の5你ava']
-print(re.findall(r'\w+', s, re.ASCII))  # ['as_6', '5', 'ava']
-
-For
-Unicode(str)
-patterns:
-Matches
-Unicode
-word
-characters;
-this
-includes
-most
-characters
-that
-can
-be
-part
-of
-a
-word in any
-language,
-as well as numbers and the
-underscore.If
-the
-ASCII
-flag is used, only[a - zA - Z0 - 9
-_] is matched.
-
-#########################################################################################################################################
-
-多行匹配 / 断言(re.S & re.M)
-# \n匹配换行符,默认.不会匹配换行符,re.S也有同样效果,re.I忽略大小写
-print(re.findall(r"a\d+b.+a\d+b", "a23b\na34b"))  # []
-print(re.findall(r"a\d+b(?:.|\n)+a\d+b",
-                 "a23b\na34b"))  # ['a23b\na34b'] ?:意思是让findall,search等函数'看不见'括号,类似用法如re.findall(r'(?:\d{1,3}\.){3}\d{1,3}','192.168.1.33')
-print(re.findall(r"a\d+b.+a\d+b", "a23b\na34b", re.S))  # ['a23b\na34b']
-
-# re.M：可以使^$标志将会匹配每一行,默认^和$只会匹配第一行
-print(re.findall(r"^a(\d+)b", "a23b\na34b"))  # ['23']
-print(re.findall(r"^a(\d+)b", "a23b\na34b", re.M))  # ['23', '34']
-
-# 但是如果没有^标志,是无需re.M
-print(re.findall(r"a(\d+)b", "a23b\na34b"))  # ['23', '34']
-
-# 断言,且都是零宽
-print(re.findall(r'\w+\.(?!com)\w+', 'www.com https.org'))  # ['https.org'],不以...结束
-print(re.findall(r'\w+(?<!www)\.\w+', 'www.com https.org'))  # ['https.org'],不以...开头
-print(re.findall(r'\w+\.(?=c.m)', 'www.com https.org'))  # ['www.'],以...结束
-print(re.findall(r'(?<=\w{5})\.\w+', 'www.com https.org'))  # ['.org'],以...开头
