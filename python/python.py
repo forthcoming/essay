@@ -348,6 +348,34 @@ def inherit_tutorial():
     # init B...
 
 
+def slots_tutorial():
+    """
+    __slots__ are implemented at the class level by creating descriptors for each variable name.
+    it really only saves you when you have thousands of instances
+    __slots__定义的属性仅对当前类实例起作用,对继承的子类不起作用
+    classes defining __slots__ do not support weak references to its instances.
+    If weak reference support is needed, then add '__weakref__' to the sequence of strings in the __slots__ declaration.
+    实例的__dict__只保存实例变量,不保存类属性(变量和函数)
+    """
+    class Slots:
+        a = 123
+        b = []
+        c = 'string'
+        __slots__ = ['d', 'e']  # 限制实例的属性只能是d跟e, 去掉实例的__dict__,__weakref__ 属性, 能达到更快的属性访问和更少的内存消耗
+
+        def __init__(self):
+            self.d = 'd'
+            self.e = 123
+
+        def test(self): pass
+
+    print(Slots.__dict__)
+    # slots = Slots()
+    # print(slots.__dict__)      # error
+    # print(slots.__weakref__ )  # error
+    # slots.f = []               # error
+
+
 def exception_tutorial():
     try:
         # os._exit(0)   # 会阻止一切语句的执行,包括finally
