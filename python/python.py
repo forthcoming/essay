@@ -310,6 +310,44 @@ def bin_sect_tutorial():
     insort_right(arr, 2)
 
 
+def inherit_tutorial():
+    # MRO全称Method Resolution Order,用来定义继承方法的调用顺序,MRO采用广度优先
+    # 在继承中一旦定义了子类的构造函数,则需要在第一行显示调用基类的构造函数super().__init__()
+    # 在类的继承层次结构中,super只想按子类MRO指定的顺序调用"下一个方法",而不是父类的方法(super不总是代理子类的父类,还有可能代理其兄弟类)
+    # super的目标就是解决复杂的多重继承问题,保证在类的继承层次结构中每一个方法只被执行一次
+    class A:  # 模拟object类
+        def __init__(self):
+            print('init A...')
+
+    class B(A):
+        def __init__(self):
+            super().__init__()
+            print('init B...')
+
+    class C(A):
+        def __init__(self):
+            super().__init__()
+            print('init C...')
+
+    class D(B, C):
+        def __init__(self):
+            super().__init__()
+            print('init D...')
+
+    # [<class '__main__.D'>, <class '__main__.B'>, <class '__main__.C'>, <class '__main__.A'>, <class 'object'>]
+    print(D.mro())
+    print(B.mro())  # [<class '__main__.B'>, <class '__main__.A'>, <class 'object'>]
+    print(A.mro())  # [<class '__main__.A'>, <class 'object'>]
+    D()
+    # init A...
+    # init C...
+    # init B...
+    # init D...
+    B()
+    # init A...
+    # init B...
+
+
 def exception_tutorial():
     try:
         # os._exit(0)   # 会阻止一切语句的执行,包括finally
