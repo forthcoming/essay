@@ -86,18 +86,6 @@ is比较的内存地址; ==比较的是字面值
 __str__: 自定义打印类的格式,print打印类实例时被调用
 __len__: 自定义类长度,len作用于类实例时被调用
 __call__: 类实例被当作函数调用时调用
-
-
-class Person:
-    def __init__(self, name):
-        self.name = name
-
-    def __call__(self, friend):
-        print('My name is {},My friend is {}.'.format(self.name, friend))
-
-
-p = Person('Bob')
-p('Tim')  # My name is Bob,My friend is Tim.
 """
 
 from functools import lru_cache
@@ -116,7 +104,6 @@ import copy
 
 
 def str_tutorial():
-    # split
     string = "Line1-abcdef \nLine2-abc \nLine4-abcd"
     print(string.split())  # ['Line1-abcdef', 'Line2-abc', 'Line4-abcd']
     print(string.split(' ', 1))  # ['Line1-abcdef', '\nLine2-abc \nLine4-abcd']
@@ -125,7 +112,6 @@ def str_tutorial():
 
 
 def list_tutorial():
-    # 列表切片赋值
     arr = [1, 2, 3, 4, 5]
     arr[2:3] = [0, 0]  # 注意这里的用法(区别于a[2] = [0, 0])   [1, 2, 0, 0, 4, 5]
     arr[1:1] = [8, 9]  # [1, 8, 9, 2, 0, 0, 4, 5]
@@ -536,19 +522,6 @@ def dec2bin(string, precision=10):  # 方便理解c语言浮点数的内存表�
     return ''.join(result)
 
 
-# memoryview
-# It allows you to share memory between data-structures (things like PIL images, SQLlite data-bases, NumPy arrays, etc.) without first copying. 
-# This is very important for large data sets.With it you can do things like memory-map to a very large file, slice a piece of that file and do calculations on that piece
-# A memoryview supports slicing and indexing to expose its data. One-dimensional slicing will result in a subview
-# 当memoryview实例mm跨进程传递时,相当于子进程拷贝了一份数据,mm重新指向了子进程的数据,指针对象ctypes.pointer也是一样
-# ctypes.memset(dst, c, count)
-# Same as the standard C memset library function: fills the memory block at address dst with count bytes of value c. dst must be an integer specifying an address, or a ctypes instance.
-
-# from_buffer(source[, offset])
-# This method returns a ctypes instance that shares the buffer of the source object. The source object must support the writeable buffer interface.
-# The optional offset parameter specifies an offset into the source buffer in bytes; the default is zero. If the source buffer is not large enough a ValueError is raised.
-
-
 def work(data):
     data[0] = 65
 
@@ -664,7 +637,6 @@ if __name__ == '__main__':
 # thread local
 from multiprocessing.dummy import Process
 from threading import local
-import time
 from os import urandom
 
 
@@ -1030,8 +1002,6 @@ count用于指定最多替换次数, 不指定时全部替换
 subn同sub, 只不过返回值是一个二元tuple, 即(sub函数返回值, 替换次数)
 r'^[a-zA-Z0-9]+$'  # 匹配全部由数字字母组成的字符串
 
-import re
-
 pattern = re.compile(
     r"like")  # compile内部也会有缓存,因此少量正则匹配不需要compile,refer: https://github.com/python/cpython/blob/master/Lib/re.py#L289
 s1 = pattern.sub(r"love", "I like you, do you Like me?")
@@ -1057,7 +1027,6 @@ echo -n "hello blockchain world, this is yeasy@github"|md5sum
 search: 匹配到就终止, 只匹配一个, 可指定起始位置跟结束位置
 findall: 匹配所有, 可指定起始位置跟结束位置
 match: 从头开始匹配, 最多匹配一个, 可指定起始位置跟结束位置
-import re
 
 s = 'avatar cao nihao 1234,'
 regex = re.compile(r'(ava\w+) cao (nihao)')
