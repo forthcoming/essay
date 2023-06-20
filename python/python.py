@@ -173,6 +173,15 @@ import pandas as pd
 
 
 def str_tutorial():
+    """
+    isalnum: 如果string至少有一个字符并且所有字符都是字母或数字则返回True,否则返回False
+    isalpha: 检测字符串是否只由字母组成
+    isdigit: 检测字符串是否只由数字组成
+    lower/upper: 转换字符串中所有字符为小写/大写
+    lstrip: 截掉字符串左边的空格或指定字符
+    replace: 把字符串中的旧字符串替换成新字符串,如果指定第三个参数max,则替换不超过max次
+    startswith/endswith: 检查字符串是否是以指定子字符串开头/结尾
+    """
     string = "Line1-abcdef \nLine2-abc \nLine4-abcd"
     print(string.split())  # ['Line1-abcdef', 'Line2-abc', 'Line4-abcd']
     print(string.split(' ', 1))  # ['Line1-abcdef', '\nLine2-abc \nLine4-abcd']
@@ -357,6 +366,7 @@ def slots_tutorial():
     If weak reference support is needed, then add '__weakref__' to the sequence of strings in the __slots__ declaration.
     实例的__dict__只保存实例变量,不保存类属性(变量和函数)
     """
+
     class Slots:
         a = 123
         b = []
@@ -760,180 +770,3 @@ def dec2bin(string, precision=10):  # 方便理解c语言浮点数的内存表�
         precision -= 1
     return ''.join(result)
 
-
-def work(data):
-    data[0] = 65
-
-
-def main():
-    t0 = time.time()
-    data = bytearray(b'a' * 900000)
-    _data = memoryview(data)
-    # print(_data.tobytes())
-    for idx in range(1, 900000):
-        # work(data)         # .07s
-        # work(data[:idx])   # 13s,拷贝了一份传给了work函数
-        work(_data[:idx])  # .16s,相当于指针传给了work函数
-    print(data[0], f'cost {time.time() - t0} seconds')
-
-
-if __name__ == '__main__':
-    main()
-
-
-##################################################################################################################################
-
-def test0():
-    mm = mmap.mmap(fileno=-1, length=256,
-                   access=mmap.ACCESS_COPY)  # fileno=-1 means map anonymous memory,length不能小于所写内容总字节数
-    mm.write(
-        b"Hello world!\n")  # 会移动文件指针,If the mmap was created with ACCESS_READ, then writing to it will raise a TypeError exception.
-    mm.write(b"welcome to python!\n")  # 如果剩余空间不足,则抛出ValueError
-
-    # 不会移动文件指针,也不使用文件指针
-    print(re.findall(rb'!', mm))
-    mm[0] = 97
-    mm[6:12] = b'python'
-    print(mm[:5])
-
-    # 会移动文件指针
-    mm.seek(0)  # 指定文件指针到某个位置
-    print(mm.read(13))  # 读指定字节数据
-    print(mm.readline())  # 读一行数据
-    mm.close()  # Subsequent calls to other methods of the object will result in a ValueError exception being raised. This will not close the open file.
-
-
-def test1():
-    with open("hello.txt", "wb") as f:
-        f.write(b"Hello Python!\n")
-
-    with open("hello.txt", "r+b") as f:  # 读写权限要与mmap保持一致
-        with mmap.mmap(f.fileno(), 0,
-                       access=mmap.ACCESS_COPY) as mm:  # 向ACCESS_WRITE内存映射赋值会影响内存和底层的文件,向ACCESS_COPY内存映射赋值会影响内存,但不会更新底层的文件
-            print(mm.readline())  # prints b"Hello Python!\n"
-            print(mm[:5])  # prints b"Hello"
-            mm[6:] = b" world!\n"
-            mm.seek(0)
-            print(mm.readline())  # prints b"Hello  world!\n"
-
-
-def test2():
-    """
-    create an anonymous map and exchange data between the parent and child processes
-    MAP_PRIVATE creates a private copy-on-write mapping, so changes to the contents of the mmap object will be private to this process(A进程更改的数据不会同步到B进程);
-    MAP_SHARED creates a mapping that's shared with all other processes mapping the same areas of the file. The default value is MAP_SHARED(A进程更改的数据会同步到B进程).
-    在MAP_SHARED情况下各个进程的mm对象独立,意味着close,文件指针等不相互影响,仅共享数据
-
-    length申请的是虚拟内存VIRT(注意length要大点,应为本身会预申请一定大小的虚拟内存)
-    如果flags=mmap.MAP_PRIVATE,write占用的是驻留内存RES; 如果flags=mmap.MAP_SHARED,write占用的是共享内存SHR,但由于RES包含SHR,所以RES也会相应增大
-    """
-    mm = mmap.mmap(-1, length=13, flags=mmap.MAP_SHARED)
-    mm.write(b"Hello world!")
-    mm.seek(0)
-    pid = os.fork()
-
-    if pid == 0:  # In a child process
-        mm[6:12] = b'python'
-        print('child process: ', mm.readline())
-        print('child process: ', mm.tell())
-        mm.close()
-        os._exit(0)
-    else:  # In a parent process
-        time.sleep(1)  # 让子进程先执行
-        print('parent process: ', mm.tell())
-        print('parent process: ', mm.readline())
-        mm.close()
-
-
-def test3():  # 进程间通信(模拟multiprocessing.Value)
-    mm = mmap.mmap(fileno=-1, length=8)
-    buf = memoryview(mm)
-    obj = ctypes.c_int.from_buffer(buf)  # buf大小不能小于c_int大小,正确使用方式是跟c_int一般大
-    # obj=ctypes.c_int(12)  # 此obj无法在进程间共享
-    ctypes.memset(ctypes.addressof(obj), 97, ctypes.sizeof(obj))  # 非必须,一般用于未给定初始值情况下的初始化工作
-    obj.value = 2 ** 31 - 1  # 最大数
-    print(mm[:], buf.tobytes(), obj.value)
-    mm.write(b"Hello\n")  # 会影响到obj的值,应为操作的是同一块内存
-    print(mm[:], buf.tobytes(), obj.value)
-
-    print('in parent', obj.value)
-    if 0 == os.fork():
-        obj.value = 13
-        print('in son', obj.value)
-    else:
-        time.sleep(1)
-        print('in parent', obj.value)
-
-
-if __name__ == '__main__':
-    test2()
-
-##################################################################################################################################
-
-# thread local
-from multiprocessing.dummy import Process
-from os import urandom
-
-
-class ThreadLocal:
-    def __init__(self):
-        # self.token=local()  # 保证同一个实例在不同线程中拥有不同的token值,redis分布式锁利用该性质达到线程安全
-        self.token = type('dummy', (), {})
-
-    def show(self, timeout):
-        self.token.value = urandom(16)
-        time.sleep(timeout)
-        print(self.token.value)
-
-
-thread_local = ThreadLocal()
-
-processes = [Process(target=lambda thread_local, timeout: thread_local.show(timeout), args=(thread_local, idx)) for idx
-             in range(1, 4)]
-for process in processes:
-    process.start()
-for process in processes:
-    process.join()
-
-##################################################################################################################################
-
-import threading
-
-
-def plyer_display():
-    print('初始化通过完成,音视频同步完成,可以开始播放....')
-
-
-barrier = threading.Barrier(3, action=plyer_display, timeout=None)  # 设置3个障碍对象
-
-
-def player_init(status):
-    print(status)
-    try:
-        barrier.wait(2)  # 如果2秒内没有达到障碍线程数量,会进入断开状态,引发BrokenBarrierError错误
-    except Exception as e:  # BrokenBarrierError错误
-        print("等待超时了... ")
-    else:
-        print("xxxooooxxxxxooooxxxoooo")
-
-
-if __name__ == '__main__':
-
-    status_list = ["init ready", "video ready", "audio ready"]
-    thread_list = []
-    for i in range(0, 3):
-        t = threading.Thread(target=player_init, args=(status_list[i],))
-        t.start()
-        thread_list.append(t)
-    for t in thread_list:
-        t.join()
-'''
-output:
-init ready
-video ready
-audio ready
-初始化通过完成,音视频同步完成,可以开始播放....
-xxxooooxxxxxooooxxxoooo
-xxxooooxxxxxooooxxxoooo
-xxxooooxxxxxooooxxxoooo
-'''
