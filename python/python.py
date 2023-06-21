@@ -793,6 +793,71 @@ def property_tutorial():
     del c.x  # 相当于c.del_x()
 
 
+def regular_tutorial():
+    """
+    search: 最多只匹配一个, 可指定起始位置跟结束位置
+    findall: 匹配所有, 可指定起始位置跟结束位置
+    sub: 替换每一个匹配的子串, 返回替换后的字符串.若找不到匹配, 则返回原字符串,可以指定最多替换次数
+    subn: 同sub, 返回(sub函数返回值, 替换次数)
+    split: 将字符串以匹配的字符做切分
+
+    * 匹配前一个字符0或无限次
+    + 匹配前一个字符1或无限次
+    ? 匹配前一个字符0次或1次
+    {m} 匹配前一个字符m次
+    {m,n} 匹配前一个字符m次至n次,若省略m代表m=0,若省略n代表n=∞
+    . 匹配任意除换行符\n外的字符
+    \ 转意字符,使后一个字符变为普通字符
+    [] 匹配所包含的任意一个字符,特殊字符(除[,],^,-)都会变为普通字符,第一个字符如果是^则表示取反,-出现在字符串中间表示字符范围,如[^a-c]表示不是abc的其他字符
+    ^ 如果出现在首位则表示匹配字符串开头,多行模式中匹配每一行的开头
+    $ 如果出现在末尾则表示匹配字符串末尾,多行模式中匹配每一行的末尾
+    | 字符串从左到右开始遍历,一旦匹配到左右表达式中的一个则停止,如果|没有被包括在()中, 则它的范围是整个正则表达式
+    () 被括起来的表达式将作为分组,作为一个整体可以后接数量词
+    \number 引用编号为number的分组匹配到的字符串,默认从1开始
+    (?:...) (...)的不分组版本,用于使用|或后接数量词
+    (?=...) 之后的字符串需要匹配表达式才能成功匹配,不消化字符串内容
+    (?!...) 之后的字符串需要不匹配表达式才能成功匹配,不消化字符串内容
+    (?<=...) 之前的字符串需要匹配表达式才能成功匹配,不消化字符串内容
+    (?<!...) 之前的字符串需要不匹配表达式才能成功匹配,不消化字符串内容
+
+    注意:
+    使用*?,+?,??,{m,n}?后会由贪婪模式变为非贪婪模式
+    慎用\w,\d,\s,\W,\D,\S之类的特殊字符
+    r'^[a-zA-Z0-9]+$'  # 匹配全部由数字字母组成的字符串
+    正则串建议使用r串
+    compile内部也会有缓存,因此少量正则匹配不需要compile,refer: https://github.com/python/cpython/blob/main/Lib/re/__init__.py#L262
+    [\u4e00 -\u9fa5] 匹配中文
+    """
+    s = 'avatar cao nihao'
+    regex = r'(ava[a-z]+) cao (nihao)'
+    print(re.search(regex, s).group())  # avatar cao nihao, group默认是group(0),返回全部
+    print(re.search(regex, s).groups())  # ('avatar', 'nihao'), groups是以tuple类型返回括号内所有内容
+    s = 'avatar cao avast cao'
+    print(re.findall(r'(ava[a-z]+) cao', s))  # ['avatar', 'avast']
+    print(re.findall(r'ava[a-z]+ cao', s))  # ['avatar cao', 'avast cao']
+    print(re.sub(r"like", r"love", "I like you, do you like me?"))  # I love you, do you love me?
+    print(re.subn(r'([a-z]+) ([a-z]+)', r'\2 \1', 'i say, hello world!'))  # ('say i, world hello!', 2)
+    print(re.split(r'[\s,;]+', 'a,b;; c d'))  # ['a', 'b', 'c', 'd']
+
+    s = '[q\w1'  # r串的使用
+    re.findall(r'\[q\\w1', s)  # ['[q\\w1']
+    re.findall('\[q\\w1', s)  # [],匹配不到的原因是python字符串也用\转义特殊字符,\[被理解成[
+    re.findall('\\[q\\\w1', s)  # ['[q\\w1']
+
+    print(re.findall(r'ab(?:.|\n)+bc', 'ab\nbc'))  # ['ab\nbc'], ?:意思是让findall,search等函数'看不见'括号
+    print(re.findall(r'(?:[0-9]{1,3}\.){3}[0-9]{1,3}', '192.168.1.33'))  # ['192.168.1.33'],
+    print(re.findall(r'\w+\.(?!com)\w+', 'www.com https.org'))  # ['https.org']
+    print(re.findall(r'\w+(?<!www)\.\w+', 'www.com https.org'))  # ['https.org']
+    print(re.findall(r'\w+\.(?=c.m)', 'www.com https.org'))  # ['www.']
+    print(re.findall(r'(?<=\w{5})\.\w+', 'www.com https.org'))  # ['.org']
+
+    print(re.findall(r"ab.+bc", "ab\nbc"))  # []
+    print(re.findall(r"Ab.+bc", "ab\nbc", re.S | re.I))  # ['ab\nbc'], re.S可以使.匹配换行符\n,re.I忽略大小写
+    print(re.findall(r"^[a-z]+", "ab\nbc"))  # ['ab']
+    print(re.findall(r"^[a-z]+", "ab\nbc", re.M))  # ['ab', 'bc'], re.M：可以使^$标志将会匹配每一行,默认^和$只会匹配第一行
+    print(re.findall(r"[a-z]+", "ab\nbc"))  # ['ab', 'bc'], 如果没有^标志,是无需re.M
+
+
 def dec2bin(string, precision=10):  # 方便理解c语言浮点数的内存表示, dec2bin('19.625') => 10011.101
     result = deque()
     integer, decimal = re.match(r'(\d*)(\.?\d*)', string).groups()
