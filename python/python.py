@@ -858,6 +858,52 @@ def regular_tutorial():
     print(re.findall(r"[a-z]+", "ab\nbc"))  # ['ab', 'bc'], 如果没有^标志,是无需re.M
 
 
+def method_tutorial():
+    """
+    静态方法和类方法都可以用类或者类实例调用,都可以被继承,不能访问实例属性,可以访问类属性
+    类方法第一个参数必须是cls,它是一个object that holds class itself,不是类实例,静态方法可以没有参数
+    """
+
+    class Date:
+        def __init__(self, day=0, month=0, year=0):
+            self.day = day
+            self.month = month
+            self.year = year
+
+        @classmethod
+        def from_string(cls, date_as_string):
+            day, month, year = map(int, date_as_string.split('-'))
+            return cls(day, month, year)
+
+        '''
+        The same can be done with @staticmethod as is shown in the code below
+        the Factory process is hard-coded to create Date objects.
+        What this means is that even if the Date class is subclassed, 
+        the subclasses will still create plain Date object (without any property of the subclass).
+        '''
+
+        @staticmethod
+        def s_from_string(date_as_string):
+            day, month, year = map(int, date_as_string.split('-'))
+            return Date(day, month, year)
+
+        '''
+        We have a date string that we want to validate somehow. 
+        This task is also logically bound to Date class we've used so far, but still doesn't require instantiation of it.
+        Often there is some functionality that relates to the class, but does not need the class or any instance(s) to do some work.
+        Perhaps something like setting environmental variables, changing an attribute in another class, etc.
+        In these situation we can also use a function, however doing so also spreads the interrelated code which can cause maintenance issues later.
+        '''
+
+        @staticmethod
+        def is_date_valid(date_as_string):
+            day, month, year = map(int, date_as_string.split('-'))
+            return day <= 31 and month <= 12 and year <= 3999
+
+    _ = Date.from_string('11-09-2012')
+    print(Date.is_date_valid('11-09-2012'))
+
+
 def dec2bin(string, precision=10):  # 方便理解c语言浮点数的内存表示, dec2bin('19.625') => 10011.101
     result = deque()
     integer, decimal = re.match(r'(\d*)(\.?\d*)', string).groups()
