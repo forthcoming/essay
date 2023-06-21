@@ -1,29 +1,3 @@
-# 语法糖@
-def deco(func):
-  count=0   #计数
-  def _deco(*args, **kw):
-    nonlocal count  #注意这里要用nonlocal
-    count+=1
-    print(f"第{count}次调用")
-    ret = func(*args, **kw)
-    print(f"after myfunc() called result: {ret}")
-    return ret
-  return _deco
-
-@deco   #相当于myfunc=deco(myfunc)
-def myfunc(a, b):
-  return a + b
-
-myfunc(4, 5)
-myfunc(6, 7)
-
-# 第1次调用
-# after myfunc() called result: 9
-# 第2次调用
-# after myfunc() called result: 13
-#使用内嵌包装函数_deco来确保每次新函数都被调用，
-#内嵌包装函数的形参和返回值与原函数相同，装饰函数返回内嵌包装函数对象
-
 #########################################################################################################################
 
 # 装饰器带参数
