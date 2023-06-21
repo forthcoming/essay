@@ -944,4 +944,22 @@ def decorator_tutorial():
 
     non_parameter_test(4, 5)  # 第1次调用,result: 9
     non_parameter_test(6, 7)  # 第2次调用,result: 13
+
+    ###################################################################################################
+    def parameter_decorator(text):  # 带参数装饰器相比于不带参数装饰器,在最外层多了一层包装
+        def outer(func):
+            @wraps(func)
+            def inner(*args, **kwargs):
+                print(f'text: {text}, function name: {func.__name__}')
+                return func(*args, **kwargs)
+
+            return inner
+
+        return outer
+
+    @parameter_decorator('test')  # 相当于today=parameter_decorator('test')(today)
+    def today(): pass
+
+    today()  # text: test, function name: today
+    print(today.__name__)  # today,如果不用wraps装饰则会返回inner
     ###################################################################################################
