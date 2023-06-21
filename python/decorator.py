@@ -1,112 +1,39 @@
-# 装饰器装饰类方法(装饰器装饰类与装饰函数原理一样,例如单例模式)
-def log(fn):
-  def wrapper(*a,**b):
-    print('in wrapper,start!')
-    a=fn(*a,**b)
-    print('end !')
-    return a
-  return wrapper
+from multiprocessing.dummy import Lock
 
-class A:
-  @log
-  def func(self,a=1,b=3):
-    return a+b
-
-print(A().func())
-'''
-in wrapper,start!
-end !
-4
-'''
-
-#########################################################################################################################
-
-# using classes as decoration mechanisms instead of functions,In addition, it's more powerful.
-# which basically means it must be callable. Thus, any classes we use as decorators must implement__call__.
-# https://www.artima.com/forums/flat.jsp?forum=106&thread=240808
-class entryExit:
-  def __init__(self, f):
-    self.f = f
-  def __call__(self,*args,**kw):
-      print ("Entering", self.f.__name__)
-      _=self.f(*args,**kw)
-      print ("Exited", self.f.__name__)
-      return _
-
-@entryExit   # 等价于func=entryExit(func)
-def func(a,b):
-  return a+b
-
-print(func(3,5))
-# Entering func
-# Exited func
-# 8
-print(type(func))  #<class '__main__.entryExit'>
-
-#########################################################################################################################
-
-# Decorators with Arguments
-# If there are decorator arguments, the function to be decorated is not passed to the constructor!
-
-class decoratorWithArguments:
-  def __init__(self, arg1):
-    self.arg1 = arg1
-
-  def __call__(self, f):
-   """
-   If there are decorator arguments, __call__() is only called
-   once, as part of the decoration process! You can only give
-   it a single argument, which is the function object.
-   """
-   print("Inside __call__()")
-   def wrapped_f(*args):
-     print("Decorator arguments:", self.arg1)
-     f(*args)
-     print("After f(*args)")
-   return wrapped_f
-
-@decoratorWithArguments("hello")   # 等价于decoratorWithArguments("hello")(sayHello)
-def sayHello(a1, a2):
-    print('sayHello arguments:', a1, a2)
-
-sayHello("say", "goodbye")
-# Inside __call__()
-# Decorator arguments: hello
-# sayHello arguments: say goodbye
-# After f(*args)
-'''
-the constructor is now used to capture the decorator arguments, but the object __call__() can no longer be used as the decorated function call,
-so you must instead use __call__() to perform the decoration --it is nonetheless surprising the first time you see it because it's acting so much differently than the no-argument case, and you must code the decorator very differently from the no-argument case.
-'''
-
-#########################################################################################################################
 
 def decorator_a(func):
     print('start in decorator_a')
+
     def inner_a(*args, **kwargs):
         print('start in inner_a')
         result = func(*args, **kwargs)
         print('end in inner_a')
         return result
+
     print('end in decorator_a')
     return inner_a
 
+
 def decorator_b(func):
     print('start in decorator_b')
+
     def inner_b(*args, **kwargs):
         print('start in inner_b')
         result = func(*args, **kwargs)
         print('end in inner_b')
         return result
+
     print('end in decorator_b')
     return inner_b
+
 
 @decorator_b
 @decorator_a
 def f(x):
     print('start in f')
     return x * 2
-     
+
+
 f(1)
 '''
 start in decorator_a        # 装饰时打印
@@ -120,3 +47,33 @@ end in inner_a              # 调用时打印
 end in inner_b              # 调用时打印
 '''
 
+
+# 最简单的方式是实例化一个类,然后在其他地方直接导入这个类实例即可实现单例
+def singleton(cls):
+    _instance = None
+    lock = Lock()
+
+    def _singleton(*args, **kwargs):
+        nonlocal _instance
+        with lock:  # 线程安全单例模式
+            if not _instance:
+                _instance = cls(*args, **kwargs)
+        return _instance
+
+    return _singleton
+
+
+def singleton_pool(cls):
+    _instance_pool = []
+    lock = Lock()
+
+    def _singleton(*args, **kwargs):
+        with lock:  # 线程安全单例池
+            for _args, _kwargs, _instance in _instance_pool:
+                if (_args, _kwargs) == (args, kwargs):
+                    return _instance
+            _instance = cls(*args, **kwargs)
+            _instance_pool.append((args, kwargs, _instance))
+            return _instance
+
+    return _singleton

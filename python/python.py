@@ -962,4 +962,22 @@ def decorator_tutorial():
 
     today()  # text: test, function name: today
     print(today.__name__)  # today,如果不用wraps装饰则会返回inner
+
+    ###################################################################################################
+    # using classes as decoration mechanisms instead of functions,In addition, it's more powerful.
+    # which basically means it must be callable. Thus, any classes we use as decorators must implement __call__.
+    class NonParameterDecorator:
+        def __init__(self, func):
+            self.func = func
+
+        def __call__(self, *args, **kwargs):
+            print("function name: ", self.func.__name__)
+            ret = self.func(*args, **kwargs)
+            return ret
+
+    @NonParameterDecorator  # 等价于class_non_parameter_test=NonParameterDecorator(class_non_parameter_test)
+    def class_non_parameter_test(): pass
+
+    class_non_parameter_test()
+    print(type(class_non_parameter_test))  # <class '__main__.decorator_tutorial.<locals>.NonParameterDecorator'>
     ###################################################################################################
