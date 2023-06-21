@@ -904,7 +904,7 @@ def method_tutorial():
     print(Date.is_date_valid('11-09-2012'))
 
 
-def dec2bin(string, precision=10):  # 方便理解c语言浮点数的内存表示, dec2bin('19.625') => 10011.101
+def dec2bin(string, precision=10):  # dec2bin('19.625') => 10011.101
     result = deque()
     integer, decimal = re.match(r'(\d*)(\.?\d*)', string).groups()
     integer, decimal = int(integer or 0), float(decimal or 0)
