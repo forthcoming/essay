@@ -980,4 +980,63 @@ def decorator_tutorial():
 
     class_non_parameter_test()
     print(type(class_non_parameter_test))  # <class '__main__.decorator_tutorial.<locals>.NonParameterDecorator'>
+
     ###################################################################################################
+    # 如果有装饰器参数,构造函数不再接收被装饰函数,而是捕获装饰器参数,__call__不能再用作装饰函数调用,必须改为使用__call__来执行装饰
+    class ParameterDecorator:
+        def __init__(self, parameter):
+            self.parameter = parameter
+
+        def __call__(self, func):  # 它只有一个参数，即函数对象
+            print("in __call__")
+
+            def wrapper(*args, **kwargs):
+                print("decorator parameter: ", self.parameter)
+                ret = func(*args, **kwargs)
+                return ret
+
+            return wrapper
+
+    @ParameterDecorator("hi")  # in __call__, 等价于class_parameter_test=ParameterDecorator("hi")(class_parameter_test)
+    def class_parameter_test(): pass
+
+    class_parameter_test()
+
+    ###################################################################################################
+    def decorator_a(func):
+        print('start in decorator_a')
+
+        def inner_a(*args, **kwargs):
+            print('start in inner_a')
+            func(*args, **kwargs)
+            print('end in inner_a')
+
+        print('end in decorator_a')
+        return inner_a
+
+    def decorator_b(func):
+        print('start in decorator_b')
+
+        def inner_b(*args, **kwargs):
+            print('start in inner_b')
+            func(*args, **kwargs)
+            print('end in inner_b')
+
+        print('end in decorator_b')
+        return inner_b
+
+    @decorator_b
+    @decorator_a
+    def decorator_order_test():
+        print('start in decorator_order_test')
+
+    decorator_order_test()
+    # start in decorator_a           装饰时打印
+    # end in decorator_a             装饰时打印
+    # start in decorator_b           装饰时打印
+    # end in decorator_b             装饰时打印
+    # start in inner_b               调用时打印
+    # start in inner_a               调用时打印
+    # start in decorator_order_test  调用时打印
+    # end in inner_a                 调用时打印
+    # end in inner_b                 调用时打印
