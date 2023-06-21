@@ -2,8 +2,8 @@ from PIL import Image, ImageFilter, ImageEnhance, ImageDraw, ImageFont
 
 im = Image.open('C:/Users/root/Desktop/22.jpg')  # 手动更改后缀并不能改变其照片格式
 im.save('test.png')  # 转换图像格式
-newim = im.copy()
-newim.show()
+new_img = im.copy()
+new_img.show()
 im2 = im.filter(ImageFilter.BLUR)  # 图像模糊化
 
 im.thumbnail((200, 200))  # 会维持原来的比例不变
@@ -33,7 +33,7 @@ im.show()
 contrast = ImageEnhance.Contrast(im)  # 对比度增强
 im = contrast.enhance(50)  # 其实已二值化
 brightness = ImageEnhance.Brightness(im)
-im = brightness.enhance(80)  ##亮度增强
+im = brightness.enhance(80)  # 亮度增强
 sharpness = ImageEnhance.Sharpness(im)
 im = sharpness.enhance(80)  # 锐度增强
 color = [(index, i) for index, i in enumerate(im.histogram())]
