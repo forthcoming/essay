@@ -207,16 +207,16 @@ class Fuses:
         self._cur_state.error()
 
 
-def circuit_breaker(threshold=5, timeout=60, is_member_func=True, default_value=None, fallback=None, policy=0,
-                    enable_sms=True):
-    '''
+def circuit_breaker(threshold=5, timeout=60, is_member_func=True,
+                    default_value=None, fallback=None, policy=0, enable_sms=True):
+    """
     连续失败达到threshold次才会由默认的FusesClosedState态转为FusesOpenState态,前提是熔断函数f可以抛出异常
     FusesOpenState态会维持一段timeout时长,FusesOpenState态下不会再调用熔断函数f,只会调用fall_back
     随后由FusesOpenState态转为FusesHalfOpenState态,调用一次熔断函数f,成功则转为FusesClosedState态,否则转为FusesOpenState态,依次循环下去
-    注意: 
+    注意:
     当circuit_breaker装饰类成员函数时,_wrapper入残第一个参数是self,可以写成_wrapper(self,*args, **kwargs)
     此后可通过self调用类的其他属性和方法,f可通过f(self,*args, **kwargs)调用
-    '''
+    """
 
     def fall_back(*args, **kwargs):
         ret = default_value
