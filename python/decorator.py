@@ -1,31 +1,3 @@
-#########################################################################################################################
-
-# 装饰器带参数
-import functools
-def logger(text):
-  def decorator(func):
-    @functools.wraps(func)  #作用是让func.__name__能正确显示
-    def wrapper(*args, **kw):
-      print('{} {}():'.format(text, func.__name__))
-      return func(*args, **kw)
-    return wrapper
-  return decorator
-
-@logger('DEBUG')  #相当于today=logger('DEBUG')(today)
-def today():
-  print('2015-3-25')
-
-today()
-print(today.__name__)
-'''
-DEBUG today():
-2015-3-25
-today
-'''
-#和上一示例相比在外层多了一层包装
-
-#########################################################################################################################
-
 # 装饰器装饰类方法(装饰器装饰类与装饰函数原理一样,例如单例模式)
 def log(fn):
   def wrapper(*a,**b):

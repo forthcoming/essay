@@ -922,3 +922,26 @@ def dec2bin(string, precision=10):  # 方便理解c语言浮点数的内存表�
             result.append('0')
         precision -= 1
     return ''.join(result)
+
+
+def decorator_tutorial():
+    def non_parameter_decorator(func):
+        count = 0  # 计数
+
+        def decorator(*args, **kwargs):
+            nonlocal count  # 注意这里要用nonlocal
+            count += 1
+            print(f"第{count}次调用,", end="")
+            ret = func(*args, **kwargs)
+            print(f"result: {ret}")
+            return ret  # 内嵌包装函数的形参和返回值与原函数相同
+
+        return decorator  # 装饰函数返回内嵌包装函数对象
+
+    @non_parameter_decorator  # 相当于non_parameter_test=non_parameter_decorator(non_parameter_test)
+    def non_parameter_test(a, b):
+        return a + b
+
+    non_parameter_test(4, 5)  # 第1次调用,result: 9
+    non_parameter_test(6, 7)  # 第2次调用,result: 13
+    ###################################################################################################
