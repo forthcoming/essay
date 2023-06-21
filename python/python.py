@@ -1,3 +1,19 @@
+import copy
+import hashlib
+import re
+import time
+from bisect import insort_right, bisect_left, bisect_right
+from collections import Counter
+from collections import deque
+from datetime import datetime, timedelta
+from functools import lru_cache, wraps
+from heapq import heapify, heappop, heappush, nlargest, nsmallest, heappushpop
+from random import randrange, choice, sample, shuffle, random
+from subprocess import run, PIPE
+import win32api
+import win32con
+import pandas as pd
+
 """
 python运算符优先级如下, 与传统c语言运算符优先级有区别
 refer: https://docs.python.org/3/reference/expressions.html?highlight=operator%20precedence
@@ -151,22 +167,6 @@ bool is_big_endian() //如果字节序为big-endian,返回1,反之返回0
     return false;
 }
 """
-
-import copy
-import hashlib
-import re
-import time
-from bisect import insort_right, bisect_left, bisect_right
-from collections import Counter
-from collections import deque
-from datetime import datetime, timedelta
-from functools import lru_cache
-from heapq import heapify, heappop, heappush, nlargest, nsmallest, heappushpop
-from random import randrange, choice, sample, shuffle, random
-from subprocess import run, PIPE
-import win32api
-import win32con
-import pandas as pd
 
 
 def str_tutorial():
