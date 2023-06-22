@@ -174,6 +174,11 @@ class Fuses:
 def circuit_breaker(threshold=5, timeout=60, is_member_func=True,
                     default_value=None, fallback=None, enable_sms=True):
     """
+    有限状态自动机转移表
+    state|alphabet  request
+    close           close|open
+    open            half_open|open
+    half_open       close|open
     连续失败达到threshold次才会由默认的FusesClosedState态转为FusesOpenState态,前提是熔断函数f可以抛出异常
     FusesOpenState态会维持一段timeout时长,FusesOpenState态下不会再调用熔断函数f,只会调用fall_back
     随后由FusesOpenState态转为FusesHalfOpenState态,调用一次熔断函数f,成功则转为FusesClosedState态,否则转为FusesOpenState态,依次循环下去
