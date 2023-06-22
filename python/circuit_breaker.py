@@ -3,47 +3,12 @@ import time
 from functools import wraps
 
 
-class FusesPolicyBase:
+class FusesCountPolicy:  # 计数法熔断策略
     def __init__(self, threshold):
         self.threshold = threshold
 
-    def is_open(self, fail_counter, request):
-        """是否开启熔断"""
-        raise NotImplementedError("Must implement is_open!")
-
-    def is_melting_point(self, fail_counter, requests):
-        """是否到熔断的临界点"""
-        raise NotImplementedError("Must implement is_melting_point!")
-
-
-class FusesCountPolicy(FusesPolicyBase):  # 计数法熔断策略
-    def __init__(self, threshold):
-        super().__init__(threshold)
-
-    def is_melting_point(self, fail_counter, requests):
-        if fail_counter >= self.threshold:
-            return True
-        return False
-
-    def is_open(self, fail_counter, requests):
-        return self.is_melting_point(fail_counter, requests)
-
-
-class FusesPercentPolicy(FusesPolicyBase):
-    def __init__(self, threshold):
-        super().__init__(threshold)
-
-    def is_melting_point(self, fail_counter, requests):
-        if not requests:
-            return False
-        if sum(requests) <= len(requests) - self.threshold:
-            return True
-        return False
-
-    def is_open(self, fail_counter, requests):
-        if requests[-1] == 0 and self.is_melting_point(fail_counter, requests):
-            return True
-        return False
+    def is_melting_point(self, fail_counter, requests):  # 是否到熔断的临界点
+        return fail_counter >= self.threshold
 
 
 class FusesState:
@@ -73,7 +38,7 @@ class FusesClosedState(FusesState):
         self._fuses.reset_fail_counter()
 
     def do_fallback(self):
-        if self._fuses.is_open():
+        if self._fuses.is_melting_point():
             self._fuses.open()  # 改为熔断打开状态
             return True
         return False
@@ -129,15 +94,14 @@ class FusesHalfOpenState(FusesState):
 
 
 class Fuses:
-    def __init__(self, name, threshold, timeout, policy=0, enable_sms=False):
+    def __init__(self, name, threshold, timeout, enable_sms=False):
         """
         :param threshold: 触发熔断阈值
         :param timeout: 二次试探等待时间
-        :param policy: 熔断策略 0=计数法 1=滑动窗口
         """
         self._name = name
         self._threshold = threshold
-        self._policy = FusesPercentPolicy(threshold) if policy == 1 else FusesCountPolicy(threshold)
+        self._policy = FusesCountPolicy(threshold)
         self._fail_counter = 0
         self._request_queue = [1] * 10
         self._cur_state = FusesClosedState(self)  # 此处是循环引用
@@ -192,7 +156,7 @@ class Fuses:
         self.append_fail_request()
 
     def is_open(self):
-        return self._policy.is_open(self._fail_counter, self._request_queue)
+        return self._policy.is_melting_point(self._fail_counter, self._request_queue)
 
     def is_melting_point(self):
         return self._policy.is_melting_point(self._fail_counter, self._request_queue)
@@ -208,7 +172,7 @@ class Fuses:
 
 
 def circuit_breaker(threshold=5, timeout=60, is_member_func=True,
-                    default_value=None, fallback=None, policy=0, enable_sms=True):
+                    default_value=None, fallback=None, enable_sms=True):
     """
     连续失败达到threshold次才会由默认的FusesClosedState态转为FusesOpenState态,前提是熔断函数f可以抛出异常
     FusesOpenState态会维持一段timeout时长,FusesOpenState态下不会再调用熔断函数f,只会调用fall_back
@@ -230,7 +194,7 @@ def circuit_breaker(threshold=5, timeout=60, is_member_func=True,
 
     def circuit_breaker_decorator(f):
         name = '{}:{}'.format(f.__module__, f.__name__)
-        fuse = Fuses(name, threshold, timeout, policy, enable_sms)  # 装饰f时会执行,初始化一次
+        fuse = Fuses(name, threshold, timeout, enable_sms)  # 装饰f时会执行,初始化一次
 
         @wraps(f)
         def _wrapper(*args, **kwargs):  # 装饰类成员函数时第一个参数是self,此后可通过self调用类的其他属性和方法
