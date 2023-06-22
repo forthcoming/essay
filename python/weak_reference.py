@@ -1,5 +1,9 @@
-import sys,itertools,gc,atexit
+import atexit
+import gc
+import itertools
+import sys
 from weakref import ref
+
 
 # 参考weakref.py
 
@@ -32,7 +36,7 @@ class finalize:
         info.kwargs = kwargs or None
         info.atexit = True
         info.index = next(self._index_iter)
-        self._registry[self] = info   # 添加到_registry
+        self._registry[self] = info  # 添加到_registry
         finalize._dirty = True
 
     def __call__(self, _=None):
@@ -41,7 +45,7 @@ class finalize:
         if info and not self._shutdown:
             return info.func(*info.args, **(info.kwargs or {}))
 
-    def detach(self): # If alive then mark as dead and return (obj, func, args, kwargs);otherwise return None
+    def detach(self):  # If alive then mark as dead and return (obj, func, args, kwargs);otherwise return None
         info = self._registry.get(self)
         obj = info and info.weakref()
         if obj is not None and self._registry.pop(self, None):
@@ -80,9 +84,9 @@ class finalize:
     @classmethod
     def _select_for_exit(cls):
         # Return live finalizers marked for exit, oldest first
-        L = [(f,i) for f,i in cls._registry.items() if i.atexit]
-        L.sort(key=lambda item:item[1].index)
-        return [f for f,i in L]
+        L = [(f, i) for f, i in cls._registry.items() if i.atexit]
+        L.sort(key=lambda item: item[1].index)
+        return [f for f, i in L]
 
     @classmethod
     def _exitfunc(cls):
@@ -101,7 +105,7 @@ class finalize:
                     if not pending:
                         break
                     f = pending.pop()
-                    try:     # gc is disabled, so (assuming no daemonic threads) the following is the only line in this function which might trigger creation of a new finalizer
+                    try:  # gc is disabled, so (assuming no daemonic threads) the following is the only line in this function which might trigger creation of a new finalizer
                         f()
                     except Exception:
                         sys.excepthook(*sys.exc_info())
