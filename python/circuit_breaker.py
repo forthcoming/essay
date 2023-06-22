@@ -8,7 +8,7 @@ class FusesCountPolicy:  # 计数法熔断策略
         self.threshold = threshold
 
     def is_melting_point(self, fail_counter, requests):  # 是否到熔断的临界点
-        return fail_counter >= self.threshold
+        return fail_counter > self.threshold
 
 
 class FusesState:
@@ -31,8 +31,6 @@ class FusesState:
 
 
 class FusesClosedState(FusesState):
-    """熔断关闭状态"""
-
     def __init__(self, fuses, name='closed'):
         super().__init__(fuses, name)
         self._fuses.reset_fail_counter()
@@ -52,8 +50,6 @@ class FusesClosedState(FusesState):
 
 
 class FusesOpenState(FusesState):
-    """熔断打开状态"""
-
     def __init__(self, fuses, name='open'):
         super().__init__(fuses, name)
         self.last_time = time.time() + self._fuses.timeout
@@ -72,8 +68,6 @@ class FusesOpenState(FusesState):
 
 
 class FusesHalfOpenState(FusesState):
-    """`熔断半闭合状态`"""
-
     def __init__(self, fuses, name='half_open'):
         super().__init__(fuses, name)
 
@@ -81,8 +75,6 @@ class FusesHalfOpenState(FusesState):
         return False
 
     def success(self):
-        """熔断半闭合状态重试成功
-        """
         self._fuses.reset_fail_counter()
         self._fuses.append_success_request()
         if not self._fuses.is_melting_point():

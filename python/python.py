@@ -107,9 +107,10 @@ __name__: 通过"类.__name__"返回字符串类型的类名,类实例无此属�
 
 What kinds of global value mutation are thread-safe?
 A global interpreter lock (GIL) is used internally to ensure that only one thread runs in the Python VM at a time.
-In general, Python offers to switch among threads only between bytecode instructions; how frequently it switches can be set via sys.setswitchinterval().
-Each bytecode instruction and therefore all the C implementation code reached from each instruction is therefore atomic from the point of view of a Python program.
-In practice, it means that operations on shared variables of built-in data types (ints, lists, dicts, etc) that “look atomic” really are.
+In general, Python offers to switch among threads only between bytecode instructions; 
+how frequently it switches can be set via sys.setswitchinterval().Each bytecode instruction and therefore 
+all the C implementation code reached from each instruction is therefore atomic from the point of view of a Python program.
+it means that operations on shared variables of built-in data types (ints, lists, dicts, etc) that “look atomic” really are.
 For example, the following operations are all atomic (L, L1, L2 are lists, D, D1, D2 are dicts, x, y are objects, i, j are ints):
 L.append(x)
 L1.extend(L2)
@@ -127,8 +128,8 @@ i = i+1
 L.append(L[-1])
 L[i] = L[j]
 D[x] = D[x] + 1
-Operations that replace other objects may invoke those other objects’ __del__() method when their reference count reaches zero, and that can affect things.
-This is especially true for the mass updates to dictionaries and lists. When in doubt, use a mutex!
+Operations that replace other objects may invoke those other objects’ __del__() method when their reference count reaches zero, 
+and that can affect things.this is especially true for the mass updates to dictionaries and lists. When in doubt, use a mutex!
 
 
 pickle
@@ -141,7 +142,7 @@ whatis       Prints the type of the argument.
 enter        重复上次命令
 set_trace()  在该点打断(from ipdb import set_trace,或者直接在该处使用breakpoint(),不需要使用set_trace()函数)
 c(ont(inue))   Continue execution, only stop when a breakpoint is encountered.执行到下个断点处
-l(ist) [first [,last]]   List source code for the current file.Without arguments, list 11 lines around the current line or continue the previous listing.
+l(ist) [first [,last]]  List source code for the current file.Without arguments, list 11 lines around the current line or continue the previous listing.
 j(ump)   程序跳到指定行
 p        打印某个变量
 pp       Pretty-print the value of the expression.
