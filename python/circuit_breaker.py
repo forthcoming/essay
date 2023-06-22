@@ -1,224 +1,102 @@
-# -*- coding: utf-8 -*-
-import time
+from enum import Enum
 from functools import wraps
+import time
+from collections import deque
 
 
-class FusesCountPolicy:  # 计数法熔断策略
-    def __init__(self, threshold):
-        self.threshold = threshold
-
-    def is_melting_point(self, fail_counter, requests):  # 是否到熔断的临界点
-        return fail_counter > self.threshold
+class State(Enum):
+    CLOSE = 0
+    HALF_OPEN = 1
+    OPEN = 2
 
 
-class FusesState:
-    def __init__(self, fuses, name):
-        self._fuses = fuses
-        self._name = name
-
-    @property
-    def name(self):
-        return self._name
-
-    def do_fallback(self):
-        raise NotImplementedError("Must implement do_fallback!")
-
-    def success(self):
-        raise NotImplementedError("Must implement success!")
-
-    def error(self):
-        raise NotImplementedError("Must implement error!")
+class Policy(Enum):
+    COUNTER = 0
+    QUEUE = 1
 
 
-class FusesClosedState(FusesState):
-    def __init__(self, fuses, name='closed'):
-        super().__init__(fuses, name)
-        self._fuses.reset_fail_counter()
-
-    def do_fallback(self):
-        if self._fuses.is_melting_point():
-            self._fuses.open()  # 改为熔断打开状态
-            return True
-        return False
-
-    def success(self):
-        self._fuses.reset_fail_counter()  # self._fail_counter = 0
-        self._fuses.append_success_request()  # FusesPercentPolicy用
-
-    def error(self):
-        self._fuses.increase_fail_counter()  # self._fail_counter += 1
-
-
-class FusesOpenState(FusesState):
-    def __init__(self, fuses, name='open'):
-        super().__init__(fuses, name)
-        self.last_time = time.time() + self._fuses.timeout
-
-    def do_fallback(self):
-        if time.time() > self.last_time:
-            self._fuses.half_open()
-            return False
-        return True
-
-    def success(self):
-        pass
-
-    def error(self):
-        pass
-
-
-class FusesHalfOpenState(FusesState):
-    def __init__(self, fuses, name='half_open'):
-        super().__init__(fuses, name)
-
-    def do_fallback(self):
-        return False
-
-    def success(self):
-        self._fuses.reset_fail_counter()
-        self._fuses.append_success_request()
-        if not self._fuses.is_melting_point():
-            self._fuses.close()  # 改为熔断关闭状态
-
-    def error(self):
-        self._fuses.increase_fail_counter()  # 这一步好像没用
-        self._fuses.open()  # 改为熔断打开状态
-
-
-class Fuses:
-    def __init__(self, name, threshold, timeout, enable_sms=False):
-        """
-        :param threshold: 触发熔断阈值
-        :param timeout: 二次试探等待时间
-        """
-        self._name = name
-        self._threshold = threshold
-        self._policy = FusesCountPolicy(threshold)
-        self._fail_counter = 0
-        self._request_queue = [1] * 10
-        self._cur_state = FusesClosedState(self)  # 此处是循环引用
-        self.timeout = timeout
-        self.enable_sms = enable_sms
-
-    @property
-    def name(self):
-        return self._name
-
-    @property
-    def cur_state(self):
-        return self._cur_state.name
-
-    @property
-    def request_queue(self):
-        return self._request_queue
-
-    @property
-    def threshold(self):
-        return self._threshold
-
-    @property
-    def fail_counter(self):
-        return self._fail_counter
-
-    def reset_fail_counter(self):
-        self._fail_counter = 0
-
-    def open(self):
-        if self.enable_sms:
-            pass
-            # send_msg_to_phone()
-        self._cur_state = FusesOpenState(self)
-
-    def close(self):
-        self._cur_state = FusesClosedState(self)
-
-    def half_open(self):
-        self._cur_state = FusesHalfOpenState(self)
-
-    def append_success_request(self):
-        self._request_queue.append(1)
-        self._request_queue = self._request_queue[-10:]
-
-    def append_fail_request(self):
-        self._request_queue.append(0)
-        self._request_queue = self._request_queue[-10:]  # 取后10个元素
-
-    def increase_fail_counter(self):
-        self._fail_counter += 1
-        self.append_fail_request()
-
-    def is_open(self):
-        return self._policy.is_melting_point(self._fail_counter, self._request_queue)
-
-    def is_melting_point(self):
-        return self._policy.is_melting_point(self._fail_counter, self._request_queue)
-
-    def do_fallback(self):
-        return self._cur_state.do_fallback()
-
-    def on_success(self):
-        self._cur_state.success()
-
-    def on_error(self):
-        self._cur_state.error()
-
-
-def circuit_breaker(threshold=5, timeout=60, is_member_func=True,
-                    default_value=None, fallback=None, enable_sms=True):
+class CircuitBreaker:
     """
     有限状态自动机转移表
     state|alphabet  request
     close           close|open
     open            half_open|open
     half_open       close|open
-    连续失败达到threshold次才会由默认的FusesClosedState态转为FusesOpenState态,前提是熔断函数f可以抛出异常
-    FusesOpenState态会维持一段timeout时长,FusesOpenState态下不会再调用熔断函数f,只会调用fall_back
-    随后由FusesOpenState态转为FusesHalfOpenState态,调用一次熔断函数f,成功则转为FusesClosedState态,否则转为FusesOpenState态,依次循环下去
-    注意:
-    当circuit_breaker装饰类成员函数时,_wrapper入残第一个参数是self,可以写成_wrapper(self,*args, **kwargs)
-    此后可通过self调用类的其他属性和方法,f可通过f(self,*args, **kwargs)调用
+    默认CLOSE态,执行func函数连续失败(前提是可以抛出异常)达到threshold次后,会转为OPEN态
+    OPEN态会维持timeout时长,期间不再执行func函数,超出timeout时长后会转为HALF_OPEN态
+    HALF_OPEN态下会执行一次func函数,成功则转为CLOSE态,失败则转为OPEN态
     """
+    queue_length = 100
 
-    def fall_back(*args, **kwargs):
-        ret = default_value
-        if callable(fallback):
-            if is_member_func:
-                args = args[1:]  # 去掉第一个self参数
-                ret = fallback(*args, **kwargs)
-            else:
-                ret = fallback(*args, **kwargs)
-        return ret
+    def __init__(self, timeout=60, threshold=10, policy=Policy.COUNTER, fallback=None):
+        self.initial_state = State.CLOSE  # q0
+        self.fail_counter = 0
+        self.request_queue = deque(maxlen=self.queue_length)
+        self.deadline = 0
+        self.__timeout = timeout
+        self.__threshold = threshold
+        self.__policy = policy
+        self.__fallback = fallback
 
-    def circuit_breaker_decorator(f):
-        name = '{}:{}'.format(f.__module__, f.__name__)
-        fuse = Fuses(name, threshold, timeout, enable_sms)  # 装饰f时会执行,初始化一次
+    def send_message(self):  # 异步发送短信告警
+        pass
 
-        @wraps(f)
-        def _wrapper(*args, **kwargs):  # 装饰类成员函数时第一个参数是self,此后可通过self调用类的其他属性和方法
-            if fuse.do_fallback():
-                ret = fall_back(*args, **kwargs)  # 由FusesClosedState态转为FusesOpenState态执行;FusesOpenState态期间执行  
+    def check(self):
+        if self.__policy == Policy.COUNTER:
+            return self.fail_counter >= self.__threshold
+        else:
+            return sum(self.request_queue) >= self.__threshold
+
+    def switch_to_close(self):
+        self.initial_state = State.CLOSE
+        self.fail_counter = 0
+        self.request_queue.append(0)
+
+    def switch_to_open(self):
+        self.initial_state = State.OPEN
+        self.deadline = time.time() + self.__timeout
+        self.send_message()
+
+    def switch_to_half_open(self):
+        self.initial_state = State.HALF_OPEN
+        # self.fail_counter = 0   # 可以不处理
+        self.request_queue.clear()
+
+    def __call__(self, func):  # 针对每个被装饰函数(如接口函数)都会有一个CircuitBreaker实例
+        @wraps(func)
+        def wrapper(*args, **kwargs):  # 装饰类成员函数时第一个参数是self,此后可通过self调用类的其他属性和方法
+            ret = None
+            if self.initial_state == State.OPEN:
+                ret = "in open state"
+                if time.time() >= self.deadline:
+                    self.switch_to_half_open()
             else:
                 try:
-                    ret = f(*args, **kwargs)
-                    fuse.on_success()
+                    ret = func(*args, **kwargs)
+                    self.switch_to_close()
                 except Exception as e:
-                    fuse.on_error()
-                    ret = fall_back(*args, **kwargs)  # FusesClosedState态f抛异常时执行
-                    print('{} circuit_breaker error,{}'.format(name, e))
+                    self.fail_counter += 1
+                    self.request_queue.append(1)
+                    if self.initial_state == State.CLOSE:
+                        if self.check():
+                            self.switch_to_open()
+                    else:
+                        self.switch_to_open()
+                    if callable(self.__fallback):  # func必须与fallback拥有完全相同的入参,若其一是成员函数,另一个也必须是同一个类的成员函数
+                        ret = self.__fallback(*args, **kwargs)
+                    print(f'{func.__module__}:{func.__name__} circuit_breaker error,{e}')
             return ret
 
-        return _wrapper
-
-    return circuit_breaker_decorator
+        return wrapper
 
 
-@circuit_breaker(timeout=6)
-def test(index):
+@CircuitBreaker(timeout=6, threshold=3, policy=Policy.QUEUE)
+def test_circuit_breaker(index):
     print(index)
     1 / 0
 
 
 if __name__ == '__main__':
-    for idx in range(50):
+    for idx in range(100):
+        test_circuit_breaker(idx)
         time.sleep(1)
-        test(idx)
