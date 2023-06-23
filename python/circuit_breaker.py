@@ -26,12 +26,11 @@ class CircuitBreaker:
     OPEN态会维持timeout时长,期间不再执行func函数,超出timeout时长后会转为HALF_OPEN态
     HALF_OPEN态下会执行一次func函数,成功则转为CLOSE态,失败则转为OPEN态
     """
-    queue_length = 100
 
     def __init__(self, timeout=60, threshold=10, policy=Policy.COUNTER, fallback=None):
         self.initial_state = State.CLOSE  # q0
         self.fail_counter = 0
-        self.request_queue = deque(maxlen=self.queue_length)
+        self.request_queue = deque(maxlen=100)
         self.deadline = 0
         self.__timeout = timeout
         self.__threshold = threshold
