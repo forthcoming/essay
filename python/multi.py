@@ -1,7 +1,9 @@
 # ProcessPoolExecutor & ThreadPoolExecutor
-from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, as_completed
-from threading import Lock,get_ident
-import math,urllib.request,time,random,os
+import math
+import random
+import urllib.request
+from concurrent.futures import ThreadPoolExecutor
+from threading import Lock
 
 '''
 ThreadPoolExecutor & ProcessPoolExecutor在提交任务的时候有两种方式,submit和map:
@@ -123,12 +125,11 @@ if __name__ == '__main__':
 
 ###########################################################################################################################
 
-Pipe
+# Pipe
 # The Pipe() function returns a pair of connection objects connected by a pipe which by default is duplex (two-way).
 # Each connection object has send() and recv() methods (among others). Note that data in a pipe may become corrupted if two processes (or threads) try to read from or write to the same end of the pipe at the same time.
 # Of course there is no risk of corruption from processes using different ends of the pipe at the same time.
 
-import time
 from multiprocessing import Process, Pipe
 
 def f(conn):
@@ -153,9 +154,7 @@ if __name__ == '__main__':
 
 ###########################################################################################################################
     
-进程中的变量传递(可变对象x从A进程传给B进程时,即使id没变,但仍然是一个全新的对象y,y在刚进B的那一刻值与x相同,此后便再无关联,子进程结束时其test被销毁)
-from multiprocessing import Process 
-import time,os
+# 进程中的变量传递(可变对象x从A进程传给B进程时,即使id没变,但仍然是一个全新的对象y,y在刚进B的那一刻值与x相同,此后便再无关联,子进程结束时其test被销毁)
 class A:
     a=0
     b=[]
@@ -189,39 +188,45 @@ def kid(test):
 main()
 print(test.a,test.b,test.c,test.d,id(test.a),id(test.b),id(test.c),id(test.d))
 
-output:
-0 [] 1 [] 4355075824 4359193136 4355075856 4359193776
-in main 2929 1121
-in kid 2930 2929
-in kid 55 [22, 66] 77 [44, 88] 4355077584 4359193136 4355078288 4359193776
-in main 11 [22] 33 [44] 4355076176 4359193136 4355076880 4359193776
-11 [22] 33 [44] 4355076176 4359193136 4355076880 4359193776
+# output:
+# 0 [] 1 [] 4355075824 4359193136 4355075856 4359193776
+# in main 2929 1121
+# in kid 2930 2929
+# in kid 55 [22, 66] 77 [44, 88] 4355077584 4359193136 4355078288 4359193776
+# in main 11 [22] 33 [44] 4355076176 4359193136 4355076880 4359193776
+# 11 [22] 33 [44] 4355076176 4359193136 4355076880 4359193776
 
 ###########################################################################################################################
 
-concurrent:
-当有多个线程在操作时,如果系统只有一个CPU,则它根本不可能真正同时进行一个以上的线程,它只能把CPU运行时间划分成若干个时间段
-再将时间段分配给各个线程执行,在一个时间段的线程代码运行时,其它线程处于挂起状态.这种方式我们称之为并发(Concurrent)
-parallel:
-当系统有一个以上CPU时,则线程的操作有可能非并发.当一个CPU执行一个线程时,另一个CPU可以执行另一个线程,两个线程互不抢占CPU资源,可以同时进行
-这种方式我们称之为并行(Parallel),并行需要两个或两个以上的线程跑在不同的处理器上,并发可以跑在一个处理器上通过时间片进行切换
-
-线程 & 进程
-由于GIL锁的缘故,线程实际上是并发运行(即便有多个cpu,线程会在其中一个cpu来回切换,只占用一个cpu资源),而进程才是真正的并行(同时执行多个任务,占用多个cpu资源)
-sys.getswitchinterval() # current thread switch interval
-sys.setswitchinterval(n)
+# concurrent:
+# 当有多个线程在操作时,如果系统只有一个CPU,则它根本不可能真正同时进行一个以上的线程,它只能把CPU运行时间划分成若干个时间段
+# 再将时间段分配给各个线程执行,在一个时间段的线程代码运行时,其它线程处于挂起状态.这种方式我们称之为并发(Concurrent)
+# parallel:
+# 当系统有一个以上CPU时,则线程的操作有可能非并发.当一个CPU执行一个线程时,另一个CPU可以执行另一个线程,两个线程互不抢占CPU资源,可以同时进行
+# 这种方式我们称之为并行(Parallel),并行需要两个或两个以上的线程跑在不同的处理器上,并发可以跑在一个处理器上通过时间片进行切换
+#
+# 线程 & 进程
+# 由于GIL锁的缘故,线程实际上是并发运行(即便有多个cpu,线程会在其中一个cpu来回切换,只占用一个cpu资源),而进程才是真正的并行(同时执行多个任务,占用多个cpu资源)
+# sys.getswitchinterval() # current thread switch interval
+# sys.setswitchinterval(n)
 '''
+#     Set the ideal thread switching delay inside the Python interpreter.
+#     The actual frequency of switching threads can be lower if the
+#     interpreter executes long sequences of uninterruptible code
+#     (this is implementation-specific and workload-dependent).
+#     The parameter must represent the desired switching delay in seconds
+#     A typical value is 0.005 (5 milliseconds).
 The parameter must represent the desired switching delay in seconds A typical value is 0.005 (5 milliseconds).
 Set the interpreter’s thread switch interval (in seconds). 
 This floating-point value determines the ideal duration of the “timeslices” allocated to concurrently running Python threads. 
 Please note that the actual value can be higher, especially if long-running internal functions or methods are used. 
 Also, which thread becomes scheduled at the end of the interval is the operating system’s decision. The interpreter doesn’t have its own scheduler.
 '''
-标准库中所有阻塞型I/O函数都会释放GIL,time.sleep()也会释放,因此尽管有GIL,线程还是能在I/O密集型应用中发挥作用
-子线程可以访问程序的全局变量并且改变变量本身,子线程也可以改变进程变量本身,前提是需要以参数形式传递给子线程
-子进程or子进程中的子线程可以访问程序的全局变量,但是该变量的一份拷贝,并不能修改他,只不过值是一样而已
-对于CPU密集型,python的多线程表现不如单线程好,但多进程效率更高,进程数不是越大越好,默认进程数等于电脑核数
-技巧:如果一个任务拿不准是CPU密集还是I/O密集型(宜用多线程),且没有其它不能选择多进程方式的因素,都统一直接上多进程模式
+# 标准库中所有阻塞型I/O函数都会释放GIL,time.sleep()也会释放,因此尽管有GIL,线程还是能在I/O密集型应用中发挥作用
+# 子线程可以访问程序的全局变量并且改变变量本身,子线程也可以改变进程变量本身,前提是需要以参数形式传递给子线程
+# 子进程or子进程中的子线程可以访问程序的全局变量,但是该变量的一份拷贝,并不能修改他,只不过值是一样而已
+# 对于CPU密集型,python的多线程表现不如单线程好,但多进程效率更高,进程数不是越大越好,默认进程数等于电脑核数
+# 技巧:如果一个任务拿不准是CPU密集还是I/O密集型(宜用多线程),且没有其它不能选择多进程方式的因素,都统一直接上多进程模式
 
 ###########################################################################################################################
 
@@ -229,8 +234,7 @@ Also, which thread becomes scheduled at the end of the interval is the operating
 # 线程之间的派生是对等关系,都隶属于主进程的子线程
 # 线程进程交互派生时,进程隶属于上个进程的子进程,线程隶属于上个进程的子线程
 from multiprocessing.dummy import Process as Thread
-from multiprocessing import Process 
-import time,os
+
 
 def start(programs):
     for program in programs:
@@ -381,18 +385,18 @@ else:
 
 ###########################################################################################################################
 
-semaphore manages an atomic counter representing the number of release() calls minus the number of acquire() calls, plus an initial value.
-The acquire() method blocks if necessary until it can return without making the counter negative.
-A bounded semaphore checks to make sure its current value doesn’t exceed its initial value. If it does, ValueError is raised.
-In most situations semaphores are used to guard resources with limited capacity, for example, a database server.
-If the semaphore is released too many times it’s a sign of a bug. If not given, value defaults to 1.
-Once spawned, worker threads call the semaphore’s acquire and release methods when they need to connect to the server
-The use of a bounded semaphore reduces the chance that a programming error which causes the semaphore to be released more than it’s acquired will go undetected.
+# semaphore manages an atomic counter representing the number of release() calls minus the number of acquire() calls, plus an initial value.
+# The acquire() method blocks if necessary until it can return without making the counter negative.
+# A bounded semaphore checks to make sure its current value doesn’t exceed its initial value. If it does, ValueError is raised.
+# In most situations semaphores are used to guard resources with limited capacity, for example, a database server.
+# If the semaphore is released too many times it’s a sign of a bug. If not given, value defaults to 1.
+# Once spawned, worker threads call the semaphore’s acquire and release methods when they need to connect to the server
+# The use of a bounded semaphore reduces the chance that a programming error which causes the semaphore to be released more than it’s acquired will go undetected.
 
 
 ###########################################################################################################################
 
-join([timeout])
+# join([timeout])
 # If the optional argument timeout is None (the default), the method blocks until the process whose join() method is called terminates.
 # If timeout is a positive number, it blocks at most timeout seconds. Note that the method returns None if its process terminates or if the method times out. Check the process’s exitcode to determine if it terminated.
 # A process can be joined many times.
@@ -439,34 +443,34 @@ OUTPUT:
 
 ###########################################################################################################################
 
-进程间通信(Value & Array & Manager)
-进程之间数据不共享,但是共享同一套文件系统,所以访问同一个文件,或同一个打印终端,是没有问题的.
-虽然可以用文件共享数据实现进程间通信,但问题是:
-1.效率低(共享数据基于文件,而文件是硬盘上的数据)
-2.需要自己加锁处理
-因此我们最好找寻一种解决方案能够兼顾:1、效率高(多个进程共享一块内存的数据) 2、帮我们处理好锁问题
-这就是mutiprocessing模块为我们提供的基于消息的IPC通信机制:队列和管道
-队列和管道都是将数据存放于内存中
-队列又是基于(管道+锁)实现,可以让我们从复杂的锁问题中解脱出来.
-我们应该尽量避免使用共享数据,尽可能使用消息传递和队列,避免处理复杂的同步和锁问题
+# 进程间通信(Value & Array & Manager)
+# 进程之间数据不共享,但是共享同一套文件系统,所以访问同一个文件,或同一个打印终端,是没有问题的.
+# 虽然可以用文件共享数据实现进程间通信,但问题是:
+# 1.效率低(共享数据基于文件,而文件是硬盘上的数据)
+# 2.需要自己加锁处理
+# 因此我们最好找寻一种解决方案能够兼顾:1、效率高(多个进程共享一块内存的数据) 2、帮我们处理好锁问题
+# 这就是mutiprocessing模块为我们提供的基于消息的IPC通信机制:队列和管道
+# 队列和管道都是将数据存放于内存中
+# 队列又是基于(管道+锁)实现,可以让我们从复杂的锁问题中解脱出来.
+# 我们应该尽量避免使用共享数据,尽可能使用消息传递和队列,避免处理复杂的同步和锁问题
 
 ###########################################################################################################################
 
 # multiprocessing.Value(typecode_or_type, *args, lock=True)
 
-Return a ctypes object allocated from shared memory. By default the return value is actually a synchronized wrapper for the object. 
-The object itself can be accessed via the value attribute of a Value.
-typecode_or_type determines the type of the returned object: it is either a ctypes type or a one character typecode of the kind used by the array module. 
-*args is passed on to the constructor for the type.
-If lock is True (the default) then a new recursive lock object is created to synchronize access to the value.
-If lock is a Lock or RLock object then that will be used to synchronize access to the value.
-If lock is False then access to the returned object will not be automatically protected by a lock, so it will not necessarily be “process-safe”.
-Operations like += which involve a read and write are not atomic. 
-So if, for instance, you want to atomically increment a shared value it is insufficient to just do "counter.value += 1"
-Assuming the associated lock is recursive (which it is by default) you can instead do
-with counter.get_lock():
-    counter.value += 1
-Note that lock is a keyword-only argument.
+# Return a ctypes object allocated from shared memory. By default the return value is actually a synchronized wrapper for the object.
+# The object itself can be accessed via the value attribute of a Value.
+# typecode_or_type determines the type of the returned object: it is either a ctypes type or a one character typecode of the kind used by the array module.
+# *args is passed on to the constructor for the type.
+# If lock is True (the default) then a new recursive lock object is created to synchronize access to the value.
+# If lock is a Lock or RLock object then that will be used to synchronize access to the value.
+# If lock is False then access to the returned object will not be automatically protected by a lock, so it will not necessarily be “process-safe”.
+# Operations like += which involve a read and write are not atomic.
+# So if, for instance, you want to atomically increment a shared value it is insufficient to just do "counter.value += 1"
+# Assuming the associated lock is recursive (which it is by default) you can instead do
+# with counter.get_lock():
+#     counter.value += 1
+# Note that lock is a keyword-only argument.
 
 from multiprocessing import Process,Value
 def work(share):
@@ -486,20 +490,20 @@ if __name__ == '__main__':
 
 # multiprocessing.Array(typecode_or_type, size_or_initializer, *, lock=True)
 
-Return a ctypes array allocated from shared memory. By default the return value is actually a synchronized wrapper for the array.
-typecode_or_type determines the type of the elements of the returned array: it is either a ctypes type or a one character typecode of the kind used by the array module.
-If size_or_initializer is an integer, then it determines the length of the array, and the array will be initially zeroed. Otherwise,
-size_or_initializer is a sequence which is used to initialize the array and whose length determines the length of the array.
-If lock is True (the default) then a new lock object is created to synchronize access to the value.
-If lock is a Lock or RLock object then that will be used to synchronize access to the value.
-If lock is False then access to the returned object will not be automatically protected by a lock, so it will not necessarily be “process-safe”.
+# Return a ctypes array allocated from shared memory. By default the return value is actually a synchronized wrapper for the array.
+# typecode_or_type determines the type of the elements of the returned array: it is either a ctypes type or a one character typecode of the kind used by the array module.
+# If size_or_initializer is an integer, then it determines the length of the array, and the array will be initially zeroed. Otherwise,
+# size_or_initializer is a sequence which is used to initialize the array and whose length determines the length of the array.
+# If lock is True (the default) then a new lock object is created to synchronize access to the value.
+# If lock is a Lock or RLock object then that will be used to synchronize access to the value.
+# If lock is False then access to the returned object will not be automatically protected by a lock, so it will not necessarily be “process-safe”.
 
 ###########################################################################################################################
 
-Manager
-Server process managers are more flexible than using shared memory objects because they can be made to support arbitrary object types.
-Also, a single manager can be shared by processes on different computers over a network. They are, however, slower than using shared memory.
-manager不是进程安全,写操作需要加锁
+# Manager
+# Server process managers are more flexible than using shared memory objects because they can be made to support arbitrary object types.
+# Also, a single manager can be shared by processes on different computers over a network. They are, however, slower than using shared memory.
+# manager不是进程安全,写操作需要加锁
 
 from multiprocessing import Process, Manager
 import os

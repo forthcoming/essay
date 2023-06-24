@@ -8,7 +8,7 @@ import sys as _sys
 import _thread,functools
 
 ##########################################################################
-refer: https://github.com/python/cpython/blob/master/Lib/threading.py
+# refer: https://github.com/python/cpython/blob/master/Lib/threading.py
 ##########################################################################
 
 class _RLock:
