@@ -9,6 +9,7 @@ import sys
 def _short_typename(obj):
     return type(obj).__name__
 
+
 def _long_typename(obj):
     objtype = type(obj)
     name = objtype.__name__
@@ -18,6 +19,7 @@ def _long_typename(obj):
     else:
         return name
 
+
 def get_leaking_objects():
     """
     Return objects that do not have any referents.
@@ -25,14 +27,16 @@ def get_leaking_objects():
     Note that the GC does not track simple objects like int or str.
     """
     gc.collect()  # 手动执行垃圾回收
-    objects = gc.get_objects()   # Returns a list of all objects tracked by the collector, excluding the list returned.
+    objects = gc.get_objects()  # Returns a list of all objects tracked by the collector, excluding the list returned.
     try:
         ids = {id(i) for i in objects}
         for i in objects:
-            ids -= {id(j) for j in gc.get_referents(i)}  # Return a list of objects directly referred to by any of the arguments
-        return [i for i in objects if id(i) in ids]      # this then is our set of objects without referrers
+            ids -= {id(j) for j in
+                    gc.get_referents(i)}  # Return a list of objects directly referred to by any of the arguments
+        return [i for i in objects if id(i) in ids]  # this then is our set of objects without referrers
     finally:
         del objects, i  # clear cyclic references to frame
+
 
 def count(typename):
     """
@@ -58,6 +62,7 @@ def count(typename):
             return sum(1 for o in objects if _short_typename(o) == typename)
     finally:
         del objects  # clear cyclic references to frame
+
 
 def typestats(shortnames=True, filter=None):
     """
@@ -87,6 +92,7 @@ def typestats(shortnames=True, filter=None):
     finally:
         del objects  # clear cyclic references to frame
 
+
 def show_most_common_types(limit=10, shortnames=True, filter=None):
     """
     Print the table of types of most common instances.
@@ -106,7 +112,8 @@ def show_most_common_types(limit=10, shortnames=True, filter=None):
     for name, count in stats:
         sys.stdout.write('%-*s %i\n' % (width, name, count))
 
-def show_growth(limit=10, shortnames=True,filter=None,peak_stats={}):
+
+def show_growth(limit=10, shortnames=True, filter=None, peak_stats={}):
     """
     Show the increase in peak object counts since last call.
     peak_stats, a dictionary from type names to previously seen peak object counts.  Usually you don't need to pay attention to this argument.
@@ -119,13 +126,14 @@ def show_growth(limit=10, shortnames=True,filter=None,peak_stats={}):
         if count > old_count:
             deltas[name] = count - old_count
             peak_stats[name] = count
-    deltas = sorted(deltas.items(), key=operator.itemgetter(1),reverse=True)
+    deltas = sorted(deltas.items(), key=operator.itemgetter(1), reverse=True)
     if limit:
         deltas = deltas[:limit]
     result = [(name, stats[name], delta) for name, delta in deltas]
     width = max(len(name) for name, _, _ in result)
     for name, count, delta in result:
         sys.stdout.write('%-*s%9d %+9d\n' % (width, name, count, delta))
+
 
 def get_new_ids(skip_update=False, limit=10, sortby='deltas', shortnames=None, file=None, _state={}):
     """Find and display new objects allocated since last call.
@@ -247,12 +255,10 @@ def get_new_ids(skip_update=False, limit=10, sortby='deltas', shortnames=None, f
     if file is None:
         file = sys.stdout
     width = max(len(row[0]) for row in rows)
-    print('='*(width+13*4), file=file)
-    print('%-*s%13s%13s%13s%13s' % (width, 'Type', 'Old_ids', 'Current_ids', 'New_ids', 'Count_Deltas'),file=file)
-    print('='*(width+13*4), file=file)
+    print('=' * (width + 13 * 4), file=file)
+    print('%-*s%13s%13s%13s%13s' % (width, 'Type', 'Old_ids', 'Current_ids', 'New_ids', 'Count_Deltas'), file=file)
+    print('=' * (width + 13 * 4), file=file)
     for row_class, old, current, new, delta in rows:
         print('%-*s%13d%13d%+13d%+13d' % (width, row_class, old, current, new, delta), file=file)
-    print('='*(width+13*4), file=file)
+    print('=' * (width + 13 * 4), file=file)
     return new_ids
-
-
