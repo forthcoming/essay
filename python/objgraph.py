@@ -1,4 +1,8 @@
-import collections, gc, re, operator, os, sys
+import collections
+import gc
+import operator
+import sys
+
 
 # https://github.com/mgedmin/objgraph/blob/master/objgraph.py
 
