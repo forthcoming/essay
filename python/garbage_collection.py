@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import gc
 import objgraph
 import os
@@ -133,8 +132,8 @@ def main1():
 
 
 def main2():
-    objgraph.show_growth(
-        limit=3)  # We take a snapshot of all the objects counts that are alive before we call our function
+    # We take a snapshot of all the objects counts that are alive before we call our function
+    objgraph.show_growth(limit=3)
     for idx in range(10):
         computate_something(idx)
         objgraph.show_growth()
