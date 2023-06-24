@@ -58,12 +58,39 @@ def test_ref():
     c = weakref.ref(a)
     _a = c()  # 相当与给a增加了一个引用计数,一般不建议这么使用
     print(a, _a, c)
-    print(sys.getrefcount(a))   # 3, 返回的计数通常比预期高1,因为它包含引用作为getrefcount参数
+    print(sys.getrefcount(a))  # 3, 返回的计数通常比预期高1,因为它包含引用作为getrefcount参数
     print(sys.getrefcount(_a))  # 3
-    print(sys.getrefcount(c))   # 2
+    print(sys.getrefcount(c))  # 2
     print(weakref.getweakrefs(a), weakref.getweakrefcount(a))  # [<weakref at 0x10dace660; to 'OBJ' at 0x10d8862d0>] 1
     del a, _a
     print(c())  # None,建议使用前先判断是否为None
+
+
+def test_cache():
+    """
+    为避免重复创建和销毁一些常见对象,会维护一个缓存池,里面包含如-5,-4,...257,字符等常见对象,用户定义的字符串,数字等不可变类型,也会被加入到缓存池
+    当再有其他变量需要用到缓存池内对象时,直接指向即可,即地址不变,当变量值发生改变时才会重新创建对象
+    用户定义的数组,字典等可变类型,当引用计数为0被销毁时,如果free_list未满会被加入其中,当用户再定义一个类型相同的对象时直接从free_list选地址赋值即可,即地址不变
+    """
+    immutable_val = "1314520."
+    print(id(immutable_val))
+    del immutable_val
+    immutable_val1 = "1314520."
+    immutable_val2 = "1314520."
+    print(id(immutable_val1), id(immutable_val2))  # 4405645168 4405645168
+
+    mutable_val = {1}
+    print(id(mutable_val))  # 4368865856
+    del mutable_val
+    mutable_val1 = {2}
+    mutable_val2 = {2}
+    print(id(mutable_val1), id(mutable_val2))  # 4368865856 4366383040
+
+
+
+
+
+
 
 
 class MyBigFatObject:
@@ -87,6 +114,7 @@ def func_to_leak():
 
 
 def main0():
+    print(gc.get_threshold())  # 700 10 10,当分配对象的个数达到700时,进行一次0代回收; 当进行10次0代回收后触发一次1代回收; 当进行10次1代回收后触发一次2代回收
     for idx in range(40):
         time.sleep(1)
         func_to_leak()
@@ -116,4 +144,5 @@ if __name__ == '__main__':
     # main0()
     # main1()
     # main2()
-    test_ref()
+    # test_ref()
+    test_cache()
