@@ -1,10 +1,11 @@
 import gc
-import objgraph
 import os
 import sys
 import time
 import weakref
 from multiprocessing import Process
+
+import objgraph
 
 '''
 引用计数+1情况
@@ -34,6 +35,10 @@ y.append(x)
 
 垃圾回收包含引用计数,标记清除(可解决循环引用)和分代回收
 gc.disable()仅仅关闭垃圾回收功能,对象仍可能会因为引用计数为0而被销毁
+gc.get_threshold()返回(700,10,10),当分配对象的个数达到700时,进行一次0代回收; 当进行10次0代回收后触发一次1代回收; 当进行10次1代回收后触发一次2代回收
+gc.get_count()Return a three-tuple of the current collection counts,与get_threshold返回值相对应
+gc.collect()手动执行垃圾回收,返回不可达(unreachable objects)对象的数目,循环引用无法通过引用计数法消除
+gc.get_objects()Returns a list of all objects tracked by the collector, 不包括返回的列表
 对象被销毁(引用计数为0)时如果自定义了__del__,会执行__del__函数,然后销毁对象
 内存泄漏仅仅存在于某个进程中,无法进程间传递(即gc.get_objects仅仅统计所在进程的对象),会随着进程的结束而释放内存
 '''
@@ -43,6 +48,27 @@ class Gc:
     def __init__(self):
         self.data = list(range(10000))
         self.next = None
+
+
+def circular_reference_to_leak():
+    a = Gc()
+    b = Gc()
+    a.next = b  # a.next = weakref.ref(b),解决循环引用嗯题
+    b.next = a  # b.next = weakref.ref(a),解决循环引用嗯题
+
+
+def default_parameter_to_leak(idx, _cache={}):
+    _cache[idx] = {Gc()}  # a very explicit and easy-to-find "leak" but oh well
+    _ = Gc()  # this one doesn't leak
+    print("in default_parameter_to_leak", objgraph.count('Gc'))
+
+
+def generator_to_leak():
+    cnt = 0
+    _ = [Gc() for _ in range(10)]
+    while True:
+        yield cnt
+        cnt += 1
 
 
 def test_ref():
@@ -86,62 +112,96 @@ def test_cache():
     print(id(mutable_val1), id(mutable_val2))  # 4368865856 4366383040
 
 
-
-
-
-
-
-
-class MyBigFatObject:
-    pass
-
-
-def computate_something(idx, _cache={}):
-    _cache[idx] = {'foo': MyBigFatObject()}  # a very explicit and easy-to-find "leak" but oh well
-    x = MyBigFatObject()  # this one doesn't leak
-
-
-def func_to_leak():
-    a = Gc()
-    b = Gc()
-    a.next = b
-    b.next = a
-    # a.next = weakref.ref(b)
-    # b.next = weakref.ref(a)
-    # print(sys.getrefcount(b))      # 结果是3,针对的是变量本身,调用getrefcount也会增加一个临时引用
-    # print(objgraph.count('Gc'))   # gc.get_objects针对的类型
-
-
-def main0():
-    print(gc.get_threshold())  # 700 10 10,当分配对象的个数达到700时,进行一次0代回收; 当进行10次0代回收后触发一次1代回收; 当进行10次1代回收后触发一次2代回收
+def test_circular_reference():
     for idx in range(40):
         time.sleep(1)
-        func_to_leak()
+        circular_reference_to_leak()
         if idx == 20:
-            print(gc.collect())  # 手动执行垃圾回收,返回不可达(unreachable objects)对象的数目,循环引用需要垃圾回收,无法通过引用计数法消除
+            print(gc.collect())
         print(os.getpid(), objgraph.count('Gc'), gc.get_count())
 
 
-def main1():
-    processes = [Process(target=main0) for _ in range(4)]
+def test_multiprocess_circular_reference():
+    processes = [Process(target=test_circular_reference) for _ in range(3)]
     for process in processes:
         process.start()
     for idx in range(100):
-        print(objgraph.count('Gc'))
+        print("in main", objgraph.count('Gc'))
         time.sleep(.5)
 
 
-def main2():
-    # We take a snapshot of all the objects counts that are alive before we call our function
-    objgraph.show_growth(limit=3)
+def test_default_parameter():
+    objgraph.show_growth(limit=2)  # 调用函数之前We take a snapshot of all the objects counts that are alive
     for idx in range(10):
-        computate_something(idx)
+        default_parameter_to_leak(idx)
+        print("in test_default_parameter", objgraph.count('Gc'))
         objgraph.show_growth()
 
 
+def test_generator():
+    it = generator_to_leak()
+    next(it)
+    print(objgraph.count("Gc"))
+
+
+class ObjGraph:
+    # https://github.com/mgedmin/objgraph/blob/master/objgraph.py
+    @staticmethod
+    def type_stats():
+        """
+        Count the number of instances for each type tracked by the GC.
+        Note that classes with the same name but defined in different modules will be lumped together if shortnames is True.
+        The Python garbage collector does not track simple objects like int or str.
+        See https://docs.python.org/3/library/gc.html#gc.is_tracked
+        """
+        objects = gc.get_objects()
+        try:
+            stats = {}
+            for obj in objects:
+                name = type(obj).__name__
+                stats[name] = stats.get(name, 0) + 1
+            return stats
+        finally:
+            del objects  # clear cyclic references to frame
+
+    @staticmethod
+    def show_most_common_types(limit=10):
+        stats = sorted(ObjGraph.type_stats().items(), key=lambda item: item[1], reverse=True)
+        if limit:
+            stats = stats[:limit]
+        width = max(len(name) for name, count in stats)
+        for name, count in stats:
+            sys.stdout.write('%-*s %i\n' % (width, name, count))
+
+    @staticmethod
+    def show_growth(limit=10, peak_stats={}):
+        """
+        Show the increase in peak object counts since last call.
+        peak_stats, a dictionary from type names to previously seen peak object counts.
+        Usually you don't need to pay attention to this argument.
+        """
+        gc.collect()  # 手动执行垃圾回收,避免循环引用干扰
+        stats = ObjGraph.type_stats()
+        deltas = {}
+        for name, count in stats.items():
+            old_count = peak_stats.get(name, 0)
+            if count > old_count:
+                deltas[name] = count - old_count
+                peak_stats[name] = count
+        deltas = sorted(deltas.items(), key=lambda item: item[1], reverse=True)
+        if limit:
+            deltas = deltas[:limit]
+        result = [(name, stats[name], delta) for name, delta in deltas]
+        if result:
+            width = max(len(name) for name, _, _ in result)
+            for name, count, delta in result:
+                sys.stdout.write('%-*s%9d %+9d\n' % (width, name, count, delta))
+
+
 if __name__ == '__main__':
-    # main0()
-    # main1()
-    # main2()
     # test_ref()
-    test_cache()
+    # test_cache()
+    # test_circular_reference()
+    # test_multiprocess_circular_reference()
+    # test_default_parameter()
+    test_generator()
