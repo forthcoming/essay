@@ -1,8 +1,9 @@
 import copy
 import hashlib
+import os
+import random
 import re
 import time
-import random
 from bisect import insort_right, bisect_left, bisect_right
 from collections import Counter
 from collections import deque
@@ -10,6 +11,7 @@ from datetime import datetime, timedelta
 from functools import lru_cache, wraps
 from heapq import heapify, heappop, heappush, nlargest, nsmallest, heappushpop
 from subprocess import run, PIPE
+
 import pandas as pd
 
 """
@@ -518,8 +520,10 @@ def subprocess_tutorial():
     # !/root/miniconda3/bin/python
     # 如果指定编译器,则可通过./test来执行，否则只能通过python test来执行
     # run(['mkdir','-p','11'])
-    ret = run('lsof tutorial', shell=True, stdout=PIPE, stderr=PIPE)  #
-    print(ret.args, '\n', ret.returncode, '\n', ret.stdout, '\n', ret.stderr)
+    ret = run('ps -ef|grep python', shell=True, stdout=PIPE, stderr=PIPE)  # 当前进程的子进程运行命令
+    print(f'pid: {os.getpid()}, args: {ret.args}, returncode: {ret.returncode}, stderr: {ret.stderr}')
+    for line in ret.stdout.strip().split(b'\n'):
+        print(line)
 
 
 def open_tutorial():
@@ -698,8 +702,8 @@ def cache_tutorial():
 
 
 def read_excel_tutorial():  # 读excel表格
-    df = pd.read_excel('map.xlsx',sheet_name='Sheet2',header=1, # header指定开始读取的行号
-                       usercols=[2, 4, 6, 7],dtype={'name': str, 'id': int},names=['name', 'id', 'score'])
+    df = pd.read_excel('map.xlsx', sheet_name='Sheet2', header=1,  # header指定开始读取的行号
+                       usercols=[2, 4, 6, 7], dtype={'name': str, 'id': int}, names=['name', 'id', 'score'])
     for row in range(df.shape[0]):
         if pd.isna(df.loc[row]['name']):
             pass
@@ -1041,4 +1045,3 @@ def decorator_tutorial():
 
 if __name__ == "__main__":
     subprocess_tutorial()
-    
