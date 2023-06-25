@@ -62,7 +62,7 @@ def count(typename):
         del objects  # clear cyclic references to frame
 
 
-def type_stats(shortnames=True, filter=None):
+def type_stats(shortnames=True, _filter=None):
     """
     Count the number of instances for each type tracked by the GC.
     Note that the GC does not track simple objects like int or str.
@@ -82,7 +82,7 @@ def type_stats(shortnames=True, filter=None):
             typename = _long_typename
         stats = {}
         for o in objects:
-            if filter and not filter(o):
+            if _filter and not _filter(o):
                 continue
             n = typename(o)
             stats[n] = stats.get(n, 0) + 1
@@ -91,7 +91,7 @@ def type_stats(shortnames=True, filter=None):
         del objects  # clear cyclic references to frame
 
 
-def show_most_common_types(limit=10, shortnames=True, filter=None):
+def show_most_common_types(limit=10, shortnames=True, _filter=None):
     """
     Print the table of types of most common instances.
     If ``filter`` is specified, it should be a function taking one argument and returning a boolean. Objects for which ``filter(obj)`` returns ``False`` will be ignored.
@@ -103,7 +103,7 @@ def show_most_common_types(limit=10, shortnames=True, filter=None):
         dict                       953
         builtin_function_or_method 800
     """
-    stats = sorted(type_stats(shortnames=shortnames, filter=filter).items(), key=operator.itemgetter(1), reverse=True)
+    stats = sorted(type_stats(shortnames=shortnames, _filter=_filter).items(), key=operator.itemgetter(1), reverse=True)
     if limit:
         stats = stats[:limit]
     width = max(len(name) for name, count in stats)
@@ -111,14 +111,14 @@ def show_most_common_types(limit=10, shortnames=True, filter=None):
         sys.stdout.write('%-*s %i\n' % (width, name, count))
 
 
-def show_growth(limit=10, shortnames=True, filter=None, peak_stats={}):
+def show_growth(limit=10, shortnames=True, _filter=None, peak_stats={}):
     """
     Show the increase in peak object counts since last call.
     peak_stats, a dictionary from type names to previously seen peak object counts.
     Usually you don't need to pay attention to this argument.
     """
     gc.collect()  # 手动执行垃圾回收,避免循环引用干扰
-    stats = type_stats(shortnames=shortnames, filter=filter)
+    stats = type_stats(shortnames=shortnames, _filter=_filter)
     deltas = {}
     for name, count in stats:
         old_count = peak_stats.get(name, 0)
