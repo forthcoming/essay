@@ -232,8 +232,9 @@ def dict_tutorial():  # 字典有序
     print(d)  # {'b': 2, 'c': 4, 'd': None, 'e': 'avatar'}
 
     one = {'a': 1, 'b': 2}
-    two = {'a': 3, 'c': 2}
-    _ = one | two  # {'a': 3, 'b': 2, 'c': 2},合并两个字典
+    two = {'b': 3, 'c': 4}
+    _ = one | two  # {'a': 1, 'b': 3, 'c': 4},合并两个字典
+    _ = two | one  # {'b': 2, 'c': 4, 'a': 1},合并两个字典
 
 
 def common_tutorial():
@@ -1044,4 +1045,5 @@ def decorator_tutorial():
 
 
 if __name__ == "__main__":
-    subprocess_tutorial()
+    # subprocess_tutorial()
+    dict_tutorial()
