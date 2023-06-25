@@ -2,16 +2,14 @@ import copy
 import hashlib
 import re
 import time
+import random
 from bisect import insort_right, bisect_left, bisect_right
 from collections import Counter
 from collections import deque
 from datetime import datetime, timedelta
 from functools import lru_cache, wraps
 from heapq import heapify, heappop, heappush, nlargest, nsmallest, heappushpop
-from random import randrange, choice, sample, shuffle, random
 from subprocess import run, PIPE
-import win32api
-import win32con
 import pandas as pd
 
 """
@@ -466,17 +464,18 @@ def with_tutorial():
             print("In __enter__")
             return 'test'  # 返回值赋给with后面的as变量
 
-        def __exit__(self, type, value, trace):
+        def __exit__(self, _type, value, trace):
             """
             没有异常的情况下整个代码块运行完后触发__exit__,他的三个参数均为None
             当有异常产生时,从异常出现的位置直接触发__exit__
             __exit__运行完毕就代表整个with语句执行完毕
             返回值为True代表吞掉了异常,并且结束代码块运行,但是代码块之外的代码会继续运行,否则代表抛出异常,结束所有代码的运行,包括代码块之外的代码
             """
-            print("In __exit__,type: {}, value: {}, trace: {}".format(type, value, trace))
+            print("In __exit__,type: {}, value: {}, trace: {}".format(_type, value, trace))
             return True
 
-        def do_something(self):
+        @staticmethod
+        def do_something():
             1 / 0
 
     sample = Sample()
@@ -519,7 +518,7 @@ def subprocess_tutorial():
     # !/root/miniconda3/bin/python
     # 如果指定编译器,则可通过./test来执行，否则只能通过python test来执行
     # run(['mkdir','-p','11'])
-    ret = run('ls -l', shell=True, stdout=PIPE, stderr=PIPE)
+    ret = run('lsof tutorial', shell=True, stdout=PIPE, stderr=PIPE)  #
     print(ret.args, '\n', ret.returncode, '\n', ret.stdout, '\n', ret.stderr)
 
 
@@ -571,7 +570,7 @@ def args_tutorial():
 
     def test_default(element, num=number, arr=[], arr1=None):  # 如果默认值是一个可变对象如列表,字典,大多类对象时,函数在随后调用中会累积参数值
         arr.append(element)
-        if arr1 is None:  # if u don't want the default to be shared between subsequent calls ,u can write the function like this instead.
+        if arr1 is None:  # 防止默认值在不同子调用间被共享
             arr1 = []
         arr1.append(element)
         print(num, arr, arr1)
@@ -584,7 +583,7 @@ def args_tutorial():
 
 def delayed_binding_tutorial():
     # 延迟绑定出现在闭包问题和lambda表达式中, 特点是变量在调用时才会去检测是否存在, 如果存在则使用现有值, 如果不存在, 直接报错
-    # because y is not local to the lambdas, but is defined in the outer scope and it is accessed when the lambda is called — not when it is defined.
+    # 对于lambda表达式来说y不是局部变量,it is accessed when the lambda is called — not when it is defined.
     squares = [lambda: y ** 2 for _ in range(3)]
     y = 5
     for square in squares:
@@ -699,13 +698,8 @@ def cache_tutorial():
 
 
 def read_excel_tutorial():  # 读excel表格
-    df = pd.read_excel('map.xlsx',
-                       sheet_name='Sheet2',
-                       header=1,  # header指定开始读取的行号
-                       usercols=[2, 4, 6, 7],
-                       dtype={'name': str, 'id': int},
-                       names=['name', 'id', 'score']
-                       )
+    df = pd.read_excel('map.xlsx',sheet_name='Sheet2',header=1, # header指定开始读取的行号
+                       usercols=[2, 4, 6, 7],dtype={'name': str, 'id': int},names=['name', 'id', 'score'])
     for row in range(df.shape[0]):
         if pd.isna(df.loc[row]['name']):
             pass
@@ -713,16 +707,18 @@ def read_excel_tutorial():  # 读excel表格
 
 def random_tutorial():
     # random是伪随机, 默认随机数生成种子是从 /dev/urandom或系统时间戳获取, 所以种子肯定不会是一样的
-    print(random())  # 随机生成一个[0,1)范围内实数
-    print(randrange(1, 10, 2))  # 从range(start, stop[, step])范围内选取一个值并返回(不包含stop)
+    print(random.random())  # 随机生成一个[0,1)范围内实数
+    print(random.randrange(1, 10, 2))  # 从range(start, stop[, step])范围内选取一个值并返回(不包含stop)
     arr = [1, 2, 3, 4, 5, 6, 6, 6, 6]
-    print(choice(arr))  # 返回一个列表,元组或字符串的随机项
-    print(sample(arr, 3))  # 返回列表指定长度个不重复位置的元素
-    shuffle(arr)  # 方法将序列的所有元素随机排序
+    print(random.choice(arr))  # 返回一个列表,元组或字符串的随机项
+    print(random.sample(arr, 3))  # 返回列表指定长度个不重复位置的元素
+    random.shuffle(arr)  # 方法将序列的所有元素随机排序
     print(arr)
 
 
 def win32_tutorial():
+    import win32api
+    import win32con
     x, y = 120, 240
     win32api.SetCursorPos((x, y))  # 鼠标定位,不同的屏幕分辨率请用百分比换算
     win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, x, y, 0, 0)  # 鼠标左键按下
@@ -1041,3 +1037,8 @@ def decorator_tutorial():
     # start in decorator_order_test  调用时打印
     # end in inner_a                 调用时打印
     # end in inner_b                 调用时打印
+
+
+if __name__ == "__main__":
+    subprocess_tutorial()
+    
