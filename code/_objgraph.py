@@ -18,7 +18,7 @@ def _long_typename(obj):
         return name
 
 
-def type_stats(shortnames=True):
+def type_stats(is_short_name=True):
     """
     Count the number of instances for each type tracked by the GC.
     Note that classes with the same name but defined in different modules will be lumped together if shortnames is True.
@@ -27,7 +27,7 @@ def type_stats(shortnames=True):
     """
     objects = gc.get_objects()  # Returns a list of all objects tracked by the collector, excluding the list returned.
     try:
-        typename = _short_typename if shortnames else _long_typename
+        typename = _short_typename if is_short_name else _long_typename
         stats = {}
         for obj in objects:
             name = typename(obj)
@@ -44,7 +44,7 @@ def show_growth(limit=10, shortnames=True, _filter=None, peak_stats={}):
     Usually you don't need to pay attention to this argument.
     """
     gc.collect()  # 手动执行垃圾回收,避免循环引用干扰
-    stats = type_stats(shortnames=shortnames, _filter=_filter)
+    stats = type_stats(is_short_name=shortnames)
     deltas = {}
     for name, count in stats:
         old_count = peak_stats.get(name, 0)
@@ -72,7 +72,7 @@ def show_most_common_types(limit=10, shortnames=True, _filter=None):
         dict                       953
         builtin_function_or_method 800
     """
-    stats = sorted(type_stats(shortnames=shortnames, _filter=_filter).items(), key=operator.itemgetter(1), reverse=True)
+    stats = sorted(type_stats(is_short_name=shortnames).items(), key=operator.itemgetter(1), reverse=True)
     if limit:
         stats = stats[:limit]
     width = max(len(name) for name, count in stats)
