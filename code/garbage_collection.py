@@ -60,7 +60,7 @@ def test_ref():
     print(sys.getrefcount(a))  # 3, 返回的计数通常比预期高1,因为它包含引用作为getrefcount参数
     print(sys.getrefcount(_a))  # 3
     print(sys.getrefcount(c))  # 2
-    print(weakref.getweakrefs(a), weakref.getweakrefcount(a))  # [<weakref at 0x10dace660; to 'OBJ' at 0x10d8862d0>] 1
+    print(weakref.getweakrefs(a), weakref.getweakrefcount(a))  # [<weakref at 0x10dace660; to 'Gc' at 0x10d8862d0>] 1
     del a, _a
     print(c())  # None,建议使用前先判断是否为None
 
@@ -109,7 +109,7 @@ def func_to_leak():
     # a.next = weakref.ref(b)
     # b.next = weakref.ref(a)
     # print(sys.getrefcount(b))      # 结果是3,针对的是变量本身,调用getrefcount也会增加一个临时引用
-    # print(objgraph.count('OBJ'))   # gc.get_objects针对的类型
+    # print(objgraph.count('Gc'))   # gc.get_objects针对的类型
 
 
 def main0():
@@ -119,7 +119,7 @@ def main0():
         func_to_leak()
         if idx == 20:
             print(gc.collect())  # 手动执行垃圾回收,返回不可达(unreachable objects)对象的数目,循环引用需要垃圾回收,无法通过引用计数法消除
-        print(os.getpid(), objgraph.count('OBJ'), gc.get_count())
+        print(os.getpid(), objgraph.count('Gc'), gc.get_count())
 
 
 def main1():
@@ -127,7 +127,7 @@ def main1():
     for process in processes:
         process.start()
     for idx in range(100):
-        print(objgraph.count('OBJ'))
+        print(objgraph.count('Gc'))
         time.sleep(.5)
 
 

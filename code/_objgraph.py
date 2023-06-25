@@ -21,15 +21,8 @@ def _long_typename(obj):
 def count(typename):
     """
     Count objects tracked by the garbage collector with a given class name.
-    The class name can optionally be fully qualified.
-    Example:
-        >>> count('dict')
-        42
-        >>> count('mymodule.MyClass')
-        2
-    note:
-        The Python garbage collector does not track simple objects like int or str. 
-        See https://docs.python.org/3/library/gc.html#gc.is_tracked for more information.
+    The Python garbage collector does not track simple objects like int or str.
+    See https://docs.python.org/3/library/gc.html#gc.is_tracked for more information.
     Instead of looking through all objects tracked by the GC, you may specify your own collection, e.g.
     >>> count('MyClass', get_leaking_objects())
         3
