@@ -18,14 +18,28 @@ def _long_typename(obj):
         return name
 
 
+def type_stats(shortnames=True):
+    """
+    Count the number of instances for each type tracked by the GC.
+    Note that classes with the same name but defined in different modules will be lumped together if ``shortnames`` is True.
+    """
+    objects = gc.get_objects()  # Returns a list of all objects tracked by the collector, excluding the list returned.
+    try:
+        typename = _short_typename if shortnames else _long_typename
+        stats = {}
+        for o in objects:
+            n = typename(o)
+            stats[n] = stats.get(n, 0) + 1
+        return stats
+    finally:
+        del objects  # clear cyclic references to frame
+
+
 def count(typename):
     """
     Count objects tracked by the garbage collector with a given class name.
     The Python garbage collector does not track simple objects like int or str.
-    See https://docs.python.org/3/library/gc.html#gc.is_tracked for more information.
-    Instead of looking through all objects tracked by the GC, you may specify your own collection, e.g.
-    >>> count('MyClass', get_leaking_objects())
-        3
+    See https://docs.python.org/3/library/gc.html#gc.is_tracked
     """
     objects = gc.get_objects()
     try:
@@ -78,32 +92,3 @@ def show_most_common_types(limit=10, shortnames=True, _filter=None):
     width = max(len(name) for name, count in stats)
     for name, count in stats:
         sys.stdout.write('%-*s %i\n' % (width, name, count))
-
-
-def type_stats(shortnames=True, _filter=None):
-    """
-    Count the number of instances for each type tracked by the GC.
-    Note that the GC does not track simple objects like int or str.
-    Note that classes with the same name but defined in different modules will be lumped together if ``shortnames`` is True.
-    If ``filter`` is specified, it should be a function taking one argument and returning a boolean. Objects for which ``filter(obj)`` returns ``False`` will be ignored.
-    Example:
-        >>> type_stats()
-        {'list': 12041, 'tuple': 10245, ...}
-        >>> type_stats(get_leaking_objects())
-        {'MemoryError': 1, 'tuple': 2795, 'RuntimeError': 1, 'list': 47, ...}
-    """
-    objects = gc.get_objects()  # Returns a list of all objects tracked by the collector, excluding the list returned.
-    try:
-        if shortnames:
-            typename = _short_typename
-        else:
-            typename = _long_typename
-        stats = {}
-        for o in objects:
-            if _filter and not _filter(o):
-                continue
-            n = typename(o)
-            stats[n] = stats.get(n, 0) + 1
-        return stats
-    finally:
-        del objects  # clear cyclic references to frame
