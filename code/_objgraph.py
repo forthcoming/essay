@@ -62,16 +62,16 @@ def count(typename):
         del objects  # clear cyclic references to frame
 
 
-def typestats(shortnames=True, filter=None):
+def type_stats(shortnames=True, filter=None):
     """
     Count the number of instances for each type tracked by the GC.
     Note that the GC does not track simple objects like int or str.
     Note that classes with the same name but defined in different modules will be lumped together if ``shortnames`` is True.
     If ``filter`` is specified, it should be a function taking one argument and returning a boolean. Objects for which ``filter(obj)`` returns ``False`` will be ignored.
     Example:
-        >>> typestats()
+        >>> type_stats()
         {'list': 12041, 'tuple': 10245, ...}
-        >>> typestats(get_leaking_objects())
+        >>> type_stats(get_leaking_objects())
         {'MemoryError': 1, 'tuple': 2795, 'RuntimeError': 1, 'list': 47, ...}
     """
     objects = gc.get_objects()  # Returns a list of all objects tracked by the collector, excluding the list returned.
@@ -103,7 +103,7 @@ def show_most_common_types(limit=10, shortnames=True, filter=None):
         dict                       953
         builtin_function_or_method 800
     """
-    stats = sorted(typestats(shortnames=shortnames, filter=filter).items(), key=operator.itemgetter(1), reverse=True)
+    stats = sorted(type_stats(shortnames=shortnames, filter=filter).items(), key=operator.itemgetter(1), reverse=True)
     if limit:
         stats = stats[:limit]
     width = max(len(name) for name, count in stats)
@@ -118,7 +118,7 @@ def show_growth(limit=10, shortnames=True, filter=None, peak_stats={}):
     Usually you don't need to pay attention to this argument.
     """
     gc.collect()  # 手动执行垃圾回收,避免循环引用干扰
-    stats = typestats(shortnames=shortnames, filter=filter)
+    stats = type_stats(shortnames=shortnames, filter=filter)
     deltas = {}
     for name, count in stats:
         old_count = peak_stats.get(name, 0)
