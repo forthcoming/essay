@@ -22,31 +22,17 @@ def type_stats(shortnames=True):
     """
     Count the number of instances for each type tracked by the GC.
     Note that classes with the same name but defined in different modules will be lumped together if shortnames is True.
+    The Python garbage collector does not track simple objects like int or str.
+    See https://docs.python.org/3/library/gc.html#gc.is_tracked
     """
     objects = gc.get_objects()  # Returns a list of all objects tracked by the collector, excluding the list returned.
     try:
         typename = _short_typename if shortnames else _long_typename
         stats = {}
-        for o in objects:
-            n = typename(o)
-            stats[n] = stats.get(n, 0) + 1
+        for obj in objects:
+            name = typename(obj)
+            stats[name] = stats.get(name, 0) + 1
         return stats
-    finally:
-        del objects  # clear cyclic references to frame
-
-
-def count(typename):
-    """
-    Count objects tracked by the garbage collector with a given class name.
-    The Python garbage collector does not track simple objects like int or str.
-    See https://docs.python.org/3/library/gc.html#gc.is_tracked
-    """
-    objects = gc.get_objects()
-    try:
-        if '.' in typename:
-            return sum(1 for o in objects if _long_typename(o) == typename)
-        else:
-            return sum(1 for o in objects if _short_typename(o) == typename)
     finally:
         del objects  # clear cyclic references to frame
 
