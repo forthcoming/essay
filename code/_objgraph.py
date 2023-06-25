@@ -21,7 +21,7 @@ def _long_typename(obj):
 def type_stats(shortnames=True):
     """
     Count the number of instances for each type tracked by the GC.
-    Note that classes with the same name but defined in different modules will be lumped together if ``shortnames`` is True.
+    Note that classes with the same name but defined in different modules will be lumped together if shortnames is True.
     """
     objects = gc.get_objects()  # Returns a list of all objects tracked by the collector, excluding the list returned.
     try:
