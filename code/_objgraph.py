@@ -37,7 +37,7 @@ def type_stats(is_short_name=True):
         del objects  # clear cyclic references to frame
 
 
-def show_growth(limit=10, shortnames=True, _filter=None, peak_stats={}):
+def show_growth(limit=10, shortnames=True, peak_stats={}):
     """
     Show the increase in peak object counts since last call.
     peak_stats, a dictionary from type names to previously seen peak object counts.
@@ -60,18 +60,7 @@ def show_growth(limit=10, shortnames=True, _filter=None, peak_stats={}):
         sys.stdout.write('%-*s%9d %+9d\n' % (width, name, count, delta))
 
 
-def show_most_common_types(limit=10, shortnames=True, _filter=None):
-    """
-    Print the table of types of most common instances.
-    If ``filter`` is specified, it should be a function taking one argument and returning a boolean. Objects for which ``filter(obj)`` returns ``False`` will be ignored.
-    Example:
-        >>> show_most_common_types(limit=5)
-        tuple                      8959
-        function                   2442
-        wrapper_descriptor         1048
-        dict                       953
-        builtin_function_or_method 800
-    """
+def show_most_common_types(limit=10, shortnames=True):
     stats = sorted(type_stats(is_short_name=shortnames).items(), key=operator.itemgetter(1), reverse=True)
     if limit:
         stats = stats[:limit]
