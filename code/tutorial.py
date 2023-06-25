@@ -662,7 +662,7 @@ def sum_tutorial():
 
 
 def instance_tutorial():
-    # isinstance(object,class )    判断对象object是不是类class或其派生类的实例
+    # isinstance(object,class)    判断对象object是不是类class或其派生类的实例
     # issubclass(class ,baseclass) 判断一个类是否是另一个类的子类
     class Person: pass
 
