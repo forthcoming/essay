@@ -207,6 +207,7 @@ print(test.a,test.b,test.c,test.d,id(test.a),id(test.b),id(test.c),id(test.d))
 #
 # 线程 & 进程
 # 由于GIL锁的缘故,线程实际上是并发运行(即便有多个cpu,线程会在其中一个cpu来回切换,只占用一个cpu资源),而进程才是真正的并行(同时执行多个任务,占用多个cpu资源)
+# 每个Python进程都有自己的Python解释器和内存空间,因此GIL不会成为问题
 # sys.getswitchinterval() # current thread switch interval
 # sys.setswitchinterval(n)
 '''
