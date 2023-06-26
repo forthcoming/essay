@@ -7,7 +7,6 @@ import requests
 import asyncio
 import aiohttp
 import requests
-from gevent import monkey, joinall, spawn
 
 """
 定义了__iter__方法的对象,可作用于for循环的对象是Iterable类型
@@ -364,24 +363,3 @@ if __name__ == '__main__':
         for response in executor.map(requests.get, ['http://www.baidu.com'] * 100):
             print(status.status_code)
     print(time.time() - start)
-
-#################################################################################################################################
-
-# gevent
-monkey.patch_all()
-
-urls = ['https://baidu.com/'] * 50 + ['https://ilovefishc.com/'] * 50
-
-
-def get(url):
-    print(f'GET: {url}')
-    res = requests.get(url, timeout=5)
-    print(f'{res.status_code} bytes received from {url}')
-
-
-jobs = [spawn(get, url) for url in urls]
-joinall(jobs)  # 阻塞
-
-# gevent_pool = pool.Pool(100)
-# gevent_pool.map(get,urls)
-# gevent_pool.join()
