@@ -1085,16 +1085,23 @@ def iterable_tutorial():
 
     def fibonacci_sequence():
         a, b = 0, 1
+        print("start")
         while True:
             a, b = b, a + b
+            print("before-yield")
             yield a
+            print("after-yield")
 
-    generator_f = fibonacci_sequence()  # <class 'generator'>
+    generator_f = fibonacci_sequence()  # <class 'generator'>,协程预激活,未执行任何fibonacci_sequence代码
     for gen in generator_f:
-        print(gen)  # 1 1 2 3
-        if gen >= 3:
+        print(gen)
+        if gen >= 2:
             break
-
+    """
+    start before-yield 1
+    after-yield before-yield 1
+    after-yield before-yield 2
+    """
     print(isinstance(100, Iterable))  # False
     print(isinstance([], Iterable))  # True
     print(isinstance([], Iterator))  # False
