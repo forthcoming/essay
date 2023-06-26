@@ -7,6 +7,7 @@ import time
 from bisect import insort_right, bisect_left, bisect_right
 from collections import Counter
 from collections import deque
+from collections.abc import Iterable, Iterator, Generator
 from datetime import datetime, timedelta
 from functools import lru_cache, wraps
 from heapq import heapify, heappop, heappush, nlargest, nsmallest, heappushpop
@@ -1044,6 +1045,68 @@ def decorator_tutorial():
     # end in inner_b                 调用时打印
 
 
+def iterable_tutorial():
+    """
+    定义了__iter__方法的对象是Iterable类型,可作为iter的入参
+    Iterable类型定义了__next__方法,或iter(Iterable)方式生成的对象是Iterator类型,可作为next的入参,终止时抛出StopIteration异常
+    包含yield关键字的函数实例或括号列表推导式产生的对象是Generator类型
+    Generator是Iterator子集,Iterator是Iterable子集
+    Iterator执行完next()后,该方法的上下文(变量)环境消失;Generator执行完next()后,代码会执行到yield处,并将yield后的值返回,同时该方法的上下文(挂起位置,变量等)会被保留
+    """
+
+    for _ in [1, 2, 3, 4, 5]:  # for本质
+        pass
+    # 等价于
+    it = iter([1, 2, 3, 4, 5])
+    while True:
+        try:
+            _ = next(it)  # 获得下一个值
+        except StopIteration:
+            break
+
+    class SelfIterator:
+        def __init__(self, data):
+            self.data = data
+            self.index = len(data)
+
+        def __iter__(self):  # 保证iter(Iterator)如for循环等操作返回其自身
+            return self
+
+        def __next__(self):
+            if self.index:
+                self.index -= 1
+                return self.data[self.index]
+            raise StopIteration
+
+    iterator = SelfIterator('maps')
+    for it in iterator:
+        print(it, end='')  # spam
+    print()
+
+    def fibonacci_sequence():
+        a, b = 0, 1
+        while True:
+            a, b = b, a + b
+            yield a
+
+    generator_f = fibonacci_sequence()  # <class 'generator'>
+    for gen in generator_f:
+        print(gen)  # 1 1 2 3
+        if gen >= 3:
+            break
+
+    print(isinstance(100, Iterable))  # False
+    print(isinstance([], Iterable))  # True
+    print(isinstance([], Iterator))  # False
+    print(isinstance(iter([]), Iterable))  # True
+    print(isinstance(iter([]), Iterator))  # True
+    print(isinstance(generator_f, Iterable))  # True
+    print(isinstance(generator_f, Iterator))  # True
+    print(isinstance(generator_f, Generator))  # True
+    print(isinstance((_ for _ in range(5)), Generator))  # True
+
+
 if __name__ == "__main__":
     # subprocess_tutorial()
-    dict_tutorial()
+    # dict_tutorial()
+    iterable_tutorial()
