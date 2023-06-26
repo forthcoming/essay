@@ -1,13 +1,32 @@
-# Iterable
-# 定义了__iter__或__getitem__方法的对象
-# 可作用于for循环的对象都是Iterable类型
+import time
+from collections import namedtuple
+from collections.abc import Iterable, Iterator, Generator
+from concurrent.futures import ProcessPoolExecutor
+from inspect import getgeneratorstate
+import requests
+import asyncio
+import aiohttp
+import requests
+from gevent import monkey, joinall, spawn
 
-#################################################################################################################################
+"""
+定义了__iter__方法的对象,可作用于for循环的对象是Iterable类型
+自定义__next__和__iter__方法生成,或iter(Iterable)方式生成的对象是Iterator类型
+Iterator可作用于next(),它们表示一个惰性计算的序列,无法重复迭代,迭代器都是Iterable对象
+"""
 
-# Iterator
-# 可通过自定义__next__和__iter__方法生成,或iter(Iterable)方式生成
-# 可作用于next(),它们表示一个惰性计算的序列,无法重复迭代,迭代器都是Iterable对象
-class Iterator:
+# for本质
+for x in [1, 2, 3, 4, 5]: pass
+# 等价于
+it = iter([1, 2, 3, 4, 5])
+while True:
+    try:
+        x = next(it)  # 获得下一个值
+    except StopIteration:
+        break
+
+
+class SelfIterator:
     def __init__(self, data):
         self.data = data
         self.index = len(data)
@@ -22,7 +41,7 @@ class Iterator:
         raise StopIteration
 
 
-iterator = Iterator('maps')
+iterator = SelfIterator('maps')
 print(iterator)  # <class '__main__.Iterator'>
 for it in iterator:
     print(it, end=' ')  # s p a m
@@ -58,26 +77,12 @@ for it in generator_f:
 
 #################################################################################################################################
 
-from collections.abc import Iterable, Iterator, Generator
-
 isinstance([], Iterable)  # True
 isinstance([], Iterator)  # False
 isinstance((x for x in range(10)), Iterable)  # True
 isinstance((x for x in range(10)), Iterator)  # True
 isinstance((x for x in range(10)), Generator)  # True
 isinstance(100, Iterable)  # False
-
-#################################################################################################################################
-
-# for本质
-for x in [1, 2, 3, 4, 5]: pass
-# 等价于
-it = iter([1, 2, 3, 4, 5])
-while True:
-    try:
-        x = next(it)  # 获得下一个值
-    except StopIteration:
-        break
 
 
 #################################################################################################################################
@@ -96,8 +101,6 @@ def coroutine(func):
 
 # send: Resumes the generator and "sends" a value that becomes the result of the current yield-expression
 # next: next等价于send(None),生成器一开始只能send(None)
-from inspect import getgeneratorstate
-
 
 def gen(a):
     print(f'start a={a}')
@@ -129,7 +132,6 @@ print(getgeneratorstate(coro))  # GEN_CLOSED
 #################################################################################################################################
 
 # yield from(后面接任意可迭代对象,类似与await,可用于简化for循环中的yield表达式,自动捕获迭代器异常,得到返回值)
-from collections import namedtuple
 
 Result = namedtuple('Result', 'count,average')
 
@@ -181,9 +183,6 @@ def gen():
     yield from range(3)
 
 
-from collections.abc import Iterable
-
-
 def flatten(items, ignore_types=(str, bytes)):
     for x in items:
         if isinstance(x, Iterable) and not isinstance(x, ignore_types):
@@ -200,8 +199,6 @@ for x in flatten([2, [3, [5, 6, 'avatar'], 7], 8]):
 #################################################################################################################################
 
 # await sleep
-import asyncio
-
 
 async def find(num, div_by):
     print(f'start {num} {div_by}')
@@ -228,6 +225,7 @@ end 100052 3210
 end 508000 34113
 '''
 
+
 #################################################################################################################################
 
 # 我们使用asyncio.sleep函数来模拟IO操作
@@ -244,9 +242,6 @@ end 508000 34113
 # Future是一种特殊的低层级可等待对象,表示一个异步操作的最终结果
 # 使用高层级的asyncio.create_task()函数来创建Task对象,也可用低层级的loop.create_task()或ensure_future()函数.不建议手动实例化Task对象
 # 要真正运行一个协程,asyncio提供了三种主要机制:
-import asyncio
-import time
-
 
 async def say_after(delay, what):
     await asyncio.sleep(delay)
@@ -288,6 +283,8 @@ async def main():
 
 
 asyncio.run(main())  # 方式3,asyncio.create_task()并发运行多个协程
+
+
 # started at 16:06:27
 # hello
 # 3
@@ -296,9 +293,6 @@ asyncio.run(main())  # 方式3,asyncio.create_task()并发运行多个协程
 # finished at 16:06:32
 
 #################################################################################################################################
-
-import asyncio
-
 
 async def do_some_work(x):
     print('Waiting: ', x)
@@ -328,13 +322,10 @@ task = loop.create_task(coroutine)
 task.add_done_callback(callback)  # coroutine执行结束时候会调用回调函数,并通过参数future获取协程执行的结果.task和回调里的future是同一个对象
 loop.run_until_complete(task)
 
+
 #################################################################################################################################
 
 # 对于IO密集型: 协程>多线程>多进程>单进程
-import requests, asyncio, aiohttp, time
-from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
-
-
 async def fetch_async():
     async with aiohttp.request('GET', 'http://www.baidu.com') as r:
         return await r.text()
@@ -377,9 +368,7 @@ if __name__ == '__main__':
 #################################################################################################################################
 
 # gevent
-from gevent import monkey, pool, joinall, spawn
 monkey.patch_all()
-import requests
 
 urls = ['https://baidu.com/'] * 50 + ['https://ilovefishc.com/'] * 50
 

@@ -98,18 +98,26 @@ def test_cache():
     用户定义的数组,字典等可变类型,当引用计数为0被销毁时,如果free_list未满会被加入其中,当用户再定义一个类型相同的对象时直接从free_list选地址赋值即可,即地址不变
     """
     immutable_val = "1314520."
-    print(id(immutable_val))
+    id_immutable_val = id(immutable_val)
     del immutable_val
     immutable_val1 = "1314520."
     immutable_val2 = "1314520."
-    print(id(immutable_val1), id(immutable_val2))  # 4405645168 4405645168
+    print(id_immutable_val == id(immutable_val1) == id(immutable_val2))  # True
 
-    mutable_val = {1}
-    print(id(mutable_val))  # 4368865856
-    del mutable_val
-    mutable_val1 = {2}
-    mutable_val2 = {2}
-    print(id(mutable_val1), id(mutable_val2))  # 4368865856 4366383040
+    def test_mutable_cache():
+        set1 = set()
+        list1 = []
+        return id(set1), id(list1)
+
+    set2 = {1}
+    list2 = [1]
+    id_set2, id_list2 = id(set2), id(list2)
+    id_set1, id_list1 = test_mutable_cache()  # 放在set2,list2前面调用会不同
+    del set2, list2
+    set3, list3 = {2}, [2]
+    set4, list4 = {3}, [3]
+    print(id_set2 == id(set3), id_list2 == id(list3), id_set1 == id(set4), id_list1 == id(list4))  # True True True True
+    print(len({id_set2, id_list2, id_set1, id_list1}) == 4)  # True
 
 
 def test_circular_reference():
@@ -200,8 +208,8 @@ class ObjGraph:
 
 if __name__ == '__main__':
     # test_ref()
-    # test_cache()
+    test_cache()
     # test_circular_reference()
     # test_multiprocess_circular_reference()
     # test_default_parameter()
-    test_generator()
+    # test_generator()
