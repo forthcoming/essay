@@ -206,8 +206,11 @@ print(test.a,test.b,test.c,test.d,id(test.a),id(test.b),id(test.c),id(test.d))
 # 这种方式我们称之为并行(Parallel),并行需要两个或两个以上的线程跑在不同的处理器上,并发可以跑在一个处理器上通过时间片进行切换
 #
 # 线程 & 进程
+# 为什么有了GIL还要给线程加锁
+# https://docs.python.org/3.8/library/multiprocessing.shared_memory.html#module-multiprocessing.shared_memory
 # 由于GIL锁的缘故,线程实际上是并发运行(即便有多个cpu,线程会在其中一个cpu来回切换,只占用一个cpu资源),而进程才是真正的并行(同时执行多个任务,占用多个cpu资源)
 # 每个Python进程都有自己的Python解释器和内存空间,因此GIL不会成为问题
+# GIL只存在于CPython解释器中，因此其他解释器，如Jython、IronPython、PyPy等，则不存在GIL的问题
 # sys.getswitchinterval() # current thread switch interval
 # sys.setswitchinterval(n)
 '''
