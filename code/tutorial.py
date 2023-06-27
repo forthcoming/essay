@@ -260,7 +260,7 @@ def common_tutorial():
 
     x = 1
     print(eval('x+1'), x)  # 2, 1  执行字符串形式的表达式,返回执行结果
-    print(exec('x += 10'), x)  # None, 11  执行字符串形式的代码，返回None
+    print(exec('x += 10'), x)  # None, 1  执行字符串形式的代码，返回None,当x是全局变量时返回11
 
     secret = hashlib.md5(b"hello blockchain world, this is yeasy@github")
     print(secret.hexdigest())  # 1ee216d3ef1d217cd2807348f5f7ce19
@@ -1116,4 +1116,5 @@ def iterable_tutorial():
 if __name__ == "__main__":  # import到其他脚本中不会执行以下代码,多进程也会表现不同
     # subprocess_tutorial()
     # dict_tutorial()
-    iterable_tutorial()
+    # iterable_tutorial()
+    common_tutorial()
