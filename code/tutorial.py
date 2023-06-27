@@ -1113,7 +1113,7 @@ def iterable_tutorial():
     print(isinstance((_ for _ in range(5)), Generator))  # True
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # import到其他脚本中不会执行以下代码,多进程也会表现不同
     # subprocess_tutorial()
     # dict_tutorial()
     iterable_tutorial()

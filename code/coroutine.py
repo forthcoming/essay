@@ -1,152 +1,32 @@
-import time
-from collections import namedtuple
-from collections.abc import Iterable, Iterator, Generator
-from concurrent.futures import ProcessPoolExecutor
-from inspect import getgeneratorstate
-import requests
 import asyncio
-import aiohttp
-import requests
 
-# # 预激活协程的装饰器
-# def coroutine(func):
-#     def primer(*args, **kwargs):
-#         gen = func(*args, **kwargs)
-#         next(gen)
-#         return gen
-#
-#     return primer
-#
-#
-# #################################################################################################################################
-#
-# # send: Resumes the generator and "sends" a value that becomes the result of the current yield-expression
-# # next: next等价于send(None),生成器一开始只能send(None)
-#
-# def gen(a):
-#     print(f'start a={a}')
-#     b = yield a
-#     print(f'received b={b}')
-#     getgeneratorstate(coro)  # GEN_RUNNING
-#     c = yield a + b
-#     print(f'received c={c}')
-#
-#
-# coro = gen(14)
-#
-# print(getgeneratorstate(coro))  # GEN_CREATED
-# print(next(coro))
-# # start a=14
-# # 14
-#
-# print(getgeneratorstate(coro))  # GEN_SUSPENDED,该状态会出现很多次
-# print(coro.send(28))
-# # received b=28
-# # 42
-#
-# try:
-#     coro.send(99)  # received c=99
-# except StopIteration:
-#     pass
-# print(getgeneratorstate(coro))  # GEN_CLOSED
-#
-# #################################################################################################################################
-#
-# # yield from(后面接任意可迭代对象,类似与await,可用于简化for循环中的yield表达式,自动捕获迭代器异常,得到返回值)
-#
-# Result = namedtuple('Result', 'count,average')
-#
-#
-# # 子生成器
-# def averager():
-#     total = .0
-#     average = count = 0
-#     while True:
-#         term = yield
-#         if term is None:
-#             break
-#         total += term
-#         count += 1
-#         average = total / count
-#     return Result(count, average)
-#
-#
-# # 委派生成器
-# def grouper(results, key):
-#     while True:
-#         results[key] = yield from averager()
-#
-#
-# # 客户端代码（调用方）
-# def main(data):
-#     results = {}
-#     for key, values in data.items():
-#         group = grouper(results, key)  # 仅生成<class 'generator'>,其他什么也不做,每次迭代会新建一个averager实例和grouper实例
-#         next(group)  # 程序执行到term=yield的yield那里
-#         for value in values:
-#             group.send(value)
-#         group.send(None)  # 重要
-#     print(results)
-#
-#
-# if __name__ == '__main__':
-#     data = {
-#         'girl': [1, 3, 2, 4],
-#         'boy': [4, 4, 3],
-#     }
-#     main(data)  # {'girl': Result(count=4, average=2.5), 'boy': Result(count=3, average=3.6666666666666665)}
-#
-#
-# #################################################################################################################################
-#
-# def gen():
-#     yield from 'AB'
-#     yield from range(3)
-#
-#
-# def flatten(items, ignore_types=(str, bytes)):
-#     for x in items:
-#         if isinstance(x, Iterable) and not isinstance(x, ignore_types):
-#             yield from flatten(x)
-#             # for y in flatten(x):
-#             #     yield y
-#         else:
-#             yield x
-#
-#
-# for x in flatten([2, [3, [5, 6, 'avatar'], 7], 8]):
-#     print(x)
-#
-# #################################################################################################################################
-#
-# # await sleep
-#
-# async def find(num, div_by):
-#     print(f'start {num} {div_by}')
-#     located = []
-#     for i in range(num):
-#         if i % div_by == 0:
-#             located.append(i)
-#         if i % 50000 == 0:
-#             await asyncio.sleep(0)  # 更耗时,但实现了并行
-#     print(f'end {num} {div_by}')
-#     return located
-#
-#
-# tasks = [find(508000, 34113), find(100052, 3210), find(500, 3)]
-# loop = asyncio.get_event_loop()
-# results = loop.run_until_complete(asyncio.gather(*tasks))  # find返回的结果保存在results
-# loop.close()
-# '''
-# start 100052 3210
-# start 500 3
-# start 508000 34113
-# end 500 3
-# end 100052 3210
-# end 508000 34113
-# '''
-#
-#
+
+# await sleep
+
+async def find(num, div_by):
+    print(f'start {num} {div_by}')
+    located = []
+    for i in range(num):
+        if i % div_by == 0:
+            located.append(i)
+        if i % 50000 == 0:
+            await asyncio.sleep(0)  # 更耗时,但实现了并发
+    print(f'end {num} {div_by}')
+    return located
+
+tasks = [find(508000, 34113), find(100052, 3210), find(500, 3)]
+loop = asyncio.get_event_loop()
+results = loop.run_until_complete(asyncio.gather(*tasks))  # find返回的结果保存在results
+loop.close()
+'''
+start 100052 3210
+start 500 3
+start 508000 34113
+end 500 3
+end 100052 3210
+end 508000 34113
+'''
+
 # #################################################################################################################################
 #
 # # 我们使用asyncio.sleep函数来模拟IO操作
@@ -161,7 +41,7 @@ import requests
 # # 如果一个对象可以在await语句中使用,那么它就是可等待对象,许多asyncio API都被设计为接受可等待对象
 # # 可等待对象有三种主要类型: 协程,任务,Future
 # # Future是一种特殊的低层级可等待对象,表示一个异步操作的最终结果
-# # 使用高层级的asyncio.create_task()函数来创建Task对象,也可用低层级的loop.create_task()或ensure_future()函数.不建议手动实例化Task对象
+# # 使用高层级的asyncio.create_task()函数来创建Task对象,不建议手动实例化Task对象
 # # 要真正运行一个协程,asyncio提供了三种主要机制:
 #
 # async def say_after(delay, what):
@@ -285,3 +165,100 @@ import requests
 #         for response in executor.map(requests.get, ['http://www.baidu.com'] * 100):
 #             print(status.status_code)
 #     print(time.time() - start)
+
+
+# # send: Resumes the generator and "sends" a value that becomes the result of the current yield-expression
+# # next: next等价于send(None),生成器一开始只能send(None)
+# def gen(a):
+#     print(f'start a={a}')
+#     b = yield a
+#     print(f'received b={b}')
+#     getgeneratorstate(coro)  # GEN_RUNNING
+#     c = yield a + b
+#     print(f'received c={c}')
+#
+#
+# coro = gen(14)
+#
+# print(getgeneratorstate(coro))  # GEN_CREATED
+# print(next(coro))
+# # start a=14
+# # 14
+#
+# print(getgeneratorstate(coro))  # GEN_SUSPENDED,该状态会出现很多次
+# print(coro.send(28))
+# # received b=28
+# # 42
+#
+# try:
+#     coro.send(99)  # received c=99
+# except StopIteration:
+#     pass
+# print(getgeneratorstate(coro))  # GEN_CLOSED
+#
+# # #################################################################################################################################
+#
+# # yield from(后面接任意可迭代对象,类似与await,可用于简化for循环中的yield表达式,自动捕获迭代器异常,得到返回值)
+#
+# Result = namedtuple('Result', 'count,average')
+#
+#
+# # 子生成器
+# def averager():
+#     total = .0
+#     average = count = 0
+#     while True:
+#         term = yield
+#         if term is None:
+#             break
+#         total += term
+#         count += 1
+#         average = total / count
+#     return Result(count, average)
+#
+#
+# # 委派生成器
+# def grouper(results, key):
+#     while True:
+#         results[key] = yield from averager()
+#
+#
+# # 客户端代码（调用方）
+# def main(data):
+#     results = {}
+#     for key, values in data.items():
+#         group = grouper(results, key)  # 仅生成<class 'generator'>,其他什么也不做,每次迭代会新建一个averager实例和grouper实例
+#         next(group)  # 程序执行到term=yield的yield那里
+#         for value in values:
+#             group.send(value)
+#         group.send(None)  # 重要
+#     print(results)
+#
+#
+# if __name__ == '__main__':
+#     data = {
+#         'girl': [1, 3, 2, 4],
+#         'boy': [4, 4, 3],
+#     }
+#     main(data)  # {'girl': Result(count=4, average=2.5), 'boy': Result(count=3, average=3.6666666666666665)}
+#
+#
+# # #################################################################################################################################
+#
+# def gen():
+#     yield from 'AB'
+#     yield from range(3)
+#
+#
+# def flatten(items, ignore_types=(str, bytes)):
+#     for x in items:
+#         if isinstance(x, Iterable) and not isinstance(x, ignore_types):
+#             yield from flatten(x)
+#             # for y in flatten(x):
+#             #     yield y
+#         else:
+#             yield x
+#
+#
+# for x in flatten([2, [3, [5, 6, 'avatar'], 7], 8]):
+#     print(x)
