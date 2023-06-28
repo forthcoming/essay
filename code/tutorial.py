@@ -320,10 +320,9 @@ def bin_sect_tutorial():
 
 
 def inherit_tutorial():
-    # MRO全称Method Resolution Order,用来定义继承方法的调用顺序,MRO采用广度优先
+    # MRO全称Method Resolution Order,用来定义继承方法的调用顺序
+    # super是一个类,会按子类MRO指定的顺序调用"下一个方法",而不是父类的方法(还有可能代理其兄弟类)
     # 在继承中一旦定义了子类的构造函数,则需要在第一行显示调用基类的构造函数super().__init__()
-    # 在类的继承层次结构中,super只想按子类MRO指定的顺序调用"下一个方法",而不是父类的方法(super不总是代理子类的父类,还有可能代理其兄弟类)
-    # super的目标就是解决复杂的多重继承问题,保证在类的继承层次结构中每一个方法只被执行一次
     class A:  # 模拟object类
         def __init__(self):
             print('init A...')
