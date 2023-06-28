@@ -32,15 +32,15 @@ and
 or
 
 
-Python运行时不强制执行函数和变量类型注解, 但这些注解可用于类型检查器、IDE、静态检查器等第三方工具
+Python运行时不强制执行函数和变量类型注解, 但这些注解可用于类型检查器、IDE、静态检查器等第三方工具,pycharm需要安装mypy插件
 常见注解:
-list[float]
+list[float], 只能有一个参数
+tuple[str, int, bool] tuple[float, ...], tuple是特殊类型,可以有多个参数
 dict[str, str | int]
 -> None
-tuple[str, int, bool]
-tuple[float, ...]
 int | str
 value: int = 3
+需要在__init__中用到类类型时,在其两边加双引号即可
 
 
 compiler是将编程语言翻译成01机器语言的软件
