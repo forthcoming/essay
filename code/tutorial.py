@@ -1,4 +1,5 @@
 import copy
+import dis
 import hashlib
 import os
 import random
@@ -47,6 +48,7 @@ interpreter是将编程语言一行行翻译成01机器语言的软件
 python属于解释性语言
 函数名跟普通变量名一样,都可以被赋值,传参,返回等操作,都是pyobject对象
 每个函数编译期间会编译出一个code object,运行时,每次调用会产生一个新的frame,通过inspect.currentframe获取
+
 
 我们导入一个包时, 实际上是导入了它的__init__.py文件,被导入module中的全局代码, 类静态区都会被执行,同一个module只会被导入一次
 如果py文件中使用了相对路径导入,则这个py文件无法作为脚本直接运行,只能作为模块被导入,应为relative import都是先通过module的__package__找到绝对路径
@@ -161,7 +163,7 @@ def str_tutorial():
     print(string.split(' ', 1))  # ['Line1-abcdef', '\nLine2-abc \nLine4-abcd']
     print(string.split(' '))  # ['Line1-abcdef', '\nLine2-abc', '\nLine4-abcd']
     # 应用: 去除字符串中空白符content =''.join(content.split())
-    print('ABCD' < 'bar' < 'bloom')  # True
+    print('ABCD' < 'bar' < 'bloom')  # True,注意关系运算符<,>,=,<=,>=可以连写,前提是不能用括号
 
 
 def tuple_tutorial():
@@ -226,6 +228,22 @@ def dict_tutorial():  # 字典有序
     two = {'b': 3, 'c': 4}
     _ = one | two  # {'a': 1, 'b': 3, 'c': 4},合并两个字典
     _ = two | one  # {'b': 2, 'c': 4, 'a': 1},合并两个字典
+
+
+def dis_tutorial():
+    # load_fast 把一个局部变量压入栈中
+    # binary_add 弹出栈顶两个元素, 相加后结果入栈
+    # return_value 反回栈顶元素
+    class A:
+        pass
+
+    dis.dis(A)  # 解释器实际执行的byte code是二进制编码
+
+    def f():
+        pass
+
+    dis.dis(f)
+    dis.dis("2**3")
 
 
 def is_tutorial():
@@ -864,7 +882,7 @@ def method_tutorial():
     print(Date.is_date_valid('11-09-2012'))
 
 
-def decorator_tutorial():
+def decorator_tutorial():  # 装饰器,被装饰对象都可以是函数或者类
     def non_parameter_decorator(func):
         count = 0  # 计数
 
