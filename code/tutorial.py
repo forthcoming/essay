@@ -75,18 +75,6 @@ x or y返回的结果是决定表达式结果的值
 not 返回表达式结果的相反的值, 如果表达式结果为真则返回false, 如果表达式结果为假则返回true
 
 
-is和==区别
-x = y = [4, 5, 6]
-z = [4, 5, 6]
-x == y  # True
-x == z  # True
-x is y  # True
-x is z  # False
-print(id(x), id(y), id(z))  # 1685786989512 1685786989512 1685786991112
-is比较的内存地址; ==比较的是字面值
-元组的值会随引用的可变对象的变化而变, 元组中不可变的是元素的标识(id)
-
-
 __str__: 自定义打印类的格式,print打印类实例时被调用
 __len__: 自定义类长度,len作用于类实例时被调用
 __call__: 类实例被当作函数调用时调用
@@ -227,6 +215,17 @@ def dict_tutorial():  # 字典有序
     two = {'b': 3, 'c': 4}
     _ = one | two  # {'a': 1, 'b': 3, 'c': 4},合并两个字典
     _ = two | one  # {'b': 2, 'c': 4, 'a': 1},合并两个字典
+
+
+def is_tutorial():
+    # is比较的内存地址; == 比较的是字面值
+    x = y = [4, 5, 6]
+    z = [4, 5, 6]
+    print(x == y)  # True
+    print(x == z)  # True
+    print(x is y)  # True
+    print(x is z)  # False
+    print(id(x), id(y), id(z))  # 1685786989512 1685786989512 1685786991112
 
 
 def common_tutorial():
