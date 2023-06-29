@@ -6,7 +6,6 @@ import re
 import time
 from bisect import insort_right, bisect_left, bisect_right
 from collections import Counter
-from collections import deque
 from collections.abc import Iterable, Iterator, Generator
 from datetime import datetime, timedelta
 from functools import lru_cache, wraps
@@ -682,15 +681,6 @@ def random_tutorial():
     print(random.sample(arr, 3))  # 返回列表指定长度个不重复位置的元素
     random.shuffle(arr)  # 方法将序列的所有元素随机排序
     print(arr)
-
-
-def win32_tutorial():
-    import win32api
-    import win32con
-    x, y = 120, 240
-    win32api.SetCursorPos((x, y))  # 鼠标定位,不同的屏幕分辨率请用百分比换算
-    win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, x, y, 0, 0)  # 鼠标左键按下
-    win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, x, y, 0, 0)  # 鼠标左键弹起
 
 
 var = 0

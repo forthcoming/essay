@@ -1,3 +1,5 @@
+import re
+from collections import deque
 from collections.abc import Iterable
 from inspect import getgeneratorstate
 
@@ -86,6 +88,35 @@ def test_flatten():
 
     for x in flatten([2, [3, [5, 6, 'avatar'], 7], 8]):
         print(x)
+
+
+def dec2bin(string, precision=10):  # dec2bin('19.625') => 10011.101
+    result = deque()
+    integer, decimal = re.match(r'(\d*)(\.?\d*)', string).groups()
+    integer, decimal = int(integer or 0), float(decimal or 0)
+    while integer:
+        result.appendleft(str(integer & 1))
+        integer >>= 1
+    if decimal:
+        result.append('.')
+    while precision and decimal:
+        decimal *= 2
+        if decimal >= 1:
+            result.append('1')
+            decimal -= 1
+        else:
+            result.append('0')
+        precision -= 1
+    return ''.join(result)
+
+
+def win32_tutorial():
+    import win32api
+    import win32con
+    x, y = 120, 240
+    win32api.SetCursorPos((x, y))  # 鼠标定位,不同的屏幕分辨率请用百分比换算
+    win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, x, y, 0, 0)  # 鼠标左键按下
+    win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, x, y, 0, 0)  # 鼠标左键弹起
 
 
 if __name__ == '__main__':
