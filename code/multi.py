@@ -670,7 +670,7 @@ if __name__ == '__main__':
 #         print('child process: ', mm.readline())
 #         print('child process: ', mm.tell())
 #         mm.close()
-#         os._exit(0)
+#         os._exit(0)   # 会停止进程,即使有异常处理也会失效
 #     else:  # In a parent process
 #         time.sleep(1)  # 让子进程先执行
 #         print('parent process: ', mm.tell())
