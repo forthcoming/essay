@@ -318,43 +318,6 @@ def bin_sect_tutorial():
     insort_right(arr, 2)
 
 
-def inherit_tutorial():
-    # MRO全称Method Resolution Order,用来定义继承方法的调用顺序
-    # super是一个类,会按子类MRO指定的顺序调用"下一个方法",而不是父类的方法(还有可能代理其兄弟类)
-    # 在继承中一旦定义了子类的构造函数,则需要在第一行显示调用基类的构造函数super().__init__()
-    class A:  # 模拟object类
-        def __init__(self):
-            print('init A...')
-
-    class B(A):
-        def __init__(self):
-            super().__init__()
-            print('init B...')
-
-    class C(A):
-        def __init__(self):
-            super().__init__()
-            print('init C...')
-
-    class D(B, C):
-        def __init__(self):
-            super().__init__()
-            print('init D...')
-
-    # [<class '__main__.D'>, <class '__main__.B'>, <class '__main__.C'>, <class '__main__.A'>, <class 'object'>]
-    print(D.mro())
-    print(B.mro())  # [<class '__main__.B'>, <class '__main__.A'>, <class 'object'>]
-    print(A.mro())  # [<class '__main__.A'>, <class 'object'>]
-    D()
-    # init A...
-    # init C...
-    # init B...
-    # init D...
-    B()
-    # init A...
-    # init B...
-
-
 def slots_tutorial():
     """
     __slots__ are implemented at the class level by creating descriptors for each variable name.
@@ -906,26 +869,6 @@ def method_tutorial():
     print(Date.is_date_valid('11-09-2012'))
 
 
-def dec2bin(string, precision=10):  # dec2bin('19.625') => 10011.101
-    result = deque()
-    integer, decimal = re.match(r'(\d*)(\.?\d*)', string).groups()
-    integer, decimal = int(integer or 0), float(decimal or 0)
-    while integer:
-        result.appendleft(str(integer & 1))
-        integer >>= 1
-    if decimal:
-        result.append('.')
-    while precision and decimal:
-        decimal *= 2
-        if decimal >= 1:
-            result.append('1')
-            decimal -= 1
-        else:
-            result.append('0')
-        precision -= 1
-    return ''.join(result)
-
-
 def decorator_tutorial():
     def non_parameter_decorator(func):
         count = 0  # 计数
@@ -1110,6 +1053,43 @@ def iterable_tutorial():
     print(isinstance(generator_f, Iterator))  # True
     print(isinstance(generator_f, Generator))  # True
     print(isinstance((_ for _ in range(5)), Generator))  # True
+
+
+def inherit_tutorial():
+    # MRO全称Method Resolution Order,用来定义继承方法的调用顺序
+    # super是一个类,会按子类MRO指定的顺序调用"下一个方法",而不是父类的方法(还有可能代理其兄弟类)
+    # 在继承中一旦定义了子类的构造函数,则需要在第一行显示调用基类的构造函数super().__init__()
+    class A:  # 模拟object类
+        def __init__(self):
+            print('init A...')
+
+    class B(A):
+        def __init__(self):
+            super().__init__()
+            print('init B...')
+
+    class C(A):
+        def __init__(self):
+            super().__init__()
+            print('init C...')
+
+    class D(B, C):
+        def __init__(self):
+            super().__init__()
+            print('init D...')
+
+    # [<class '__main__.D'>, <class '__main__.B'>, <class '__main__.C'>, <class '__main__.A'>, <class 'object'>]
+    print(D.mro())
+    print(B.mro())  # [<class '__main__.B'>, <class '__main__.A'>, <class 'object'>]
+    print(A.mro())  # [<class '__main__.A'>, <class 'object'>]
+    D()
+    # init A...
+    # init C...
+    # init B...
+    # init D...
+    B()
+    # init A...
+    # init B...
 
 
 if __name__ == "__main__":  # import到其他脚本中不会执行以下代码,多进程也会表现不同
