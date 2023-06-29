@@ -552,6 +552,7 @@ def open_tutorial():
 def unpack_tutorial():  # 解包
     arg0, (arg1, arg2), arg3 = [1, (2, 3), 4]  # 1 2 3 4
     arg4, *arg5, arg6 = [1, 2, 3, 4, 5]  # 1 [2, 3, 4] 5
+    arg7 = [*range(5)]
 
 
 def args_tutorial():
