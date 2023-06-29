@@ -45,9 +45,10 @@ value: int = 3
 compiler是将编程语言翻译成01机器语言的软件
 interpreter是将编程语言一行行翻译成01机器语言的软件
 python属于解释性语言
+函数名跟普通变量名一样,都可以被赋值,传参,返回等操作,都是pyobject对象
+每个函数编译期间会编译出一个code object,运行时,每次调用会产生一个新的frame,通过inspect.currentframe获取
 
-
-我们导入一个包时, 实际上是导入了它的__init__.py文件,被导入的文件中的全局代码, 类静态区都会被执行
+我们导入一个包时, 实际上是导入了它的__init__.py文件,被导入module中的全局代码, 类静态区都会被执行,同一个module只会被导入一次
 如果py文件中使用了相对路径导入,则这个py文件无法作为脚本直接运行,只能作为模块被导入,应为relative import都是先通过module的__package__找到绝对路径
 
 变量sys.path是一个字符串列表, 它为解释器指定了模块的搜索路径,包括 当前程序所在目录、标准库的安装目录、操作系统环境变量PYTHONPATH所包含的目录
@@ -72,18 +73,6 @@ x and y返回的结果是决定表达式结果的值
 如果x为真, 则y决定结果, 返回y; 如果x为假, x决定了结果为假, 返回x
 x or y返回的结果是决定表达式结果的值
 not 返回表达式结果的相反的值, 如果表达式结果为真则返回false, 如果表达式结果为假则返回true
-
-关系运算符
-以下为True
-(1, 2, 3) < (1, 2, 4))
-[1, 2, 3] < [1, 2, 4]
-'ABCD' < 'bar' < 'bloom'
-(1, 2, 3, 4) < (1, 2, 4)
-(1, 2) < (1, 2, -1)
-(1, 2, ('aa', 'ab')) < (1, 2, ('abc', 'a'), 4)
-以下为False
-{1} < {2}
-{2} < {1}
 
 
 is和==区别
@@ -184,6 +173,7 @@ def str_tutorial():
     print(string.split(' ', 1))  # ['Line1-abcdef', '\nLine2-abc \nLine4-abcd']
     print(string.split(' '))  # ['Line1-abcdef', '\nLine2-abc', '\nLine4-abcd']
     # 应用: 去除字符串中空白符content =''.join(content.split())
+    print('ABCD' < 'bar' < 'bloom')  # True
 
 
 def list_tutorial():
@@ -205,6 +195,9 @@ def list_tutorial():
     b1 = b1 + [3]  # Uses __add__, creates new list, assigns it to b1
     print(a2)  # [1, 2, 3]   a1 and a2 are still the same list
     print(b2)  # [1, 2]      whereas only b1 was changed
+
+    print([1, 2, 3] < [1, 4])  # True
+    print([1, 2] < [1, 2, -1]) # True
 
 
 def set_tutorial():  # 无序不重复, 添加元素用add
@@ -255,6 +248,8 @@ def common_tutorial():
     """
 
     int('0x01002', 16)  # 字符串是16进制,并将其转换成10进制
+    print("content", end="\t", flush=True)  # flush=True意思是不缓存,有内容则输出
+    print(None is None)  # None用is判断,速度更快,还防止__eq__风险,不建议用==
 
     x = 1
     print(eval('x+1'), x)  # 2, 1  执行字符串形式的表达式,返回执行结果
@@ -1058,10 +1053,16 @@ def inherit_tutorial():
             super().__init__()
             print('init B...')
 
+        def hello(self):
+            print("hello B")
+
     class C(A):
         def __init__(self):
             super().__init__()
             print('init C...')
+
+        def hello(self):
+            print("hello C")
 
     class D(B, C):
         def __init__(self):
@@ -1072,11 +1073,12 @@ def inherit_tutorial():
     print(D.mro())
     print(B.mro())  # [<class '__main__.B'>, <class '__main__.A'>, <class 'object'>]
     print(A.mro())  # [<class '__main__.A'>, <class 'object'>]
-    D()
+    D().hello()  # 按照mro顺序,找到第一个hello函数执行
     # init A...
     # init C...
     # init B...
     # init D...
+    # hello B
     B()
     # init A...
     # init B...
@@ -1086,4 +1088,5 @@ if __name__ == "__main__":  # import到其他脚本中不会执行以下代码,�
     # subprocess_tutorial()
     # dict_tutorial()
     # iterable_tutorial()
-    common_tutorial()
+    # common_tutorial()
+    inherit_tutorial()
