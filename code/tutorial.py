@@ -164,6 +164,17 @@ def str_tutorial():
     print('ABCD' < 'bar' < 'bloom')  # True
 
 
+def tuple_tutorial():
+    # tuple不可变指的是其元素的id不可变
+    a = (1, [2])
+    print(id(a), id(a[0]), id(a[1]))  # 4566784320 4577922136 4566790656
+    a[1].append(3)
+    # a[1] = [3]  # error
+    print(id(a), id(a[0]), id(a[1]))  # 4566784320 4577922136 4566790656
+    b = 1,
+    print(type(b))  # <class 'tuple'>
+
+
 def list_tutorial():
     arr = [1, 2, 3, 4, 5]
     arr[2:3] = [0, 0]  # 注意这里的用法(区别于a[2] = [0, 0])   [1, 2, 0, 0, 4, 5]
@@ -185,7 +196,7 @@ def list_tutorial():
     print(b2)  # [1, 2]      whereas only b1 was changed
 
     print([1, 2, 3] < [1, 4])  # True
-    print([1, 2] < [1, 2, -1]) # True
+    print([1, 2] < [1, 2, -1])  # True
 
 
 def set_tutorial():  # 无序不重复, 添加元素用add
