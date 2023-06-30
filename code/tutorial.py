@@ -57,6 +57,7 @@ cpython源码,Python: 解释器相关代码; Objects: built-in objects实现(如
 我们导入一个包时, 实际上是导入了它的__init__.py文件,被导入module中的全局代码, 类静态区都会被执行,同一个module只会被导入一次
 如果py文件中使用了相对路径导入,则这个py文件无法作为脚本直接运行,只能作为模块被导入,应为relative import都是先通过module的__package__找到绝对路径
 遇到循环导入问题,可以将某个模块放置函数或类内导入,或者将冲突部分单独提出一个module
+from xxx import *时如果定义了__all__,则只会导入其定义的对象
 
 变量sys.path是一个字符串列表, 它为解释器指定了模块的搜索路径,包括 当前程序所在目录、标准库的安装目录、操作系统环境变量PYTHONPATH所包含的目录
 vim ~/.bashrc  # vim /etc/profile 全局
