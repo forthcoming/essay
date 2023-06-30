@@ -2,6 +2,7 @@ import copy
 import dis
 import hashlib
 import os
+import pickle
 import random
 import re
 import time
@@ -108,11 +109,6 @@ L[i] = L[j]
 D[x] = D[x] + 1
 Operations that replace other objects may invoke those other objects’ __del__() method when their reference count reaches zero, 
 and that can affect things.this is especially true for the mass updates to dictionaries and lists. When in doubt, use a mutex!
-
-
-pickle
-除个别外(如不能序列化lambda表达式), pickle.dumps可以序列化任何数据类型成b字符串, 并保留原有的数据(比如生成好的树,图结构)
-pickle.loads反序列化后的对象与原对象是等值的副本对象, 类似与deepcopy
 
 
 ipdb
@@ -1145,10 +1141,30 @@ def metaclass_tutorial():
     print(test.random_id, test.a, test.b)
 
 
+class PickleTutorial:
+    def __reduce__(self):
+        return run, (("ls", "-lh"),)  # pickle预留,允许用户自定义反序列化复杂object的方法,反序列化用户不用导入subprocess,危险
+
+
+def pickle_tutorial():
+    # 除个别外(如不能序列化lambda表达式), pickle.dumps可以序列化任何数据类型成b字符串,并保留原有的数据(比如生成好的树,图结构),可用于进程间通信
+    # pickle.loads反序列化后的对象与原对象是等值的副本对象, 类似与deepcopy
+    # pickle模块并不安全,你只应该对你信任的数据进行unpickle操作
+    with open("data", "wb") as f:
+        pickle.dump(tuple_tutorial, f)
+    with open("data", "rb") as f:
+        func = pickle.load(f)
+        func()
+
+    pickle_obj_byte = pickle.dumps(PickleTutorial())
+    _ = pickle.loads(pickle_obj_byte)
+
+
 if __name__ == "__main__":  # import到其他脚本中不会执行以下代码,多进程也会表现不同
     # subprocess_tutorial()
     # dict_tutorial()
     # iterable_tutorial()
     # common_tutorial()
     # inherit_tutorial()
-    metaclass_tutorial()
+    # metaclass_tutorial()
+    pickle_tutorial()
