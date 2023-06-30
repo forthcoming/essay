@@ -5,6 +5,7 @@ import os
 import pickle
 import random
 import re
+import sys
 import time
 from bisect import insort_right, bisect_left, bisect_right
 from collections import Counter
@@ -276,6 +277,7 @@ def common_tutorial():
     int('0x01002', 16)  # 字符串是16进制,并将其转换成10进制
     print("content", end="\t", flush=True)  # flush=True意思是不缓存,有内容则输出
     print(None is None)  # None用is判断,速度更快,还防止__eq__风险,不建议用==
+    print(sys.getsizeof([]))  # Return the size of object in bytes.
 
     x = 1
     print(eval('x+1'), x)  # 2, 1  执行字符串形式的表达式,返回执行结果
