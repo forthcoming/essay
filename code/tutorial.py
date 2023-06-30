@@ -13,6 +13,7 @@ from datetime import datetime, timedelta
 from functools import lru_cache, wraps
 from heapq import heapify, heappop, heappush, nlargest, nsmallest, heappushpop
 from subprocess import run, PIPE
+from threading import Lock
 
 import pandas as pd
 
@@ -46,7 +47,7 @@ value: int = 3
 
 compiler是将编程语言翻译成01机器语言的软件
 interpreter是将编程语言一行行翻译成01机器语言的软件
-python属于解释性语言
+python属于解释性语言,_开头的变量名表示不建议用户使用; _结尾的变量名表示避免与关键字冲突
 函数名跟普通变量名一样,都可以被赋值,传参,返回等操作,都是pyobject对象
 每个函数编译期间会编译出一个code object,运行时,每次调用会产生一个新的frame,通过inspect.currentframe获取
 
@@ -1066,46 +1067,61 @@ def iterable_tutorial():
 
 def inherit_tutorial():
     # MRO全称Method Resolution Order,用来定义继承方法的调用顺序
-    # super是一个类,会按子类MRO指定的顺序调用"下一个方法",而不是父类的方法(还有可能代理其兄弟类)
+    # super是一个类,第二个参数决定使用哪个类的mro,第一个参数决定从它后面第一个类开始找,而不是父类的方法(还有可能代理其兄弟类)
     # 在继承中一旦定义了子类的构造函数,则需要在第一行显示调用基类的构造函数super().__init__()
     class A:  # 模拟object类
         def __init__(self):
-            print('init A...')
+            print('init A')
 
     class B(A):
         def __init__(self):
-            super().__init__()
-            print('init B...')
+            # 如果实例化B,等价于A.__init__(self),self是B的实例;如果实例化D,等价于C.__init__(self),self是D的实例
+            super().__init__()  # 等价于super(B,self).__init__()
+            print('init B')
 
         def hello(self):
             print("hello B")
 
     class C(A):
+        aa, __bb = [1, 3]  # 私有变量__bb不会被继承和覆盖,编译的时候已经改名(name mangling)
+
         def __init__(self):
             super().__init__()
-            print('init C...')
+            print('init C')
 
         def hello(self):
             print("hello C")
 
+        def print(self):
+            print("print C", self, self.aa, self.__bb)
+
     class D(B, C):
+        aa, __bb = [2, 4]
+
         def __init__(self):
             super().__init__()
-            print('init D...')
+            print('init D')
+
+        def print(self):
+            super().print()
+            print("print D", self, self.aa, self.__bb)
 
     # [<class '__main__.D'>, <class '__main__.B'>, <class '__main__.C'>, <class '__main__.A'>, <class 'object'>]
     print(D.mro())
     print(B.mro())  # [<class '__main__.B'>, <class '__main__.A'>, <class 'object'>]
     print(A.mro())  # [<class '__main__.A'>, <class 'object'>]
-    D().hello()  # 按照mro顺序,找到第一个hello函数执行
-    # init A...
-    # init C...
-    # init B...
-    # init D...
+    D().hello()  # 按照mro顺序,找到第一个hello函数执行,寻找变量也是相同逻辑
+    # init A
+    # init C
+    # init B
+    # init D
     # hello B
+    D().print()
+    # print C <__main__.D object at 0x10c5dc190> 2 3
+    # print D <__main__.D object at 0x10c5dc190> 2 4
     B()
-    # init A...
-    # init B...
+    # init A
+    # init B
 
 
 def metaclass_tutorial():
@@ -1160,6 +1176,46 @@ def pickle_tutorial():
     _ = pickle.loads(pickle_obj_byte)
 
 
+def singleton_tutorial():
+    class Singleton(type):
+        _instance = None
+        _instance_lock = Lock()
+
+        def __call__(cls, *args, **kwargs):
+            if cls._instance is None:
+                with cls._instance_lock:  # 线程安全单例模式
+                    if cls._instance is None:
+                        cls._instance = type.__call__(cls, *args, **kwargs)
+            return cls._instance
+
+    def singleton_pool(cls):
+        _instance_pool = []
+        _instance_pool_lock = Lock()
+
+        def _singleton(*args, **kwargs):
+            with _instance_pool_lock:  # 线程安全单例池
+                for _args, _kwargs, _instance in _instance_pool:
+                    if (_args, _kwargs) == (args, kwargs):
+                        return _instance
+                _instance = cls(*args, **kwargs)
+                _instance_pool.append((args, kwargs, _instance))
+                return _instance
+
+        return _singleton
+
+    class TestSingleton(metaclass=Singleton):  # 继承了元类的_instance和_instance_lock
+        def __init__(self):
+            print("init TestSingleton instance")
+
+    @singleton_pool
+    class TestSingleTonPool:
+        def __init__(self):
+            print("init TestSingleTonPool instance")
+
+    print(TestSingleton() is TestSingleton())  # True
+    print(TestSingleTonPool() is TestSingleTonPool())  # True
+
+
 if __name__ == "__main__":  # import到其他脚本中不会执行以下代码,多进程也会表现不同
     # subprocess_tutorial()
     # dict_tutorial()
@@ -1167,4 +1223,5 @@ if __name__ == "__main__":  # import到其他脚本中不会执行以下代码,�
     # common_tutorial()
     # inherit_tutorial()
     # metaclass_tutorial()
-    pickle_tutorial()
+    # pickle_tutorial()
+    singleton_tutorial()
