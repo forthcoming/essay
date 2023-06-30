@@ -1112,9 +1112,43 @@ def inherit_tutorial():
     # init B...
 
 
+def metaclass_tutorial():
+    # class B: pass 等价于 B = type('B', (), {})
+    class M(type):
+        def __new__(cls, name, bases, _dict):
+            # in M's new <class '__main__.M'> A () {'__module__': '__main__', '__qualname__': 'A'}
+            print("in M's new", cls, name, bases, _dict)  # 也可以放在init里面,但这里执行更高效
+            for key in _dict:
+                if key.startswith("test_"):
+                    raise ValueError()
+            return type.__new__(cls, name, bases, _dict)
+
+        def __init__(cls, name, bases, _dict):
+            # in M's init <class '__main__.A'> A () {'__module__': '__main__', '__qualname__': 'A'}
+            print("in M's init", cls, name, bases, _dict)
+            cls.random_id = random.randrange(0, 10, 1)
+            type.__init__(cls, name, bases, _dict)
+
+        def __call__(cls, *args, **kwargs):  # 可实现单例功能
+            print("in M's call", cls, args, kwargs)  # in M's call <class '__main__.A'> (1,) {'b': 2}
+            return type.__call__(cls, *args, **kwargs)
+
+    class A(metaclass=M):  # 等价于A=M('A',(),{}),会先调用M的new函数,此时A已经是M的一个实例,再调用init函数
+        def __init__(self, a, b):
+            self.a = a
+            self.b = b
+
+        # def test_new(self): pass  # error
+
+    print(A.random_id)
+    test = A(1, b=2)  # 调用元类M的call函数
+    print(test.random_id, test.a, test.b)
+
+
 if __name__ == "__main__":  # import到其他脚本中不会执行以下代码,多进程也会表现不同
     # subprocess_tutorial()
     # dict_tutorial()
     # iterable_tutorial()
     # common_tutorial()
-    inherit_tutorial()
+    # inherit_tutorial()
+    metaclass_tutorial()
