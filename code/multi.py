@@ -2,27 +2,26 @@ import os
 import random
 import time
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
+from multiprocessing import shared_memory, Process
 from threading import get_ident, Lock
 
 """
+atexit
+被注册的函数会在解释器正常终止时执行.atexit会按照注册顺序的逆序执行; 如果你注册了A, B 和 C, 那么在解释器终止时会依序执行C, B, A
+通过该模块注册的函数, 在程序被未被Python捕获的信号杀死时并不会执行, 在检测到Python内部致命错误以及调用了os._exit()时也不会执行
+
 concurrent(并发) & parallel(并行)
-当有多个线程在操作时,如果系统只有一个CPU,则它根本不可能真正同时进行一个以上的线程,它只能把CPU运行时间划分成若干个时间段
-再将时间段分配给各个线程执行,在一个时间段的线程代码运行时,其它线程处于挂起状态.这种方式我们称之为并发
-当系统有一个以上CPU时,则线程的操作有可能非并发.当一个CPU执行一个线程时,另一个CPU可以执行另一个线程,两个线程互不抢占CPU资源,可以同时进行
-这种方式我们称之为并行,并行需要两个或两个以上的线程跑在不同的处理器上,并发可以跑在一个处理器上通过时间片进行切换
+当系统只有一个CPU,则它不可能同时进行一个以上的线程,只能把CPU运行时间划分成若干个时间段
+再将时间段分配给各个线程执行,在一个时间段的线程代码运行时,其它线程处于挂起状态.这种方式我们称为并发
+当系统有多个CPU时,不同线程可以同时工作在不同的CPU上,这种方式我们称为并行
 
 线程 & 进程
-为什么有了GIL还要给线程加锁
-https://docs.python.org/3.8/library/multiprocessing.shared_memory.html#module-multiprocessing.shared_memory
-由于GIL锁的缘故,线程实际上是并发运行(即便有多个cpu,线程会在其中一个cpu来回切换,只占用一个cpu资源),而进程才是真正的并行(同时执行多个任务,占用多个cpu资源)
+GIL只存在于CPython解释器中,其他解释器如Jython、IronPython、PyPy等不存在GIL的问题
 每个Python进程都有自己的Python解释器和内存空间,因此GIL不会成为问题
-GIL只存在于CPython解释器中，因此其他解释器，如Jython、IronPython、PyPy等，则不存在GIL的问题
-标准库中所有阻塞型I/O函数都会释放GIL,time.sleep()也会释放,因此尽管有GIL,线程还是能在I/O密集型应用中发挥作用
-子线程可以访问程序的全局变量并且改变变量本身,子线程也可以改变进程变量本身,前提是需要以参数形式传递给子线程
-子进程or子进程中的子线程可以访问程序的全局变量,但是该变量的一份拷贝,并不能修改他,只不过值是一样而已
-对于CPU密集型,python的多线程表现不如单线程好,但多进程效率更高,进程数不是越大越好,默认进程数等于电脑核数
-对于计算型任务由于GIL的存在我们通常使用多进程来实现
-技巧:如果一个任务拿不准是CPU密集还是I/O密集型(宜用多线程),且没有其它不能选择多进程方式的因素,都统一直接上多进程模式
+对于CPU密集型任务通常使用多进程,进程数不是越大越好,默认进程数等于电脑核数
+GIL导致线程是并发运行(即便有多个cpu,线程会在其中一个cpu来回切换),而进程是并行
+标准库中所有阻塞型I/O函数都会释放GIL,time.sleep也会释放,因此尽管有GIL,线程还是能在I/O密集型应用中发挥作用
+
 sys.setswitchinterval(n) # 设置解释器的线程切换间隔(以秒为单位),实际值可能更高,特别是在使用长时间运行的内部函数或方法时
 在间隔结束时调度哪个线程是操作系统的决定,解释器没有自己的调度程序
 """
@@ -101,38 +100,37 @@ def pool_executor_tutorial():
     print(len(tasks), sum(dict_counter.values()))
 
 
+def interprocess_communication(new_shared):
+    new_shared.buf[:5] = b'howdy'
+    new_shared.close()
+
+
+def shared_memory_tutorial():
+    """
+    作为一种跨进程共享数据的方式,共享内存块的寿命可能超过创建它的原始进程,一个共享内存块可能同时被多个进程使用
+    当一个进程不再访问这个共享内存块的时候应该调用close方法; 当一个共享内存块不被任何进程使用时应该调用unlink方法以执行必要的清理
+    create指定创建一个新的共享内存块(True)还是连接到已存在的共享内存块(False)
+    """
+    shared = shared_memory.SharedMemory(create=True, size=10)  # 实际分配内存为4096整倍数
+    print(type(shared.buf), shared.size, shared.name)  # <class 'memoryview'> 4096 psm_a7ecc55d
+    shared.buf[:4] = bytearray([97, 98, 99, 100])
+    shared.buf[4:6] = b"AB"
+    print(bytes(shared.buf[:6]), bytearray(shared.buf[:6]))  # b"abcdAB" bytearray(b"abcdAB")
+
+    new_shared = shared_memory.SharedMemory(shared.name)  # Attach to an existing shared memory block
+    process = Process(target=interprocess_communication, args=(new_shared,))
+    process.start()
+    process.join()
+
+    print(shared.buf[:6].tobytes(), shared.buf[:6].tolist())  # b"howdyB" [104, 111, 119, 100, 121, 66]
+    shared.close()  # Close each SharedMemory instance
+    shared.unlink()  # Call unlink only once to release the shared memory
+
+
 if __name__ == "__main__":
-    pass
+    shared_memory_tutorial()
     # pool_executor_tutorial()
 
-# # Pipe
-# # The Pipe() function returns a pair of connection objects connected by a pipe which by default is duplex (two-way).
-# # Each connection object has send() and recv() methods (among others). Note that data in a pipe may become corrupted if two processes (or threads) try to read from or write to the same end of the pipe at the same time.
-# # Of course there is no risk of corruption from processes using different ends of the pipe at the same time.
-#
-# from multiprocessing import Process, Pipe
-#
-# def f(conn):
-#     time.sleep(3)
-#     conn.send([42, None, 'hello'])
-#     conn.close()
-#
-# if __name__ == '__main__':
-#     parent_conn, child_conn = Pipe(False)  # parent_conn只读,child_conn只写
-#     # parent_conn, child_conn = Pipe(True)  # parent_conn和child_conn可以读写,默认为True
-#     p = Process(target=f, args=(child_conn,))
-#     p.start()
-#     '''
-#     返回值bool类型,whether there is any data available to be read.
-#     If timeout is not specified then it will return immediately.
-#     If timeout is a number then this specifies the maximum time in seconds to block.
-#     If timeout is None then an infinite timeout is used.
-#     '''
-#     parent_conn.poll(timeout=1)
-#     print(parent_conn.recv())    # [42, None, 'hello'], Blocks until there is something to receive.
-#     p.join()
-
-# ###########################################################################################################################
 #
 # # 进程之间的派生拥有父子关系
 # # 线程之间的派生是对等关系,都隶属于主进程的子线程
@@ -175,6 +173,35 @@ if __name__ == "__main__":
 # # in kid3 15948 15944
 # # in kid3 15950 15948
 #
+
+
+# # Pipe
+# # The Pipe() function returns a pair of connection objects connected by a pipe which by default is duplex (two-way).
+# # Each connection object has send() and recv() methods (among others). Note that data in a pipe may become corrupted if two processes (or threads) try to read from or write to the same end of the pipe at the same time.
+# # Of course there is no risk of corruption from processes using different ends of the pipe at the same time.
+#
+# from multiprocessing import Process, Pipe
+#
+# def f(conn):
+#     time.sleep(3)
+#     conn.send([42, None, 'hello'])
+#     conn.close()
+#
+# if __name__ == '__main__':
+#     parent_conn, child_conn = Pipe(False)  # parent_conn只读,child_conn只写
+#     # parent_conn, child_conn = Pipe(True)  # parent_conn和child_conn可以读写,默认为True
+#     p = Process(target=f, args=(child_conn,))
+#     p.start()
+#     '''
+#     返回值bool类型,whether there is any data available to be read.
+#     If timeout is not specified then it will return immediately.
+#     If timeout is a number then this specifies the maximum time in seconds to block.
+#     If timeout is None then an infinite timeout is used.
+#     '''
+#     parent_conn.poll(timeout=1)
+#     print(parent_conn.recv())    # [42, None, 'hello'], Blocks until there is something to receive.
+#     p.join()
+
 # ###########################################################################################################################
 #
 # '''
@@ -476,39 +503,6 @@ if __name__ == "__main__":
 # but if the mutable container is then reassigned to the managed container, it changes again.
 
 
-# memoryview
-# It allows you to share memory between data-structures (things like PIL images, SQLlite data-bases, NumPy arrays, etc.) without first copying.
-# This is very important for large data sets.With it you can do things like memory-map to a very large file, slice a piece of that file and do calculations on that piece
-# A memoryview supports slicing and indexing to expose its data. One-dimensional slicing will result in a subview
-# 当memoryview实例mm跨进程传递时,相当于子进程拷贝了一份数据,mm重新指向了子进程的数据,指针对象ctypes.pointer也是一样
-# ctypes.memset(dst, c, count)
-# Same as the standard C memset library function: fills the memory block at address dst with count bytes of value c. dst must be an integer specifying an address, or a ctypes instance.
-
-# from_buffer(source[, offset])
-# This method returns a ctypes instance that shares the buffer of the source object. The source object must support the writeable buffer interface.
-# The optional offset parameter specifies an offset into the source buffer in bytes; the default is zero. If the source buffer is not large enough a ValueError is raised.
-
-
-# def work(data):
-#     data[0] = 65
-
-
-# def main():
-#     t0 = time.time()
-#     data = bytearray(b'a' * 900000)
-#     _data = memoryview(data)
-#     # print(_data.tobytes())
-#     for idx in range(1, 900000):
-#         # work(data)         # .07s
-#         # work(data[:idx])   # 13s,拷贝了一份传给了work函数
-#         work(_data[:idx])  # .16s,相当于指针传给了work函数
-#     print(data[0], f'cost {time.time() - t0} seconds')
-
-
-# if __name__ == '__main__':
-#     main()
-
-
 # def test0():
 #     mm = mmap.mmap(fileno=-1, length=256,
 #                    access=mmap.ACCESS_COPY)  # fileno=-1 means map anonymous memory,length不能小于所写内容总字节数
@@ -664,8 +658,9 @@ if __name__ == "__main__":
 # xxxooooxxxxxooooxxxoooo
 # '''
 
-# atexit
-# 被注册的函数会在解释器正常终止时执行.atexit会按照注册顺序的逆序执行; 如果你注册了A, B 和 C, 那么在解释器终止时会依序执行C, B, A.
-# 通过该模块注册的函数, 在程序被未被Python捕获的信号杀死时并不会执行, 在检测到Python内部致命错误以及调用了os._exit()时也不会执行.
+# ctypes.memset(dst, c, count)
+# Same as the standard C memset library function: fills the memory block at address dst with count bytes of value c. dst must be an integer specifying an address, or a ctypes instance.
 
-# 进程中的变量传递(可变对象x从A进程传给B进程时,是一个全新的对象y,y在刚进B的那一刻值与x相同,此后便再无关联,子进程结束时其test被销毁)
+# from_buffer(source[, offset])
+# This method returns a ctypes instance that shares the buffer of the source object. The source object must support the writeable buffer interface.
+# The optional offset parameter specifies an offset into the source buffer in bytes; the default is zero. If the source buffer is not large enough a ValueError is raised.
