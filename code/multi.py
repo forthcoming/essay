@@ -2,9 +2,9 @@ import os
 import random
 import time
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
-from multiprocessing import shared_memory, Value, Process, Manager, RLock
-from multiprocessing.dummy import Process as Thread
-from threading import get_ident, Lock
+from multiprocessing import shared_memory, Value, Process, Manager, RLock as ProcessRLock
+from multiprocessing.dummy import Process as Thread, Lock as ThreadLock
+from threading import get_ident
 
 """
 atexit
@@ -52,11 +52,11 @@ def pool_work(second):
     return second
 
 
-def pool_compute(item, lock, set_counter, dict_counter):
+def pool_compute(item, thread_lock, set_counter, dict_counter):
     # 1 / (int(time.time()) & 1)  # 线程池中出现错误,程序不会报错,需要手动捕捉异常
 
     time.sleep(random.uniform(0, .01))
-    with lock:  # 必须加锁
+    with thread_lock:  # 必须加锁
         if item in dict_counter:
             time.sleep(random.uniform(0, .01))
             dict_counter[item] += 1
@@ -64,7 +64,7 @@ def pool_compute(item, lock, set_counter, dict_counter):
             time.sleep(random.uniform(0, .01))
             dict_counter[item] = 1
 
-    # with lock:  # 必须加锁
+    # with thread_lock:  # 必须加锁
     #     while True:
     #         if item in set_counter:
     #             time.sleep(.001)
@@ -105,15 +105,15 @@ def pool_executor_tutorial():
         print(f'the results is {list(results)}')  # 都完成后按任务顺序返回
     print(f"cost {time.time() - start_time} seconds")  # cost 6.156317949295044 seconds
 
-    lock = Lock()
+    thread_lock = ThreadLock()
     tasks = [1, 2, 3, 2, 1, 5, 3, 4, 4, 6, 1, 5, 2, 7, 1, 10, 4, 6, 3, 5, 32, 4, 7, 2, 7, 3, 1, 9, 5, 2] * 100
     dict_counter = {}
     set_counter = set()
     with ThreadPoolExecutor(10) as executor:
-        futures = [executor.submit(pool_compute, task, lock, set_counter, dict_counter) for task in tasks]
+        futures = [executor.submit(pool_compute, task, thread_lock, set_counter, dict_counter) for task in tasks]
         for future in as_completed(futures):
             print(future)
-        # results = executor.map(pool_compute, tasks, [lock] * 3000, [set_counter] * 3000, [dict_counter] * 3000)
+        # results = executor.map(pool_compute, tasks, [thread_lock] * 3000, [set_counter] * 3000, [dict_counter] * 3000)
         # for result in results:
         #     print(result)
     print(len(tasks), sum(dict_counter.values()))
@@ -237,9 +237,9 @@ def shared_value_tutorial():
     print(shared_value, shared_value.value)  # <Synchronized wrapper for c_int(0)> 0
 
 
-def test_shared_manager(shared_dict, shared_list, rlock):
+def test_shared_manager(shared_dict, shared_list, process_rlock):
     time.sleep(.001)
-    with rlock:
+    with process_rlock:
         shared_dict['a'] += 1
         shared_list.append(os.getpid())
 
@@ -266,10 +266,11 @@ def shared_manager_tutorial():
     如果您有manager.list()对象,则对托管列表本身的任何更改都会传播到所有其他进程,但如果该列表中有一个列表,则对内部列表的任何更改都不会传播
     """
     with Manager() as manager:
-        rlock = RLock()  # 必须从外部传入子程序
+        process_rlock = ProcessRLock()  # 必须从外部传入子程序
         shared_dict = manager.dict({'a': 0})
         shared_list = manager.list()
-        processes = [Process(target=test_shared_manager, args=(shared_dict, shared_list, rlock)) for _ in range(10)]
+        processes = [Process(target=test_shared_manager, args=(shared_dict, shared_list, process_rlock)) for _ in
+                     range(10)]
         run_subroutine(processes)
         print(shared_dict)  # {'a': 10}
         print(shared_list)  # [16016, 19356, 18492, 17892, 13048, 19212, 1844, 14400, 7344, 1008]
@@ -302,49 +303,46 @@ if __name__ == "__main__":
     # DeriveRelationship.main()
     # join_tutorial()
 
-# ###########################################################################################################################
-#
-# # lock
-# from multiprocessing.dummy import Process,Lock
-# from threading import get_ident
-# mutex=Lock()
-#
-# def loop(n):
-#     global deposit
-#     for i in range(100000):
-#         deposit += n # 存
-#         deposit -= n # 取
-#
-# def loop_lock(n):
-#     global deposit
-#     print(get_ident())
-#     # Return a non-zero integer that uniquely identifies the current thread amongst other threads that exist simultaneously.
-#     # This may be used to identify per-thread resources.A thread's identity may be reused for another thread after it exits.
-#     for i in range(100000):
-#         with mutex:  # 加锁会使速度变慢,注意这里不能写作with Lock(),mutex必须共享
-#             deposit += n # 存
-#             deposit -= n # 取
-#
-# for i in range(10):
-#     deposit = 0
-#     # threadings=[Process(target=loop, args=(5,)),Process(target=loop, args=(8,))]  # 最终可能是0,5,8,-5,-8
-#     threadings=[Process(target=loop_lock, args=(5,)),Process(target=loop_lock, args=(8,))]
-#     for thread in threadings:
-#         thread.start()
-#     for thread in threadings:
-#         thread.join()
-#     print(deposit)
-# '''
-# 线程Lock的获取与释放可以在不同线程中完成,进程Lock的获取与释放可以在不同进程或线程中完成
-# 线程RLock的获取与释放必须在同一个线程中完成,进程RLock的获取与释放必须在同一个进程或线程中完成
-# '''
-#
+mutex = ThreadLock()
+
+
+def loop(n):
+    global deposit
+    for i in range(100000):
+        deposit += n  # 存
+        deposit -= n  # 取
+
+
+def loop_lock(n):
+    global deposit
+    print(get_ident())
+    # Return a non-zero integer that uniquely identifies the current thread amongst other threads that exist simultaneously.
+    # This may be used to identify per-thread resources.A thread's identity may be reused for another thread after it exits.
+    for i in range(100000):
+        with mutex:  # 加锁会使速度变慢,注意这里不能写作with Lock(),mutex必须共享
+            deposit += n  # 存
+            deposit -= n  # 取
+
+
+for i in range(10):
+    deposit = 0
+    # threads = [Thread(target=loop, args=(5,)), Thread(target=loop, args=(8,))]  # 最终可能是0,5,8,-5,-8
+    threads = [Thread(target=loop_lock, args=(5,)), Thread(target=loop_lock, args=(8,))]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+    print(deposit)
+'''
+线程Lock的获取与释放可以在不同线程中完成,进程Lock的获取与释放可以在不同进程或线程中完成
+线程RLock的获取与释放必须在同一个线程中完成,进程RLock的获取与释放必须在同一个进程或线程中完成
+'''
+
 # ###########################################################################################################################
 #
 # # RLock(普通的锁里面不能再出现锁,但可以顺序出现多次)
 #
 # from multiprocessing.dummy import Process,RLock,Lock,active_children
-# import time
 #
 # salary = 0
 # rlock = RLock()
