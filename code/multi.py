@@ -4,6 +4,29 @@ import time
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from threading import get_ident, Lock
 
+"""
+concurrent(并发) & parallel(并行)
+当有多个线程在操作时,如果系统只有一个CPU,则它根本不可能真正同时进行一个以上的线程,它只能把CPU运行时间划分成若干个时间段
+再将时间段分配给各个线程执行,在一个时间段的线程代码运行时,其它线程处于挂起状态.这种方式我们称之为并发
+当系统有一个以上CPU时,则线程的操作有可能非并发.当一个CPU执行一个线程时,另一个CPU可以执行另一个线程,两个线程互不抢占CPU资源,可以同时进行
+这种方式我们称之为并行,并行需要两个或两个以上的线程跑在不同的处理器上,并发可以跑在一个处理器上通过时间片进行切换
+
+线程 & 进程
+为什么有了GIL还要给线程加锁
+https://docs.python.org/3.8/library/multiprocessing.shared_memory.html#module-multiprocessing.shared_memory
+由于GIL锁的缘故,线程实际上是并发运行(即便有多个cpu,线程会在其中一个cpu来回切换,只占用一个cpu资源),而进程才是真正的并行(同时执行多个任务,占用多个cpu资源)
+每个Python进程都有自己的Python解释器和内存空间,因此GIL不会成为问题
+GIL只存在于CPython解释器中，因此其他解释器，如Jython、IronPython、PyPy等，则不存在GIL的问题
+标准库中所有阻塞型I/O函数都会释放GIL,time.sleep()也会释放,因此尽管有GIL,线程还是能在I/O密集型应用中发挥作用
+子线程可以访问程序的全局变量并且改变变量本身,子线程也可以改变进程变量本身,前提是需要以参数形式传递给子线程
+子进程or子进程中的子线程可以访问程序的全局变量,但是该变量的一份拷贝,并不能修改他,只不过值是一样而已
+对于CPU密集型,python的多线程表现不如单线程好,但多进程效率更高,进程数不是越大越好,默认进程数等于电脑核数
+对于计算型任务由于GIL的存在我们通常使用多进程来实现
+技巧:如果一个任务拿不准是CPU密集还是I/O密集型(宜用多线程),且没有其它不能选择多进程方式的因素,都统一直接上多进程模式
+sys.setswitchinterval(n) # 设置解释器的线程切换间隔(以秒为单位),实际值可能更高,特别是在使用长时间运行的内部函数或方法时
+在间隔结束时调度哪个线程是操作系统的决定,解释器没有自己的调度程序
+"""
+
 
 def pool_work(second):
     time.sleep(second)
@@ -79,51 +102,8 @@ def pool_executor_tutorial():
 
 
 if __name__ == "__main__":
-    pool_executor_tutorial()
-
-#
-# # 进程中的变量传递(可变对象x从A进程传给B进程时,即使id没变,但仍然是一个全新的对象y,y在刚进B的那一刻值与x相同,此后便再无关联,子进程结束时其test被销毁)
-# class A:
-#     a=0
-#     b=[]
-#     def __init__(self):
-#         self.c=1
-#         self.d=[]
-# test=A()
-#
-# print(test.a,test.b,test.c,test.d,id(test.a),id(test.b),id(test.c),id(test.d))
-#
-# def main():
-#     print('in main',os.getpid(),os.getppid())
-#     test.a=11
-#     test.b.append(22)
-#     test.c=33
-#     test.d.append(44)
-#     program=Process(target=kid,args=(test,))
-#     program.start()
-#     program.join()
-#     print('in main',test.a,test.b,test.c,test.d,id(test.a),id(test.b),id(test.c),id(test.d))
-#
-# def kid(test):
-#     print('in kid',os.getpid(),os.getppid())
-#     test.a=55
-#     test.b.append(66)
-#     test.c=77
-#     test.d.append(88)
-#     print('in kid',test.a,test.b,test.c,test.d,id(test.a),id(test.b),id(test.c),id(test.d))
-#     time.sleep(2)
-#
-# main()
-# print(test.a,test.b,test.c,test.d,id(test.a),id(test.b),id(test.c),id(test.d))
-#
-# # output:
-# # 0 [] 1 [] 4355075824 4359193136 4355075856 4359193776
-# # in main 2929 1121
-# # in kid 2930 2929
-# # in kid 55 [22, 66] 77 [44, 88] 4355077584 4359193136 4355078288 4359193776
-# # in main 11 [22] 33 [44] 4355076176 4359193136 4355076880 4359193776
-# # 11 [22] 33 [44] 4355076176 4359193136 4355076880 4359193776
-
+    pass
+    # pool_executor_tutorial()
 
 # # Pipe
 # # The Pipe() function returns a pair of connection objects connected by a pipe which by default is duplex (two-way).
@@ -152,43 +132,6 @@ if __name__ == "__main__":
 #     print(parent_conn.recv())    # [42, None, 'hello'], Blocks until there is something to receive.
 #     p.join()
 
-# ###########################################################################################################################
-#
-# # concurrent:
-# # 当有多个线程在操作时,如果系统只有一个CPU,则它根本不可能真正同时进行一个以上的线程,它只能把CPU运行时间划分成若干个时间段
-# # 再将时间段分配给各个线程执行,在一个时间段的线程代码运行时,其它线程处于挂起状态.这种方式我们称之为并发(Concurrent)
-# # parallel:
-# # 当系统有一个以上CPU时,则线程的操作有可能非并发.当一个CPU执行一个线程时,另一个CPU可以执行另一个线程,两个线程互不抢占CPU资源,可以同时进行
-# # 这种方式我们称之为并行(Parallel),并行需要两个或两个以上的线程跑在不同的处理器上,并发可以跑在一个处理器上通过时间片进行切换
-# #
-# # 线程 & 进程
-# # 为什么有了GIL还要给线程加锁
-# # https://docs.python.org/3.8/library/multiprocessing.shared_memory.html#module-multiprocessing.shared_memory
-# # 由于GIL锁的缘故,线程实际上是并发运行(即便有多个cpu,线程会在其中一个cpu来回切换,只占用一个cpu资源),而进程才是真正的并行(同时执行多个任务,占用多个cpu资源)
-# # 每个Python进程都有自己的Python解释器和内存空间,因此GIL不会成为问题
-# # GIL只存在于CPython解释器中，因此其他解释器，如Jython、IronPython、PyPy等，则不存在GIL的问题
-# # sys.getswitchinterval() # current thread switch interval
-# # sys.setswitchinterval(n)
-# '''
-# #     Set the ideal thread switching delay inside the Python interpreter.
-# #     The actual frequency of switching threads can be lower if the
-# #     interpreter executes long sequences of uninterruptible code
-# #     (this is implementation-specific and workload-dependent).
-# #     The parameter must represent the desired switching delay in seconds
-# #     A typical value is 0.005 (5 milliseconds).
-# The parameter must represent the desired switching delay in seconds A typical value is 0.005 (5 milliseconds).
-# Set the interpreter’s thread switch interval (in seconds).
-# This floating-point value determines the ideal duration of the “timeslices” allocated to concurrently running Python threads.
-# Please note that the actual value can be higher, especially if long-running internal functions or methods are used.
-# Also, which thread becomes scheduled at the end of the interval is the operating system’s decision. The interpreter doesn’t have its own scheduler.
-# '''
-# # 标准库中所有阻塞型I/O函数都会释放GIL,time.sleep()也会释放,因此尽管有GIL,线程还是能在I/O密集型应用中发挥作用
-# # 子线程可以访问程序的全局变量并且改变变量本身,子线程也可以改变进程变量本身,前提是需要以参数形式传递给子线程
-# # 子进程or子进程中的子线程可以访问程序的全局变量,但是该变量的一份拷贝,并不能修改他,只不过值是一样而已
-# # 对于CPU密集型,python的多线程表现不如单线程好,但多进程效率更高,进程数不是越大越好,默认进程数等于电脑核数
-# # 对于计算型任务由于GIL的存在我们通常使用多进程来实现
-# # 技巧:如果一个任务拿不准是CPU密集还是I/O密集型(宜用多线程),且没有其它不能选择多进程方式的因素,都统一直接上多进程模式
-#
 # ###########################################################################################################################
 #
 # # 进程之间的派生拥有父子关系
@@ -724,3 +667,5 @@ if __name__ == "__main__":
 # atexit
 # 被注册的函数会在解释器正常终止时执行.atexit会按照注册顺序的逆序执行; 如果你注册了A, B 和 C, 那么在解释器终止时会依序执行C, B, A.
 # 通过该模块注册的函数, 在程序被未被Python捕获的信号杀死时并不会执行, 在检测到Python内部致命错误以及调用了os._exit()时也不会执行.
+
+# 进程中的变量传递(可变对象x从A进程传给B进程时,是一个全新的对象y,y在刚进B的那一刻值与x相同,此后便再无关联,子进程结束时其test被销毁)
