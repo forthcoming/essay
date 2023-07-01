@@ -20,10 +20,6 @@ import objgraph
 对象离开它的作用域.例如func函数执行完毕时,func函数中的局部变量(全局变量不会)
 对象所在的容器被销毁,或从容器中删除对象
 
-atexit
-被注册的函数会在解释器正常终止时执行.atexit会按照注册顺序的逆序执行; 如果你注册了A, B 和 C, 那么在解释器终止时会依序执行C, B, A.
-通过该模块注册的函数, 在程序被未被Python捕获的信号杀死时并不会执行, 在检测到Python内部致命错误以及调用了os._exit()时也不会执行.
-
 循环引用例子:
 arr = [1]
 arr.append(arr)
@@ -33,11 +29,10 @@ x.append(y)
 y.append(x)
 只有容器对象才会产生循环引用,比如列表、字典、用户自定义类的对象、元组等,而像数字,字符串这类简单类型不会出现循环引用
 
-垃圾回收包含引用计数,标记清除(可解决循环引用)和分代回收
-gc.disable()仅仅关闭垃圾回收功能,对象仍可能会因为引用计数为0而被销毁
+垃圾回收包含引用计数(不可解决循环引用),标记清除(可解决循环引用)和分代回收
 gc.get_threshold()返回(700,10,10),当分配对象的个数达到700时,进行一次0代回收; 当进行10次0代回收后触发一次1代回收; 当进行10次1代回收后触发一次2代回收
 gc.get_count()Return a three-tuple of the current collection counts,与get_threshold返回值相对应
-gc.collect()手动执行垃圾回收,返回不可达(unreachable objects)对象的数目,循环引用无法通过引用计数法消除
+gc.collect()手动执行垃圾回收,返回不可达(unreachable objects)对象的数目
 gc.get_objects()Returns a list of all objects tracked by the collector, 不包括返回的列表
 对象被销毁(引用计数为0)时如果自定义了__del__,会执行__del__函数,然后销毁对象
 内存泄漏仅仅存在于某个进程中,无法进程间传递(即gc.get_objects仅仅统计所在进程的对象),会随着进程的结束而释放内存

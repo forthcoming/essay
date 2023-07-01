@@ -773,3 +773,7 @@ if __name__ == '__main__':
 # xxxooooxxxxxooooxxxoooo
 # '''
 
+# atexit
+# 被注册的函数会在解释器正常终止时执行.atexit会按照注册顺序的逆序执行; 如果你注册了A, B 和 C, 那么在解释器终止时会依序执行C, B, A.
+# 通过该模块注册的函数, 在程序被未被Python捕获的信号杀死时并不会执行, 在检测到Python内部致命错误以及调用了os._exit()时也不会执行.
+
