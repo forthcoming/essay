@@ -2,7 +2,7 @@ import os
 import random
 import time
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
-from multiprocessing import shared_memory, Process
+from multiprocessing import shared_memory, Value, Process
 from multiprocessing.dummy import Process as Thread
 from threading import get_ident, Lock
 
@@ -26,6 +26,10 @@ daemon=False: 父线/进程运行完,会接着等子线/进程全部都执行完
 daemon=True: 父进程结束,他会杀死自己的子线/进程使其终止,但父进程被kill -9杀死时子进程不会结束,会被系统托管
 如果主进程开了多个子进程,而子进程出错,并不影响其他子进程和主进程的运行,但其自身会变为僵尸进程
 应为主进程没有join操作给其收尸,在Linux中用"defunct"标记该进程,通过top也能查看当前的僵尸进程个数
+
+进程间通信
+进程间数据不共享,但共享同一套文件系统,所以访问同一文件或终端可以实现进程间通信,但效率低(文件是硬盘上的数据)且需要自己加锁处理
+常见方式是共享内存(Value & Array & shared_memory & Manager),队列(Queue)
 
 sys.setswitchinterval(n) # 设置解释器的线程切换间隔(以秒为单位),实际值可能更高,特别是在使用长时间运行的内部函数或方法时
 在间隔结束时调度哪个线程是操作系统的决定,解释器没有自己的调度程序
@@ -209,53 +213,108 @@ def join_tutorial():
     '''
 
 
+def test_shared_value(share):
+    with share.get_lock():
+        time.sleep(.001)
+        share.value -= 1  # 涉及读写的操作不是原子操作
+
+
+def shared_value_tutorial():
+    """
+    multiprocessing.Value(typecode_or_type, *args, lock=True)
+    返回从共享内存分配的ctypes对象, 可以通过Value的value属性来访问对象本身
+    typecode_or_type确定返回对象的类型是ctypes类型或数组模块使用的单字符类型代码
+    如果lock为True(默认值), 则创建一个新的递归锁对象来同步对该值的访问
+    如果lock为False, 那么对返回对象的访问将不会自动受到锁的保护, 因此它不一定是“进程安全的”
+
+    multiprocessing.Array(typecode_or_type, size_or_initializer, *, lock=True)
+    返回从共享内存分配的ctypes数组,typecode_or_type和锁部分跟Value一样
+    如果size_or_initializer是一个整数,那么它决定了数组的长度,并且数组最初将被清零,否则是一个用于初始化数组的序列,其长度决定了数组长度
+    """
+    shared_value = Value('i', 100)  # 在不需要锁的情况下可以Value('i',100,lock=False)
+    processes = [Process(target=test_shared_value, args=(shared_value,)) for _ in range(100)]
+    run_subroutine(processes)
+    print(shared_value, shared_value.value)  # <Synchronized wrapper for c_int(0)> 0
+
+
 if __name__ == "__main__":
     # shared_memory_tutorial()
+    shared_value_tutorial()
     # pool_executor_tutorial()
     # DeriveRelationship.main()
-    join_tutorial()
+    # join_tutorial()
 
-
-# 进程间通信(Value & Array & Manager)
-# 进程之间数据不共享,但是共享同一套文件系统,所以访问同一个文件,或同一个打印终端,是没有问题的.
-# 虽然可以用文件共享数据实现进程间通信,但问题是:
-# 1.效率低(共享数据基于文件,而文件是硬盘上的数据)
-# 2.需要自己加锁处理
-# 因此我们最好找寻一种解决方案能够兼顾:1、效率高(多个进程共享一块内存的数据) 2、帮我们处理好锁问题
-# 这就是mutiprocessing模块为我们提供的基于消息的IPC通信机制:队列和管道
-# 队列和管道都是将数据存放于内存中
-# 队列又是基于(管道+锁)实现,可以让我们从复杂的锁问题中解脱出来.
-# 我们应该尽量避免使用共享数据,尽可能使用消息传递和队列,避免处理复杂的同步和锁问题
-
-# multiprocessing.Value(typecode_or_type, *args, lock=True)
-# Return a ctypes object allocated from shared memory. By default the return value is actually a synchronized wrapper for the object.
-# The object itself can be accessed via the value attribute of a Value.
-# typecode_or_type determines the type of the returned object: it is either a ctypes type or a one character typecode of the kind used by the array module.
-# *args is passed on to the constructor for the type.
-# If lock is True (the default) then a new recursive lock object is created to synchronize access to the value.
-# If lock is a Lock or RLock object then that will be used to synchronize access to the value.
-# If lock is False then access to the returned object will not be automatically protected by a lock, so it will not necessarily be “process-safe”.
-# Operations like += which involve a read and write are not atomic.
-# So if, for instance, you want to atomically increment a shared value it is insufficient to just do "counter.value += 1"
-# Assuming the associated lock is recursive (which it is by default) you can instead do
-# with counter.get_lock():
-#     counter.value += 1
-# Note that lock is a keyword-only argument.
+# # Manager
+# # Server process managers are more flexible than using shared memory objects because they can be made to support arbitrary object types.
+# # Also, a single manager can be shared by processes on different computers over a network. They are, however, slower than using shared memory.
+# # manager不是进程安全,写操作需要加锁
 #
-# from multiprocessing import Process,Value
-# def work(share):
-#     with share.get_lock():  # 应为Value只对读和赋值加了锁,详见multiprocessing.sharedctypes.make_property
-#         share.value-=1
+# from multiprocessing import Process, Manager
+# import os
+#
+# def task(Dict, List):
+#     Dict['k'] = 'v'
+#     List.append(os.getpid())  # 获取子进程的PID
 #
 # if __name__ == '__main__':
-#     share = Value('i',100)  # 在不需要锁的情况下可以Value('i',100,lock=False)
-#     processes=[Process(target=work,args=(share,)) for i in range(100)]
-#     for process in processes:
-#         process.start()
-#     for process in processes:
-#         process.join()
-#     print(share,share.value) # <Synchronized wrapper for c_long(0)> 0
+#     with Manager() as manager:
+#         Dict = manager.dict({'a':1})  # 生成一个可以在多个进程之间共享的字典
+#         List = manager.list()
 #
+#         processes=[Process(target=task, args=(Dict, List)) for i in range(10)]
+#         for process in processes:
+#             process.start()
+#         for process in processes:
+#             process.join()
+#         print(Dict)  # {'a': 1, 'k': 'v'}
+#         print(List)  # [16016, 19356, 18492, 17892, 13048, 19212, 1844, 14400, 7344, 1008]
+#
+#
+# import multiprocessing as mp
+# def f(ns):
+#     # ns.x.append(10) # 无效
+#     ns.x+=[10]
+#
+#     # ns.y[0]+=20 # 无效
+#     ns_y=ns.y
+#     ns_y[0]+=20
+#     ns.y=ns_y
+#
+#     ns_z=ns.z  # 通用方法
+#     ns_z['c']=123
+#     ns_z['a']['b']=321
+#     ns.z=ns_z
+#
+# if __name__ == '__main__':
+#     with mp.Manager() as manager:
+#         ns = manager.Namespace()
+#         ns.x = [10]
+#         ns.y = [10]
+#         ns.z = {'a':{'b':1}}
+#         print('before', ns)
+#         p = mp.Process(target=f, args=(ns,))
+#         p.start()
+#         p.join()
+#         print('after', ns)
+#
+#         l_outer = manager.list([ manager.dict() for i in range(2) ])
+#         # l_outer = manager.list([ {} for i in range(2) ])
+#         d_first_inner = l_outer[0]
+#         d_first_inner['a'] = 1
+#         d_first_inner['b'] = 2
+#         l_outer[1]['c'] = 3
+#         l_outer[1]['z'] = 26
+#         print(l_outer[0])
+#         print(l_outer[1])
+
+# Manager proxy objects are unable to propagate changes made to mutable objects inside a container.
+# So in other words, if you have a manager.list() object, any changes to the managed list itself are propagated to all the other processes.
+# But if you have a list inside that list, any changes to the inner list are not propagated, because the manager has no way of detecting the change.
+# In order to propagate the changes, you have to modify the manager.list() object directly, as indicated by the note here.
+# As you can see, when a new value is assigned directly to the managed container, it changes;
+# when it is assigned to a mutable container within the managed container, it doesn't change;
+# but if the mutable container is then reassigned to the managed container, it changes again.
+
 
 # ###########################################################################################################################
 #
@@ -349,90 +408,6 @@ if __name__ == "__main__":
 # # The use of a bounded semaphore reduces the chance that a programming error which causes the semaphore to be released more than it’s acquired will go undetected.
 #
 # ###########################################################################################################################
-
-# # multiprocessing.Array(typecode_or_type, size_or_initializer, *, lock=True)
-#
-# # Return a ctypes array allocated from shared memory. By default the return value is actually a synchronized wrapper for the array.
-# # typecode_or_type determines the type of the elements of the returned array: it is either a ctypes type or a one character typecode of the kind used by the array module.
-# # If size_or_initializer is an integer, then it determines the length of the array, and the array will be initially zeroed. Otherwise,
-# # size_or_initializer is a sequence which is used to initialize the array and whose length determines the length of the array.
-# # If lock is True (the default) then a new lock object is created to synchronize access to the value.
-# # If lock is a Lock or RLock object then that will be used to synchronize access to the value.
-# # If lock is False then access to the returned object will not be automatically protected by a lock, so it will not necessarily be “process-safe”.
-#
-# ###########################################################################################################################
-#
-# # Manager
-# # Server process managers are more flexible than using shared memory objects because they can be made to support arbitrary object types.
-# # Also, a single manager can be shared by processes on different computers over a network. They are, however, slower than using shared memory.
-# # manager不是进程安全,写操作需要加锁
-#
-# from multiprocessing import Process, Manager
-# import os
-#
-# def task(Dict, List):
-#     Dict['k'] = 'v'
-#     List.append(os.getpid())  # 获取子进程的PID
-#
-# if __name__ == '__main__':
-#     with Manager() as manager:
-#         Dict = manager.dict({'a':1})  # 生成一个可以在多个进程之间共享的字典
-#         List = manager.list()
-#
-#         processes=[Process(target=task, args=(Dict, List)) for i in range(10)]
-#         for process in processes:
-#             process.start()
-#         for process in processes:
-#             process.join()
-#         print(Dict)  # {'a': 1, 'k': 'v'}
-#         print(List)  # [16016, 19356, 18492, 17892, 13048, 19212, 1844, 14400, 7344, 1008]
-#
-#
-# import multiprocessing as mp
-# def f(ns):
-#     # ns.x.append(10) # 无效
-#     ns.x+=[10]
-#
-#     # ns.y[0]+=20 # 无效
-#     ns_y=ns.y
-#     ns_y[0]+=20
-#     ns.y=ns_y
-#
-#     ns_z=ns.z  # 通用方法
-#     ns_z['c']=123
-#     ns_z['a']['b']=321
-#     ns.z=ns_z
-#
-# if __name__ == '__main__':
-#     with mp.Manager() as manager:
-#         ns = manager.Namespace()
-#         ns.x = [10]
-#         ns.y = [10]
-#         ns.z = {'a':{'b':1}}
-#         print('before', ns)
-#         p = mp.Process(target=f, args=(ns,))
-#         p.start()
-#         p.join()
-#         print('after', ns)
-#
-#         l_outer = manager.list([ manager.dict() for i in range(2) ])
-#         # l_outer = manager.list([ {} for i in range(2) ])
-#         d_first_inner = l_outer[0]
-#         d_first_inner['a'] = 1
-#         d_first_inner['b'] = 2
-#         l_outer[1]['c'] = 3
-#         l_outer[1]['z'] = 26
-#         print(l_outer[0])
-#         print(l_outer[1])
-
-# Manager proxy objects are unable to propagate changes made to mutable objects inside a container.
-# So in other words, if you have a manager.list() object, any changes to the managed list itself are propagated to all the other processes.
-# But if you have a list inside that list, any changes to the inner list are not propagated, because the manager has no way of detecting the change.
-# In order to propagate the changes, you have to modify the manager.list() object directly, as indicated by the note here.
-# As you can see, when a new value is assigned directly to the managed container, it changes;
-# when it is assigned to a mutable container within the managed container, it doesn't change;
-# but if the mutable container is then reassigned to the managed container, it changes again.
-
 
 # def test0():
 #     mm = mmap.mmap(fileno=-1, length=256,
