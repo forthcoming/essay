@@ -116,7 +116,7 @@ def pool_executor_tutorial():
         # results = executor.map(pool_compute, tasks, [thread_lock] * 3000, [set_counter] * 3000, [dict_counter] * 3000)
         # for result in results:
         #     print(result)
-    print(len(tasks), sum(dict_counter.values()))
+    assert len(tasks) == sum(dict_counter.values())
 
 
 def interprocess_communication(new_shared):
@@ -295,10 +295,10 @@ def shared_manager_tutorial():
         print(namespace)  # Namespace(dict_={'a': {'b': 'ab'}, 'c': 'c'}, int_=3, list_=[0, 2, 4], string_='hi')
 
 
-def test_rlock(thread_rlock, salary):
+def test_lock(lock, salary):
     time.sleep(.05)
-    with thread_rlock:
-        with thread_rlock:
+    with lock:
+        with lock:
             time.sleep(.05)
             salary[0] += 1
 
@@ -307,10 +307,11 @@ def rlock_tutorial():
     """
     线程Lock的获取与释放可以在不同线程中完成,进程Lock的获取与释放可以在不同进程或线程中完成,嵌套Lock会导致死锁,但可以顺序出现多次
     线程RLock的获取与释放必须在同一个线程中完成,进程RLock的获取与释放必须在同一个进程或线程中完成,RLock可以嵌套,也可以顺序
+    Semaphore是信号量锁,用来控制线/进程的并发数量,with semaphore启动
     """
     salary = [0]
     thread_rlock = ThreadRLock()
-    threads = [Thread(target=test_rlock, args=(thread_rlock, salary)) for _ in range(100)]  # ok
+    threads = [Thread(target=test_lock, args=(thread_rlock, salary)) for _ in range(100)]  # ok
     # thread_lock = ThreadLock()
     # threads = [Thread(target=test_rlock, args=(thread_lock, salary)) for _ in range(100)]  # deadlock
     run_subroutine(threads)
@@ -321,10 +322,10 @@ if __name__ == "__main__":
     # shared_memory_tutorial()
     # shared_value_tutorial()
     # shared_manager_tutorial()
-    # pool_executor_tutorial()
+    pool_executor_tutorial()
     # DeriveRelationship.main()
     # join_tutorial()
-    rlock_tutorial()
+    # rlock_tutorial()
 
 # def test0():
 #     mm = mmap.mmap(fileno=-1, length=256,

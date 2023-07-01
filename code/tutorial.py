@@ -164,7 +164,7 @@ def str_tutorial():
     print(string.split(' ', 1))  # ['Line1-abcdef', '\nLine2-abc \nLine4-abcd']
     print(string.split(' '))  # ['Line1-abcdef', '\nLine2-abc', '\nLine4-abcd']
     # 应用: 去除字符串中空白符content =''.join(content.split())
-    print('ABCD' < 'bar' < 'bloom')  # True,注意关系运算符<,>,=,<=,>=可以连写,前提是不能用括号
+    assert 'ABCD' < 'bar' < 'bloom'  # 注意关系运算符<,>,=,<=,>=可以连写,前提是不能用括号
 
 
 def tuple_tutorial():
@@ -198,8 +198,8 @@ def list_tutorial():
     print(a2)  # [1, 2, 3]   a1 and a2 are still the same list
     print(b2)  # [1, 2]      whereas only b1 was changed
 
-    print([1, 2, 3] < [1, 4])  # True
-    print([1, 2] < [1, 2, -1])  # True
+    assert [1, 2, 3] < [1, 4]
+    assert [1, 2] < [1, 2, -1]
 
 
 def set_tutorial():  # 无序不重复, 添加元素用add
@@ -251,10 +251,10 @@ def is_tutorial():
     # is比较的内存地址; == 比较的是字面值
     x = y = [4, 5, 6]
     z = [4, 5, 6]
-    print(x == y)  # True
-    print(x == z)  # True
-    print(x is y)  # True
-    print(x is z)  # False
+    assert x == y
+    assert x == z
+    assert x is y
+    assert x is not z
     print(id(x), id(y), id(z))  # 1685786989512 1685786989512 1685786991112
 
 
@@ -663,7 +663,7 @@ def instance_tutorial():
     student = Student()
     print(isinstance(person, Person), isinstance(person, Student))  # True False
     print(isinstance(student, Person), isinstance(student, Student))  # True True
-    print(issubclass(Student, Person))  # True
+    assert issubclass(Student, Person)  # True
 
 
 def cache_tutorial():
@@ -1059,15 +1059,15 @@ def iterable_tutorial():
     after-yield before-yield 1
     after-yield before-yield 2
     """
-    print(isinstance(100, Iterable))  # False
-    print(isinstance([], Iterable))  # True
-    print(isinstance([], Iterator))  # False
-    print(isinstance(iter([]), Iterable))  # True
-    print(isinstance(iter([]), Iterator))  # True
-    print(isinstance(generator_f, Iterable))  # True
-    print(isinstance(generator_f, Iterator))  # True
-    print(isinstance(generator_f, Generator))  # True
-    print(isinstance((_ for _ in range(5)), Generator))  # True
+    assert not isinstance(100, Iterable)
+    assert isinstance([], Iterable)
+    assert not isinstance([], Iterator)
+    assert isinstance(iter([]), Iterable)
+    assert isinstance(iter([]), Iterator)
+    assert isinstance(generator_f, Iterable)
+    assert isinstance(generator_f, Iterator)
+    assert isinstance(generator_f, Generator)
+    assert isinstance((_ for _ in range(5)), Generator)
 
 
 def inherit_tutorial():
@@ -1217,16 +1217,19 @@ def singleton_tutorial():
         def __init__(self):
             print("init TestSingleTonPool instance")
 
-    print(TestSingleton() is TestSingleton())  # True
-    print(TestSingleTonPool() is TestSingleTonPool())  # True
+    assert TestSingleton() is TestSingleton()
+    assert TestSingleTonPool() is TestSingleTonPool()
 
 
 if __name__ == "__main__":  # import到其他脚本中不会执行以下代码,多进程也会表现不同
+    list_tutorial()
+    is_tutorial()
+    str_tutorial()
     # subprocess_tutorial()
     # dict_tutorial()
-    # iterable_tutorial()
+    iterable_tutorial()
     # common_tutorial()
     # inherit_tutorial()
     # metaclass_tutorial()
     # pickle_tutorial()
-    singleton_tutorial()
+    # singleton_tutorial()
