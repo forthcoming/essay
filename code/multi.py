@@ -23,7 +23,7 @@ GIL只存在于CPython解释器中,其他解释器如Jython、IronPython、PyPy�
 GIL导致线程是并发运行(即便有多个cpu,线程会在其中一个cpu来回切换),而进程是并行
 标准库中所有阻塞型I/O函数都会释放GIL,time.sleep也会释放,因此尽管有GIL,线程还是能在I/O密集型应用中发挥作用
 daemon=False: 父线/进程运行完,会接着等子线/进程全部都执行完后才结束
-daemon=True: 父进程结束,子线/进程也將终止,但父进程被kill -9杀死时子进程不会结束,会被系统托管
+daemon=True: 父进程结束,他会杀死自己的子线/进程使其终止,但父进程被kill -9杀死时子进程不会结束,会被系统托管
 如果主进程开了多个子进程,而子进程出错,并不影响其他子进程和主进程的运行,但其自身会变为僵尸进程
 应为主进程没有join操作给其收尸,在Linux中用"defunct"标记该进程,通过top也能查看当前的僵尸进程个数
 
@@ -180,82 +180,82 @@ class DeriveRelationship:
         time.sleep(100)
 
 
+def join_tutorial():
+    """
+    该方法阻塞主程序直到子进程终止,但不会阻塞其他子程序的运行,如果timeout是正数,则最多阻塞timeout秒,一个进程可以多次join
+    join会调用系统的os.waitpid()方法来获取子进程的退出信息,消除子进程,防止产生僵尸进程,但如果超过timeout后父进程被唤醒,子进程在这之后结束,仍可能产生僵尸进程
+    如果timeout未指定,则主进程总的等待时间T = max(t1,t2,...,tn)
+    如果timeout大于0,T1 = min(timeout,max(t1,0)),...,Tn = min(timeout,max(tn-Tn-1,0)),则主进程总的等待时间T = sum(T1+T2,...+Tn)
+    """
+    processes = [
+        Process(target=time.sleep, args=(5,)),
+        Process(target=time.sleep, args=(3,)),
+        Process(target=time.sleep, args=(7,)),
+    ]
+    for process in processes:
+        process.start()
+    begin = end = time.time()
+    for process in processes:
+        process.join()
+        print('子进程阻塞耗时:', time.time() - end)
+        end = time.time()
+    print('总耗时:', end - begin)
+    '''
+    OUTPUT:
+    子进程阻塞耗时: 5
+    子进程阻塞耗时: 0
+    子进程阻塞耗时: 2
+    总耗时: 7
+    '''
+
+
 if __name__ == "__main__":
     # shared_memory_tutorial()
     # pool_executor_tutorial()
-    DeriveRelationship.main()
+    # DeriveRelationship.main()
+    join_tutorial()
 
 
-#
-# # join([timeout])
-# # If the optional argument timeout is None (the default), the method blocks until the process whose join() method is called terminates.
-# # If timeout is a positive number, it blocks at most timeout seconds. Note that the method returns None if its process terminates or if the method times out. Check the process’s exitcode to determine if it terminated.
-# # A process can be joined many times.
-# # 主程序一遇到join就会阻塞,直到join的子进程执行完毕,但不会阻塞所有子程序的运行
-# # join会调用系统的os.waitpid()方法来获取子进程的退出信息,消除子进程,防止产生僵尸进程,但如果超过timeout后父进程被唤醒,子进程在这之后结束,仍可能产生僵尸进程
-# # 如果timeout未指定,则主进程总的等待时间T = max(t1,t2,...,tn)
-# # 如果timeout大于0,T1 = min(timeout,max(t1,0)),T2 = min(timeout,max(t2-T1,0)),Tn = min(timeout,max(tn-Tn-1,0)),则主进程总的等待时间T = sum(T1+T2,...+Tn)
-#
-# def xx(a):
-#     time.sleep(5)
-#     return a
-#
-# def yy(a):
-#     time.sleep(3)
-#     return a
-#
-# def zz(a):
-#     time.sleep(7)
-#     return a
-#
-# if __name__=='__main__':
-#     threadings=[Process(target=xx, args=(5,)),Process(target=yy, args=(8,)),Process(target=zz, args=(8,))]
-#     begin=time.time()
-#     for thread in threadings:
-#         thread.start()
-#     mid=time.time()
-#     print(mid-begin)
-#     for thread in threadings:
-#         thread.join()
-#         print('子进程阻塞耗时:',time.time()-mid)
-#         mid=time.time()
-#     print('总耗时:',time.time()-begin)
-# '''
-# OUTPUT:
-# 0.053999900817871094
-# 子进程阻塞耗时: 5.063000202178955
-# 子进程阻塞耗时: 0.0
-# 子进程阻塞耗时: 2.045599937438965
-# 总耗时: 7.162600040435791
-# '''
-#
+# 进程间通信(Value & Array & Manager)
+# 进程之间数据不共享,但是共享同一套文件系统,所以访问同一个文件,或同一个打印终端,是没有问题的.
+# 虽然可以用文件共享数据实现进程间通信,但问题是:
+# 1.效率低(共享数据基于文件,而文件是硬盘上的数据)
+# 2.需要自己加锁处理
+# 因此我们最好找寻一种解决方案能够兼顾:1、效率高(多个进程共享一块内存的数据) 2、帮我们处理好锁问题
+# 这就是mutiprocessing模块为我们提供的基于消息的IPC通信机制:队列和管道
+# 队列和管道都是将数据存放于内存中
+# 队列又是基于(管道+锁)实现,可以让我们从复杂的锁问题中解脱出来.
+# 我们应该尽量避免使用共享数据,尽可能使用消息传递和队列,避免处理复杂的同步和锁问题
 
-# # Pipe
-# # The Pipe() function returns a pair of connection objects connected by a pipe which by default is duplex (two-way).
-# # Each connection object has send() and recv() methods (among others). Note that data in a pipe may become corrupted if two processes (or threads) try to read from or write to the same end of the pipe at the same time.
-# # Of course there is no risk of corruption from processes using different ends of the pipe at the same time.
+# multiprocessing.Value(typecode_or_type, *args, lock=True)
+# Return a ctypes object allocated from shared memory. By default the return value is actually a synchronized wrapper for the object.
+# The object itself can be accessed via the value attribute of a Value.
+# typecode_or_type determines the type of the returned object: it is either a ctypes type or a one character typecode of the kind used by the array module.
+# *args is passed on to the constructor for the type.
+# If lock is True (the default) then a new recursive lock object is created to synchronize access to the value.
+# If lock is a Lock or RLock object then that will be used to synchronize access to the value.
+# If lock is False then access to the returned object will not be automatically protected by a lock, so it will not necessarily be “process-safe”.
+# Operations like += which involve a read and write are not atomic.
+# So if, for instance, you want to atomically increment a shared value it is insufficient to just do "counter.value += 1"
+# Assuming the associated lock is recursive (which it is by default) you can instead do
+# with counter.get_lock():
+#     counter.value += 1
+# Note that lock is a keyword-only argument.
 #
-# from multiprocessing import Process, Pipe
-#
-# def f(conn):
-#     time.sleep(3)
-#     conn.send([42, None, 'hello'])
-#     conn.close()
+# from multiprocessing import Process,Value
+# def work(share):
+#     with share.get_lock():  # 应为Value只对读和赋值加了锁,详见multiprocessing.sharedctypes.make_property
+#         share.value-=1
 #
 # if __name__ == '__main__':
-#     parent_conn, child_conn = Pipe(False)  # parent_conn只读,child_conn只写
-#     # parent_conn, child_conn = Pipe(True)  # parent_conn和child_conn可以读写,默认为True
-#     p = Process(target=f, args=(child_conn,))
-#     p.start()
-#     '''
-#     返回值bool类型,whether there is any data available to be read.
-#     If timeout is not specified then it will return immediately.
-#     If timeout is a number then this specifies the maximum time in seconds to block.
-#     If timeout is None then an infinite timeout is used.
-#     '''
-#     parent_conn.poll(timeout=1)
-#     print(parent_conn.recv())    # [42, None, 'hello'], Blocks until there is something to receive.
-#     p.join()
+#     share = Value('i',100)  # 在不需要锁的情况下可以Value('i',100,lock=False)
+#     processes=[Process(target=work,args=(share,)) for i in range(100)]
+#     for process in processes:
+#         process.start()
+#     for process in processes:
+#         process.join()
+#     print(share,share.value) # <Synchronized wrapper for c_long(0)> 0
+#
 
 # ###########################################################################################################################
 #
@@ -349,52 +349,7 @@ if __name__ == "__main__":
 # # The use of a bounded semaphore reduces the chance that a programming error which causes the semaphore to be released more than it’s acquired will go undetected.
 #
 # ###########################################################################################################################
-#
-# # 进程间通信(Value & Array & Manager)
-# # 进程之间数据不共享,但是共享同一套文件系统,所以访问同一个文件,或同一个打印终端,是没有问题的.
-# # 虽然可以用文件共享数据实现进程间通信,但问题是:
-# # 1.效率低(共享数据基于文件,而文件是硬盘上的数据)
-# # 2.需要自己加锁处理
-# # 因此我们最好找寻一种解决方案能够兼顾:1、效率高(多个进程共享一块内存的数据) 2、帮我们处理好锁问题
-# # 这就是mutiprocessing模块为我们提供的基于消息的IPC通信机制:队列和管道
-# # 队列和管道都是将数据存放于内存中
-# # 队列又是基于(管道+锁)实现,可以让我们从复杂的锁问题中解脱出来.
-# # 我们应该尽量避免使用共享数据,尽可能使用消息传递和队列,避免处理复杂的同步和锁问题
-#
-# ###########################################################################################################################
-#
-# # multiprocessing.Value(typecode_or_type, *args, lock=True)
-#
-# # Return a ctypes object allocated from shared memory. By default the return value is actually a synchronized wrapper for the object.
-# # The object itself can be accessed via the value attribute of a Value.
-# # typecode_or_type determines the type of the returned object: it is either a ctypes type or a one character typecode of the kind used by the array module.
-# # *args is passed on to the constructor for the type.
-# # If lock is True (the default) then a new recursive lock object is created to synchronize access to the value.
-# # If lock is a Lock or RLock object then that will be used to synchronize access to the value.
-# # If lock is False then access to the returned object will not be automatically protected by a lock, so it will not necessarily be “process-safe”.
-# # Operations like += which involve a read and write are not atomic.
-# # So if, for instance, you want to atomically increment a shared value it is insufficient to just do "counter.value += 1"
-# # Assuming the associated lock is recursive (which it is by default) you can instead do
-# # with counter.get_lock():
-# #     counter.value += 1
-# # Note that lock is a keyword-only argument.
-#
-# from multiprocessing import Process,Value
-# def work(share):
-#     with share.get_lock():  # 应为Value只对读和赋值加了锁,详见multiprocessing.sharedctypes.make_property
-#         share.value-=1
-#
-# if __name__ == '__main__':
-#     share = Value('i',100)  # 在不需要锁的情况下可以Value('i',100,lock=False)
-#     processes=[Process(target=work,args=(share,)) for i in range(100)]
-#     for process in processes:
-#         process.start()
-#     for process in processes:
-#         process.join()
-#     print(share,share.value) # <Synchronized wrapper for c_long(0)> 0
-#
-# ###########################################################################################################################
-#
+
 # # multiprocessing.Array(typecode_or_type, size_or_initializer, *, lock=True)
 #
 # # Return a ctypes array allocated from shared memory. By default the return value is actually a synchronized wrapper for the array.

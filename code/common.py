@@ -1,7 +1,9 @@
 import re
+import time
 from collections import deque
 from collections.abc import Iterable
 from inspect import getgeneratorstate
+from multiprocessing import Process, Pipe
 
 
 def test_generator_state():
@@ -73,10 +75,6 @@ def test_yield_from():
 
 
 def test_flatten():
-    def gen():
-        yield from 'AB'
-        yield from range(3)
-
     def flatten(items, ignore_types=(str, bytes)):
         for x in items:
             if isinstance(x, Iterable) and not isinstance(x, ignore_types):
@@ -110,7 +108,7 @@ def dec2bin(string, precision=10):  # dec2bin('19.625') => 10011.101
     return ''.join(result)
 
 
-def win32_tutorial():
+def test_win32():
     import win32api
     import win32con
     x, y = 120, 240
@@ -119,5 +117,34 @@ def win32_tutorial():
     win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, x, y, 0, 0)  # 鼠标左键弹起
 
 
+def test_pipe(conn):
+    time.sleep(3)
+    conn.send([42, None, 'hello'])
+    conn.close()
+
+
+def pipe_tutorial():
+    """
+    returns a pair of connection objects connected by a pipe which by default is duplex (two-way).
+    Each connection object has send() and recv() methods (among others). Note that data in a pipe may become corrupted
+    if two processes (or threads) try to read from or write to the same end of the pipe at the same time.
+    Of course there is no risk of corruption from processes using different ends of the pipe at the same time.
+    """
+    parent_conn, child_conn = Pipe(False)  # parent_conn只读,child_conn只写
+    # parent_conn, child_conn = Pipe(True)  # parent_conn和child_conn可以读写,默认为True
+    p = Process(target=test_pipe, args=(child_conn,))
+    p.start()
+    '''
+    返回值bool类型,whether there is any data available to be read.
+    If timeout is not specified then it will return immediately.
+    If timeout is a number then this specifies the maximum time in seconds to block.
+    If timeout is None then an infinite timeout is used.
+    '''
+    parent_conn.poll(timeout=1)
+    print(parent_conn.recv())  # [42, None, 'hello'], Blocks until there is something to receive.
+    p.join()
+
+
 if __name__ == '__main__':
-    test_yield_from()
+    # test_yield_from()
+    pipe_tutorial()
