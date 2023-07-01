@@ -3,7 +3,7 @@ import random
 import time
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from multiprocessing import shared_memory, Value, Process, Manager, RLock as ProcessRLock
-from multiprocessing.dummy import Process as Thread, Lock as ThreadLock
+from multiprocessing.dummy import Process as Thread, Lock as ThreadLock, RLock as ThreadRLock
 from threading import get_ident
 
 """
@@ -295,103 +295,36 @@ def shared_manager_tutorial():
         print(namespace)  # Namespace(dict_={'a': {'b': 'ab'}, 'c': 'c'}, int_=3, list_=[0, 2, 4], string_='hi')
 
 
+def test_rlock(thread_rlock, salary):
+    time.sleep(.05)
+    with thread_rlock:
+        with thread_rlock:
+            time.sleep(.05)
+            salary[0] += 1
+
+
+def rlock_tutorial():
+    """
+    线程Lock的获取与释放可以在不同线程中完成,进程Lock的获取与释放可以在不同进程或线程中完成,嵌套Lock会导致死锁,但可以顺序出现多次
+    线程RLock的获取与释放必须在同一个线程中完成,进程RLock的获取与释放必须在同一个进程或线程中完成,RLock可以嵌套,也可以顺序
+    """
+    salary = [0]
+    thread_rlock = ThreadRLock()
+    threads = [Thread(target=test_rlock, args=(thread_rlock, salary)) for _ in range(100)]  # ok
+    # thread_lock = ThreadLock()
+    # threads = [Thread(target=test_rlock, args=(thread_lock, salary)) for _ in range(100)]  # deadlock
+    run_subroutine(threads)
+    assert salary[0] == 100
+
+
 if __name__ == "__main__":
     # shared_memory_tutorial()
     # shared_value_tutorial()
-    shared_manager_tutorial()
+    # shared_manager_tutorial()
     # pool_executor_tutorial()
     # DeriveRelationship.main()
     # join_tutorial()
-
-mutex = ThreadLock()
-
-
-def loop(n):
-    global deposit
-    for i in range(100000):
-        deposit += n  # 存
-        deposit -= n  # 取
-
-
-def loop_lock(n):
-    global deposit
-    print(get_ident())
-    # Return a non-zero integer that uniquely identifies the current thread amongst other threads that exist simultaneously.
-    # This may be used to identify per-thread resources.A thread's identity may be reused for another thread after it exits.
-    for i in range(100000):
-        with mutex:  # 加锁会使速度变慢,注意这里不能写作with Lock(),mutex必须共享
-            deposit += n  # 存
-            deposit -= n  # 取
-
-
-for i in range(10):
-    deposit = 0
-    # threads = [Thread(target=loop, args=(5,)), Thread(target=loop, args=(8,))]  # 最终可能是0,5,8,-5,-8
-    threads = [Thread(target=loop_lock, args=(5,)), Thread(target=loop_lock, args=(8,))]
-    for thread in threads:
-        thread.start()
-    for thread in threads:
-        thread.join()
-    print(deposit)
-'''
-线程Lock的获取与释放可以在不同线程中完成,进程Lock的获取与释放可以在不同进程或线程中完成
-线程RLock的获取与释放必须在同一个线程中完成,进程RLock的获取与释放必须在同一个进程或线程中完成
-'''
-
-# ###########################################################################################################################
-#
-# # RLock(普通的锁里面不能再出现锁,但可以顺序出现多次)
-#
-# from multiprocessing.dummy import Process,RLock,Lock,active_children
-#
-# salary = 0
-# rlock = RLock()
-# lock = Lock()
-#
-# def run(mutex):
-#     print('start run')
-#     time.sleep(.5)
-#     with mutex:  # 此处只能用递归锁,否则后面的with mutex会拿不到锁
-#         print('in first lock')
-#         with mutex:
-#             print('in second lock')
-#             global salary
-#             salary +=1
-#
-# def run_v1(mutex):
-#     print('start run')
-#     time.sleep(.5)
-#     with mutex:
-#         print('in first lock')
-#     with mutex:
-#         print('in second lock')
-#         global salary
-#         salary +=1
-#
-# for i in range(10):
-#     # t = Process(target=run,args=(rlock,))   # ok
-#     # t = Process(target=run,args=(lock,))      # error
-#     # t = Process(target=run_v1,args=(rlock,))  # ok
-#     t = Process(target=run_v1,args=(lock,))   # ok
-#     t.start()
-#
-# while active_children():
-#     print("当前线程：",active_children())
-#     time.sleep(1)
-# else:
-#     print(salary,'over')
-#
-# ###########################################################################################################################
-#
-# # semaphore manages an atomic counter representing the number of release() calls minus the number of acquire() calls, plus an initial value.
-# # The acquire() method blocks if necessary until it can return without making the counter negative.
-# # A bounded semaphore checks to make sure its current value doesn’t exceed its initial value. If it does, ValueError is raised.
-# # In most situations semaphores are used to guard resources with limited capacity, for example, a database server.
-# # If the semaphore is released too many times it’s a sign of a bug. If not given, value defaults to 1.
-# # Once spawned, worker threads call the semaphore’s acquire and release methods when they need to connect to the server
-# # The use of a bounded semaphore reduces the chance that a programming error which causes the semaphore to be released more than it’s acquired will go undetected.
-#
-# ###########################################################################################################################
+    rlock_tutorial()
 
 # def test0():
 #     mm = mmap.mmap(fileno=-1, length=256,
