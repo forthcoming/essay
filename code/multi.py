@@ -2,7 +2,7 @@ import os
 import random
 import time
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
-from multiprocessing import shared_memory, Value, Process
+from multiprocessing import shared_memory, Value, Process, Manager, RLock
 from multiprocessing.dummy import Process as Thread
 from threading import get_ident, Lock
 
@@ -237,84 +237,70 @@ def shared_value_tutorial():
     print(shared_value, shared_value.value)  # <Synchronized wrapper for c_int(0)> 0
 
 
+def test_shared_manager(shared_dict, shared_list, rlock):
+    time.sleep(.001)
+    with rlock:
+        shared_dict['a'] += 1
+        shared_list.append(os.getpid())
+
+
+def test_shared_manager_namespace(namespace):
+    namespace_list_ = namespace.list_  # 通用方法,针对可变对象
+    namespace_list_[0] -= 1
+    namespace_list_.append(2)
+    namespace_list_ += [4]
+    namespace.list_ = namespace_list_
+
+    namespace_dict_ = namespace.dict_
+    namespace_dict_['c'] = 'c'
+    namespace_dict_['a']['b'] = 'ab'
+    namespace.dict_ = namespace_dict_
+
+    namespace.int_ += 2  # 针对不可变对象直接操作
+    namespace.string_ += "i"
+
+
+def shared_manager_tutorial():
+    """
+    服务器进程管理器比使用共享内存对象更灵活,因为它可以支持任意对象类型,单个管理器可以由网络上不同计算机上的进程共享,但比使用共享内存慢
+    如果您有manager.list()对象,则对托管列表本身的任何更改都会传播到所有其他进程,但如果该列表中有一个列表,则对内部列表的任何更改都不会传播
+    """
+    with Manager() as manager:
+        rlock = RLock()  # 必须从外部传入子程序
+        shared_dict = manager.dict({'a': 0})
+        shared_list = manager.list()
+        processes = [Process(target=test_shared_manager, args=(shared_dict, shared_list, rlock)) for _ in range(10)]
+        run_subroutine(processes)
+        print(shared_dict)  # {'a': 10}
+        print(shared_list)  # [16016, 19356, 18492, 17892, 13048, 19212, 1844, 14400, 7344, 1008]
+
+        shared_dict_list = manager.list([manager.dict() for _ in range(2)])
+        # shared_dict_list = manager.list([{} for _ in range(2)]) # 此种方式用法错误
+        first_inner = shared_dict_list[0]
+        first_inner['a'] = 1
+        first_inner['b'] = 2
+        shared_dict_list[1]['c'] = 3
+        shared_dict_list[1]['d'] = 4
+        print(*shared_dict_list)  # {'a': 1, 'b': 2} {'c': 3, 'd': 4}
+
+        namespace = manager.Namespace()
+        namespace.list_ = [1]
+        namespace.int_ = 1
+        namespace.string_ = "h"
+        namespace.dict_ = {'a': {'b': 1}}
+        print(namespace)  # Namespace(dict_={'a': {'b': 1}}, int_=1, list_=[1], string_='h')
+        process = Process(target=test_shared_manager_namespace, args=(namespace,))
+        run_subroutine([process])
+        print(namespace)  # Namespace(dict_={'a': {'b': 'ab'}, 'c': 'c'}, int_=3, list_=[0, 2, 4], string_='hi')
+
+
 if __name__ == "__main__":
     # shared_memory_tutorial()
-    shared_value_tutorial()
+    # shared_value_tutorial()
+    shared_manager_tutorial()
     # pool_executor_tutorial()
     # DeriveRelationship.main()
     # join_tutorial()
-
-# # Manager
-# # Server process managers are more flexible than using shared memory objects because they can be made to support arbitrary object types.
-# # Also, a single manager can be shared by processes on different computers over a network. They are, however, slower than using shared memory.
-# # manager不是进程安全,写操作需要加锁
-#
-# from multiprocessing import Process, Manager
-# import os
-#
-# def task(Dict, List):
-#     Dict['k'] = 'v'
-#     List.append(os.getpid())  # 获取子进程的PID
-#
-# if __name__ == '__main__':
-#     with Manager() as manager:
-#         Dict = manager.dict({'a':1})  # 生成一个可以在多个进程之间共享的字典
-#         List = manager.list()
-#
-#         processes=[Process(target=task, args=(Dict, List)) for i in range(10)]
-#         for process in processes:
-#             process.start()
-#         for process in processes:
-#             process.join()
-#         print(Dict)  # {'a': 1, 'k': 'v'}
-#         print(List)  # [16016, 19356, 18492, 17892, 13048, 19212, 1844, 14400, 7344, 1008]
-#
-#
-# import multiprocessing as mp
-# def f(ns):
-#     # ns.x.append(10) # 无效
-#     ns.x+=[10]
-#
-#     # ns.y[0]+=20 # 无效
-#     ns_y=ns.y
-#     ns_y[0]+=20
-#     ns.y=ns_y
-#
-#     ns_z=ns.z  # 通用方法
-#     ns_z['c']=123
-#     ns_z['a']['b']=321
-#     ns.z=ns_z
-#
-# if __name__ == '__main__':
-#     with mp.Manager() as manager:
-#         ns = manager.Namespace()
-#         ns.x = [10]
-#         ns.y = [10]
-#         ns.z = {'a':{'b':1}}
-#         print('before', ns)
-#         p = mp.Process(target=f, args=(ns,))
-#         p.start()
-#         p.join()
-#         print('after', ns)
-#
-#         l_outer = manager.list([ manager.dict() for i in range(2) ])
-#         # l_outer = manager.list([ {} for i in range(2) ])
-#         d_first_inner = l_outer[0]
-#         d_first_inner['a'] = 1
-#         d_first_inner['b'] = 2
-#         l_outer[1]['c'] = 3
-#         l_outer[1]['z'] = 26
-#         print(l_outer[0])
-#         print(l_outer[1])
-
-# Manager proxy objects are unable to propagate changes made to mutable objects inside a container.
-# So in other words, if you have a manager.list() object, any changes to the managed list itself are propagated to all the other processes.
-# But if you have a list inside that list, any changes to the inner list are not propagated, because the manager has no way of detecting the change.
-# In order to propagate the changes, you have to modify the manager.list() object directly, as indicated by the note here.
-# As you can see, when a new value is assigned directly to the managed container, it changes;
-# when it is assigned to a mutable container within the managed container, it doesn't change;
-# but if the mutable container is then reassigned to the managed container, it changes again.
-
 
 # ###########################################################################################################################
 #
