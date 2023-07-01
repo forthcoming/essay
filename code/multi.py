@@ -3,6 +3,7 @@ import random
 import time
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from multiprocessing import shared_memory, Process
+from multiprocessing.dummy import Process as Thread
 from threading import get_ident, Lock
 
 """
@@ -21,10 +22,24 @@ GIL只存在于CPython解释器中,其他解释器如Jython、IronPython、PyPy�
 对于CPU密集型任务通常使用多进程,进程数不是越大越好,默认进程数等于电脑核数
 GIL导致线程是并发运行(即便有多个cpu,线程会在其中一个cpu来回切换),而进程是并行
 标准库中所有阻塞型I/O函数都会释放GIL,time.sleep也会释放,因此尽管有GIL,线程还是能在I/O密集型应用中发挥作用
+daemon=False: 父线/进程运行完,会接着等子线/进程全部都执行完后才结束
+daemon=True: 父进程结束,子线/进程也將终止,但父进程被kill -9杀死时子进程不会结束,会被系统托管
+如果主进程开了多个子进程,而子进程出错,并不影响其他子进程和主进程的运行,但其自身会变为僵尸进程
+应为主进程没有join操作给其收尸,在Linux中用"defunct"标记该进程,通过top也能查看当前的僵尸进程个数
 
 sys.setswitchinterval(n) # 设置解释器的线程切换间隔(以秒为单位),实际值可能更高,特别是在使用长时间运行的内部函数或方法时
 在间隔结束时调度哪个线程是操作系统的决定,解释器没有自己的调度程序
 """
+
+
+def run_subroutine(subroutines):
+    for subroutine in subroutines:
+        # print(subroutine.is_alive())  # False
+        subroutine.start()
+        # print(subroutine.is_alive())  # True
+        # subroutine.terminate()  # 仅用于进程
+    for subroutine in subroutines:
+        subroutine.join()
 
 
 def pool_work(second):
@@ -119,61 +134,101 @@ def shared_memory_tutorial():
 
     new_shared = shared_memory.SharedMemory(shared.name)  # Attach to an existing shared memory block
     process = Process(target=interprocess_communication, args=(new_shared,))
-    process.start()
-    process.join()
+    run_subroutine([process])
 
     print(shared.buf[:6].tobytes(), shared.buf[:6].tolist())  # b"howdyB" [104, 111, 119, 100, 121, 66]
     shared.close()  # Close each SharedMemory instance
     shared.unlink()  # Call unlink only once to release the shared memory
 
 
+class DeriveRelationship:
+    """
+    进程之间的派生拥有父子关系
+    线程之间的派生是对等关系,都隶属于主进程的子线程
+    线程进程交互派生时,进程隶属于上个进程的子进程,线程隶属于上个进程的子线程
+    """
+
+    @staticmethod
+    def main():
+        print('in main', os.getpid(), os.getppid())
+        program = Thread(target=DeriveRelationship.kid1)
+        run_subroutine([program])
+        time.sleep(100)
+        # in main 15944 13085
+        # in kid1 15944 13085
+        # in kid2 15948 15944
+        # in kid3 15948 15944
+        # in kid3 15950 15948
+
+    @staticmethod
+    def kid1():
+        print('in kid1', os.getpid(), os.getppid())
+        program = Process(target=DeriveRelationship.kid2)
+        run_subroutine([program])
+        time.sleep(100)
+
+    @staticmethod
+    def kid2():
+        print('in kid2', os.getpid(), os.getppid())
+        programs = [Thread(target=DeriveRelationship.kid3), Process(target=DeriveRelationship.kid3)]
+        run_subroutine(programs)
+        time.sleep(100)
+
+    @staticmethod
+    def kid3():
+        print('in kid3', os.getpid(), os.getppid())
+        time.sleep(100)
+
+
 if __name__ == "__main__":
-    shared_memory_tutorial()
+    # shared_memory_tutorial()
     # pool_executor_tutorial()
+    DeriveRelationship.main()
+
 
 #
-# # 进程之间的派生拥有父子关系
-# # 线程之间的派生是对等关系,都隶属于主进程的子线程
-# # 线程进程交互派生时,进程隶属于上个进程的子进程,线程隶属于上个进程的子线程
-# from multiprocessing.dummy import Process as Thread
+# # join([timeout])
+# # If the optional argument timeout is None (the default), the method blocks until the process whose join() method is called terminates.
+# # If timeout is a positive number, it blocks at most timeout seconds. Note that the method returns None if its process terminates or if the method times out. Check the process’s exitcode to determine if it terminated.
+# # A process can be joined many times.
+# # 主程序一遇到join就会阻塞,直到join的子进程执行完毕,但不会阻塞所有子程序的运行
+# # join会调用系统的os.waitpid()方法来获取子进程的退出信息,消除子进程,防止产生僵尸进程,但如果超过timeout后父进程被唤醒,子进程在这之后结束,仍可能产生僵尸进程
+# # 如果timeout未指定,则主进程总的等待时间T = max(t1,t2,...,tn)
+# # 如果timeout大于0,T1 = min(timeout,max(t1,0)),T2 = min(timeout,max(t2-T1,0)),Tn = min(timeout,max(tn-Tn-1,0)),则主进程总的等待时间T = sum(T1+T2,...+Tn)
 #
+# def xx(a):
+#     time.sleep(5)
+#     return a
 #
-# def start(programs):
-#     for program in programs:
-#         program.start()
-#     for program in programs:
-#         program.join()
+# def yy(a):
+#     time.sleep(3)
+#     return a
 #
-# def main():
-#     print('in main',os.getpid(),os.getppid())
-#     programs=[Thread(target=kid1)]
-#     start(programs)
-#     time.sleep(100)
+# def zz(a):
+#     time.sleep(7)
+#     return a
 #
-# def kid1():
-#     print('in kid1',os.getpid(),os.getppid())
-#     programs=[Process(target=kid2)]
-#     start(programs)
-#     time.sleep(100)
+# if __name__=='__main__':
+#     threadings=[Process(target=xx, args=(5,)),Process(target=yy, args=(8,)),Process(target=zz, args=(8,))]
+#     begin=time.time()
+#     for thread in threadings:
+#         thread.start()
+#     mid=time.time()
+#     print(mid-begin)
+#     for thread in threadings:
+#         thread.join()
+#         print('子进程阻塞耗时:',time.time()-mid)
+#         mid=time.time()
+#     print('总耗时:',time.time()-begin)
+# '''
+# OUTPUT:
+# 0.053999900817871094
+# 子进程阻塞耗时: 5.063000202178955
+# 子进程阻塞耗时: 0.0
+# 子进程阻塞耗时: 2.045599937438965
+# 总耗时: 7.162600040435791
+# '''
 #
-# def kid2():
-#     print('in kid2',os.getpid(),os.getppid())
-#     programs=[Thread(target=kid3),Process(target=kid3)]
-#     start(programs)
-#     time.sleep(100)
-#
-# def kid3():
-#     print('in kid3',os.getpid(),os.getppid())
-#     time.sleep(100)
-#
-# main()
-# # in main 15944 13085
-# # in kid1 15944 13085
-# # in kid2 15948 15944
-# # in kid3 15948 15944
-# # in kid3 15950 15948
-#
-
 
 # # Pipe
 # # The Pipe() function returns a pair of connection objects connected by a pipe which by default is duplex (two-way).
@@ -202,37 +257,6 @@ if __name__ == "__main__":
 #     print(parent_conn.recv())    # [42, None, 'hello'], Blocks until there is something to receive.
 #     p.join()
 
-# ###########################################################################################################################
-#
-# '''
-# 如果主进程开了多个子进程,而子进程出错,并不影响其他子进程和主进程的运行,但其自身会变为僵尸进程（例如imghash.py）,应为主进程没有join操作给其收尸
-# 在Linux中用"defunct"标记该进程,通过top也能查看当前的僵尸进程个数.
-# '''
-# from multiprocessing import Process
-# import time,os
-# def test(num):
-#     print('start test({})'.format(num))
-#     time.sleep(num)
-#     print('PPID:{} PID:{}'.format(os.getppid(),os.getpid()))  #PPID:7872 PID:10496
-#
-# if __name__=='__main__':
-#     p = Process(target=time.sleep, name='python',args=(1000,))
-#     print(p,p.is_alive(),p.pid,p.name)         #<Process(python, initial)> False None python
-#     p.start()
-#     print(p, p.is_alive(),p.pid,p.name)        #<Process(python, started)> True 10732 python
-#     p.terminate()                              #终止
-#     time.sleep(0.1)                            #必须要停一下
-#     print(p,p.is_alive(),p.pid,p.name)         #<Process(python, stopped[SIGTERM])> False 10732 python
-#
-#     p = Process(target=test, name='test',args=(4,),daemon=True)
-#     # daemon=True:  父进程结束,子进程/线程也將终止(When a process exits, it attempts to terminate all of its daemonic child processes.),但父进程被kill -9杀死时子进程不会结束,会被系统托管
-#     # daemon=False: 父进程运行完,会接着等子进程/线程全部都执行完后才结束(注意线程也有daemon概念)
-#     print('PPID:{} PID:{}'.format(os.getppid(),os.getpid()))  #PPID:8092 PID:7872
-#     p.start() #异步执行子进程
-#     print('Process has start.')
-#     p.join()
-#     print('Process end.')  # 执行到这里父进程将结束
-#
 # ###########################################################################################################################
 #
 # # lock
@@ -323,54 +347,6 @@ if __name__ == "__main__":
 # # If the semaphore is released too many times it’s a sign of a bug. If not given, value defaults to 1.
 # # Once spawned, worker threads call the semaphore’s acquire and release methods when they need to connect to the server
 # # The use of a bounded semaphore reduces the chance that a programming error which causes the semaphore to be released more than it’s acquired will go undetected.
-#
-#
-# ###########################################################################################################################
-#
-# # join([timeout])
-# # If the optional argument timeout is None (the default), the method blocks until the process whose join() method is called terminates.
-# # If timeout is a positive number, it blocks at most timeout seconds. Note that the method returns None if its process terminates or if the method times out. Check the process’s exitcode to determine if it terminated.
-# # A process can be joined many times.
-# # 主程序一遇到join就会阻塞,直到join的子进程执行完毕,但不会阻塞所有子程序的运行
-# # join会调用系统的os.waitpid()方法来获取子进程的退出信息,消除子进程,防止产生僵尸进程,但如果超过timeout后父进程被唤醒,子进程在这之后结束,仍可能产生僵尸进程
-# # 如果timeout未指定,则主进程总的等待时间T = max(t1,t2,...,tn)
-# # 如果timeout大于0,T1 = min(timeout,max(t1,0)),T2 = min(timeout,max(t2-T1,0)),Tn = min(timeout,max(tn-Tn-1,0)),则主进程总的等待时间T = sum(T1+T2,...+Tn)
-#
-# from multiprocessing import Process
-# import time
-#
-# def xx(a):
-#     time.sleep(5)
-#     return a
-#
-# def yy(a):
-#     time.sleep(3)
-#     return a
-#
-# def zz(a):
-#     time.sleep(7)
-#     return a
-#
-# if __name__=='__main__':
-#     threadings=[Process(target=xx, args=(5,)),Process(target=yy, args=(8,)),Process(target=zz, args=(8,))]
-#     begin=time.time()
-#     for thread in threadings:
-#         thread.start()
-#     mid=time.time()
-#     print(mid-begin)
-#     for thread in threadings:
-#         thread.join()
-#         print('子进程阻塞耗时:',time.time()-mid)
-#         mid=time.time()
-#     print('总耗时:',time.time()-begin)
-# '''
-# OUTPUT:
-# 0.053999900817871094
-# 子进程阻塞耗时: 5.063000202178955
-# 子进程阻塞耗时: 0.0
-# 子进程阻塞耗时: 2.045599937438965
-# 总耗时: 7.162600040435791
-# '''
 #
 # ###########################################################################################################################
 #
