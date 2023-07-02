@@ -281,7 +281,7 @@ def common_tutorial():
 
     x = 1
     print(eval('x+1'), x)  # 2, 1  执行字符串形式的表达式,返回执行结果
-    print(exec('x += 10'), x)  # None, 1  执行字符串形式的代码，返回None,当x是全局变量时返回11
+    print(exec('x += 10'), x)  # None, 1  执行字符串形式的代码,一般用于不太好直接写的代码,返回None,当x是全局变量时返回11
 
     secret = hashlib.md5(b"hello blockchain world, this is yeasy@github")
     print(secret.hexdigest())  # 1ee216d3ef1d217cd2807348f5f7ce19
@@ -540,7 +540,7 @@ def unpack_tutorial():  # 解包
     arg7 = [*range(5)]
 
 
-def args_tutorial():
+def arguments_tutorial():
     def test_keywords(name, age, gender):  # 关键字参数/解包参数调用函数(可通过keyword=value形式调用函数,参数顺序无所谓)
         print('name:', name, 'age:', age, 'gender:', gender)
 
@@ -558,7 +558,8 @@ def args_tutorial():
 
     number = 5
 
-    def test_default(element, num=number, arr=[], arr1=None):  # 如果默认值是一个可变对象如列表,字典,大多类对象时,函数在随后调用中会累积参数值
+    # *后面的参数在函数调用时必须通过key=value形式赋值
+    def test_default(element, *, num=number, arr=[], arr1=None):  # 如果默认值是一个可变对象如列表,字典,大多类对象时,函数在随后调用中会累积参数值
         arr.append(element)
         if arr1 is None:  # 防止默认值在不同子调用间被共享
             arr1 = []
@@ -1167,7 +1168,7 @@ class PickleTutorial:
 
 
 def pickle_tutorial():
-    # 除个别外(如不能序列化lambda表达式), pickle.dumps可以序列化任何数据类型成b字符串,并保留原有的数据(比如生成好的树,图结构),可用于进程间通信
+    # 除个别外(如不能序列化lambda表达式), pickle.dumps可以序列化任何数据类型成b字符串,并保留原有的数据(比如生成好的树,图结构)
     # pickle.loads反序列化后的对象与原对象是等值的副本对象, 类似与deepcopy
     # pickle模块并不安全,你只应该对你信任的数据进行unpickle操作
     with open("data", "wb") as f:
@@ -1220,16 +1221,17 @@ def singleton_tutorial():
     assert TestSingleTonPool() is TestSingleTonPool()
 
 
-if __name__ == "__main__":  # import到其他脚本中不会执行以下代码,多进程也会表现不同
-    list_tutorial()
-    is_tutorial()
-    str_tutorial()
+if __name__ == "__main__":  # import到其他脚本中不会执行以下代码,spawn方式的多进程也需要
+    arguments_tutorial()
+    # list_tutorial()
+    # is_tutorial()
+    # str_tutorial()
     # subprocess_tutorial()
     # dict_tutorial()
-    iterable_tutorial()
+    # iterable_tutorial()
     # common_tutorial()
     # inherit_tutorial()
     # metaclass_tutorial()
     # pickle_tutorial()
     # singleton_tutorial()
-    isinstance_tutorial()
+    # isinstance_tutorial()

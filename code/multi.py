@@ -1,13 +1,14 @@
 import ctypes
 import datetime
 import mmap
+import multiprocessing as mp
 import os
 import random
 import re
 import signal
 import time
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
-from multiprocessing import shared_memory, Process, Manager, RLock as ProcessRLock, JoinableQueue
+from multiprocessing import shared_memory
 from multiprocessing.dummy import Process as Thread, Lock as ThreadLock, RLock as ThreadRLock
 from threading import get_ident, local
 
@@ -140,7 +141,8 @@ def shared_memory_tutorial():
     print(bytes(shared.buf[:6]), bytearray(shared.buf[:6]))  # b"abcdAB" bytearray(b"abcdAB")
 
     new_shared = shared_memory.SharedMemory(shared.name)  # Attach to an existing shared memory block
-    process = Process(target=interprocess_communication, args=(new_shared,))
+    mp.set_start_method("spawn")  # 默认方式
+    process = mp.Process(target=interprocess_communication, args=(new_shared,))
     run_subroutine([process])
 
     print(shared.buf[:6].tobytes(), shared.buf[:6].tolist())  # b"howdyB" [104, 111, 119, 100, 121, 66]
@@ -214,7 +216,7 @@ class DeriveRelationship:
         print('in main', os.getpid(), os.getppid())
         program = Thread(target=DeriveRelationship.kid1)  # daemon=False且无法更改,想自定义请用threading.Thread
         run_subroutine([program])
-        time.sleep(100)
+        time.sleep(10)
         # in main 15944 13085
         # in kid1 15944 13085
         # in kid2 15948 15944
@@ -224,21 +226,21 @@ class DeriveRelationship:
     @staticmethod
     def kid1():
         print('in kid1', os.getpid(), os.getppid())
-        program = Process(target=DeriveRelationship.kid2)
+        program = mp.Process(target=DeriveRelationship.kid2)
         run_subroutine([program])
-        time.sleep(100)
+        time.sleep(10)
 
     @staticmethod
     def kid2():
         print('in kid2', os.getpid(), os.getppid())
-        programs = [Thread(target=DeriveRelationship.kid3), Process(target=DeriveRelationship.kid3)]
+        programs = [Thread(target=DeriveRelationship.kid3), mp.Process(target=DeriveRelationship.kid3)]
         run_subroutine(programs)
-        time.sleep(100)
+        time.sleep(10)
 
     @staticmethod
     def kid3():
         print('in kid3', os.getpid(), os.getppid())
-        time.sleep(100)
+        time.sleep(10)
 
 
 def join_tutorial():
@@ -249,9 +251,9 @@ def join_tutorial():
     如果timeout大于0,T1 = min(timeout,max(t1,0)),...,Tn = min(timeout,max(tn-Tn-1,0)),则主进程总的等待时间T = sum(T1+T2,...+Tn)
     """
     processes = [
-        Process(target=time.sleep, args=(5,)),
-        Process(target=time.sleep, args=(3,)),
-        Process(target=time.sleep, args=(7,)),
+        mp.Process(target=time.sleep, args=(5,)),
+        mp.Process(target=time.sleep, args=(3,)),
+        mp.Process(target=time.sleep, args=(7,)),
     ]
     for process in processes:
         process.start()
@@ -298,11 +300,11 @@ def shared_manager_tutorial():
     服务器进程管理器比使用共享内存对象更灵活,因为它可以支持任意对象类型,单个管理器可以由网络上不同计算机上的进程共享,但比使用共享内存慢
     如果您有manager.list()对象,则对托管列表本身的任何更改都会传播到所有其他进程,但如果该列表中有一个列表,则对内部列表的任何更改都不会传播
     """
-    with Manager() as manager:
-        process_rlock = ProcessRLock()  # 必须从外部传入子程序
+    with mp.Manager() as manager:
+        process_rlock = mp.RLock()  # 必须从外部传入子程序
         shared_dict = manager.dict({'a': 0})
         shared_list = manager.list()
-        processes = [Process(target=test_shared_manager, args=(shared_dict, shared_list, process_rlock)) for _ in
+        processes = [mp.Process(target=test_shared_manager, args=(shared_dict, shared_list, process_rlock)) for _ in
                      range(10)]
         run_subroutine(processes)
         print(shared_dict)  # {'a': 10}
@@ -323,7 +325,7 @@ def shared_manager_tutorial():
         namespace.string_ = "h"
         namespace.dict_ = {'a': {'b': 1}}
         print(namespace)  # Namespace(dict_={'a': {'b': 1}}, int_=1, list_=[1], string_='h')
-        process = Process(target=test_shared_manager_namespace, args=(namespace,))
+        process = mp.Process(target=test_shared_manager_namespace, args=(namespace,))
         run_subroutine([process])
         print(namespace)  # Namespace(dict_={'a': {'b': 'ab'}, 'c': 'c'}, int_=3, list_=[0, 2, 4], string_='hi')
 
@@ -393,6 +395,7 @@ class ThreadLocal:
 
 def fork_tutorial():
     """
+    子进程可通过fork或者spawn方式生成,spawn底层用了pickle将父进程数据序列化后传到子进程
     子进程是从fork后面那个指令开始执行,在父进程中fork返回新创建子进程的进程ID,子进程返回0
     kill(跟linux一致),pid>0: 向进程号pid的进程发送信号,可以验证kill杀死父进程,子进程会不会结束;pid=0: 向当前进程所在的进程组发送信号
     父进程里使用wait,相当于join,这个函数会让父进程阻塞,直到任意一个子进程执行完成,回收该子进程的内核进程资源
@@ -448,10 +451,10 @@ class QueueTutorial:
 
     @staticmethod
     def scheduler():
-        task = JoinableQueue()  # 操作均为原子性,用户无需再加锁
+        task = mp.JoinableQueue()  # 操作均为原子性,用户无需再加锁
         for _ in range(2):
             # 多进程一定要把task传递过去,这里daemon必须为True,否则主程序会一直等待consumer
-            process = Process(target=QueueTutorial.consumer, args=(task,), daemon=True)
+            process = mp.Process(target=QueueTutorial.consumer, args=(task,), daemon=True)
             process.start()
         with ThreadPoolExecutor(3) as executor:  # 为什么不能用ProcessPoolExecutor??
             for index in range(20):
@@ -460,14 +463,14 @@ class QueueTutorial:
 
 
 if __name__ == "__main__":
-    # shared_memory_tutorial()
-    # shared_manager_tutorial()
-    # shared_mmap_tutorial()
-    # shared_value_simulation_tutorial()
-    # pool_executor_tutorial()
-    # DeriveRelationship.main()
-    # join_tutorial()
-    # rlock_tutorial()
-    # ThreadLocal.thread_local_tutorial()
-    # fork_tutorial()
+    shared_memory_tutorial()
+    shared_manager_tutorial()
+    shared_mmap_tutorial()
+    shared_value_simulation_tutorial()
+    pool_executor_tutorial()
+    DeriveRelationship.main()
+    join_tutorial()
+    rlock_tutorial()
+    ThreadLocal.thread_local_tutorial()
+    fork_tutorial()
     QueueTutorial.scheduler()
