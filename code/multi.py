@@ -141,7 +141,15 @@ def shared_memory_tutorial():
     print(bytes(shared.buf[:6]), bytearray(shared.buf[:6]))  # b"abcdAB" bytearray(b"abcdAB")
 
     new_shared = shared_memory.SharedMemory(shared.name)  # Attach to an existing shared memory block
-    mp.set_start_method("spawn")  # 默认方式
+    mp.set_start_method("fork")  # 默认方式是spawn
+    """
+    Register callables to be called when forking a new process.
+    before: A callable to be called in the parent before the fork().
+    after_in_child: A callable to be called in the child after fork().
+    after_in_parent: A callable to be called in the parent after fork().
+    before callbacks are called in reverse order.after_in_child and after_in_parent callbacks are called in order
+    """
+    os.register_at_fork(after_in_child=lambda: print(os.getpid()))  # fork方式有效
     process = mp.Process(target=interprocess_communication, args=(new_shared,))
     run_subroutine([process])
 
@@ -463,7 +471,7 @@ class QueueTutorial:
 
 
 if __name__ == "__main__":
-    # shared_memory_tutorial()
+    shared_memory_tutorial()
     # shared_manager_tutorial()
     # shared_mmap_tutorial()
     # shared_value_simulation_tutorial()
@@ -471,6 +479,6 @@ if __name__ == "__main__":
     # DeriveRelationship.main()
     # join_tutorial()
     # rlock_tutorial()
-    ThreadLocal.thread_local_tutorial()
+    # ThreadLocal.thread_local_tutorial()
     # fork_tutorial()
     # QueueTutorial.scheduler()
