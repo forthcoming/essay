@@ -3,6 +3,7 @@ import logging
 import os
 import threading
 import time
+from multiprocessing.dummy import Process
 
 import requests
 
@@ -108,7 +109,7 @@ class Apollo:  # 进程安全
                 ns = entry['namespaceName']
                 nid = entry['notificationId']
                 logging.getLogger(__name__).info("%s has changes: notificationId=%d", ns, nid)
-                self._uncached_http_get(ns)
+                self._un_cached_http_get(ns)
                 self._notification_map[ns] = nid
         else:
             logging.getLogger(__name__).debug(
@@ -119,8 +120,7 @@ class Apollo:  # 进程安全
     # 该接口会从缓存中获取配置,适合频率较高的配置拉取请求,如简单的每30秒轮询一次配置,缓存最多会有一秒的延时
     # ip参数可选,应用部署的机器ip,用来实现灰度发布
     def _cached_http_get(self, key, default_val, namespace='application'):
-        url = '{}/configfiles/json/{}/{}/{}?ip={}'.format(self.config_server_url, self.appId, self.cluster, namespace,
-                                                          self.ip)
+        url = f'{self.config_server_url}/configfiles/json/{self.appId}/{self.cluster}/{namespace}?ip={self.ip}'
         r = requests.get(url)
         if r.ok:  # ok?
             data = r.json()
@@ -131,14 +131,14 @@ class Apollo:  # 进程安全
         return data.get(key, default_val)
 
     # 不带缓存的Http接口从Apollo读取配置,如果需要配合配置推送通知实现实时更新配置的话需要调用该接口
-    def _uncached_http_get(self, namespace='application'):
+    def _un_cached_http_get(self, namespace='application'):
         url = '{}/configs/{}/{}/{}?ip={}'.format(self.config_server_url, self.appId, self.cluster, namespace, self.ip)
         r = requests.get(url)
         if r.status_code == 200:
             data = r.json()
             self._cache[namespace] = data['configurations']  # dict,包含当前namespace下的所有key-value
         else:
-            print('_uncached_http_get error, status:{}, namespace:{}'.format(r.status_code, namespace))
+            print('_un_cached_http_get error, status:{}, namespace:{}'.format(r.status_code, namespace))
 
     def _listener(self):
         while True:
@@ -146,30 +146,25 @@ class Apollo:  # 进程安全
             self._long_poll()
 
 
-def test_concurrency():
-    from multiprocessing.dummy import Process
+class TestApollo:
+    @staticmethod
+    def test_concurrency():
+        apollo = Apollo(app_id='ktv', config_server_url='http://10.16.4.194:8080')
+        threads = [Process(target=lambda apl: print(apl.get_value('test', "", namespace='config')), args=(apollo,)) for
+                   _ in range(1000)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
 
-    def work(apollo):
-        print(apollo.get_value('risk_serverkey', 'not exists', namespace='KTV.resources_config'))
-
-    apollo = Apollo(app_id='ccktv', config_server_url='http://10.16.4.194:8080')
-    # apollo = ApolloClient(app_id='ccktv', config_server_url='http://metayz.fxapollo.kgidc.cn')  # 正式环境
-    ps = [Process(target=work, args=(apollo,)) for _ in range(1000)]
-    for p in ps:
-        p.start()
-
-    for p in ps:
-        p.join()
-
-
-def test_single():
-    apollo = Apollo(app_id='ccktv', config_server_url='http://10.16.4.194:8080')  # 测试环境
-    # apollo = ApolloClient(app_id='ccktv', config_server_url='http://metayz.fxapollo.kgidc.cn')  # 正式环境
-    conf1 = apollo.get_value('risk_serverkey', 'bb', namespace='KTV.resources_config')
-    conf2 = apollo.get_value('switch_rcmd_type', 'not_exists')  # apollo返回的数据类型都是str
-    print(conf1, conf2, type(conf2))
+    @staticmethod
+    def test_single():
+        apollo = Apollo(app_id='ktv', config_server_url='http://10.16.4.194:8080')
+        conf1 = apollo.get_value('test', 'bb', namespace='config')
+        conf2 = apollo.get_value('switch', '')  # apollo返回的数据类型都是str
+        print(conf1, conf2, type(conf2))
 
 
 if __name__ == '__main__':
-    test_concurrency()
-    # test_single()
+    TestApollo.test_concurrency()
+    # TestApollo.test_single()
