@@ -391,13 +391,41 @@ class ThreadLocal:
         """
 
 
+def fork_tutorial():
+    """
+    子进程是从fork后面那个指令开始执行,在父进程中fork返回新创建子进程的进程ID,子进程返回0
+    kill(跟linux一致),pid>0: 向进程号pid的进程发送信号,可以验证kill杀死父进程,子进程会不会结束;pid=0: 向当前进程所在的进程组发送信号
+    父进程里使用wait,相当于join,这个函数会让父进程阻塞,直到任意一个子进程执行完成,回收该子进程的内核进程资源
+    """
+    pid = os.fork()
+    if pid == 0:
+        time.sleep(1)
+        print(f"in child process, pid is {os.getpid()}")
+        exit(1)
+        print("此处不会被输出")
+    else:
+        os.wait() 
+        print("子进程结束,开始执行父进程")
+        time.sleep(2)
+
+    # os.fork()
+    # os.fork() and os.fork() or os.fork()
+    # os.fork()
+    # print("+")  # 总共有20个进程,1个主进程+19个子进程
+
+    # for i in range(3):
+    #     os.fork()
+    #     print(f"pid:{os.getpid()} ppid:{os.getppid()} pgid:{os.getpgid(0)}")  # 2+4+8=14 outputs
+
+
 if __name__ == "__main__":
     # shared_memory_tutorial()
     # shared_manager_tutorial()
     # shared_mmap_tutorial()
-    shared_value_simulation_tutorial()
+    # shared_value_simulation_tutorial()
     # pool_executor_tutorial()
     # DeriveRelationship.main()
     # join_tutorial()
     # rlock_tutorial()
     # ThreadLocal.thread_local_tutorial()
+    fork_tutorial()
