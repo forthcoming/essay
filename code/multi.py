@@ -391,10 +391,6 @@ class ThreadLocal:
         """
 
 
-def signal_handler(signal_value, frame):
-    print(f"signal_value:{signal_value}, time:{datetime.datetime.now()},frame:{frame}")
-
-
 def fork_tutorial():
     """
     子进程是从fork后面那个指令开始执行,在父进程中fork返回新创建子进程的进程ID,子进程返回0
@@ -413,7 +409,7 @@ def fork_tutorial():
     当子进程退出的时候,内核都会给父进程一个SIGCHLD信号,终端上按下ctrl+c会产生SIGINT信号
     如果父进程不关心子进程什么时候结束,可以用signal(SIGCHLD,SIG_IGN)通知内核,当子进程结束后内核会回收,默认采用SIG_DFL,代表不理会该信号
     """
-    signal.signal(signal.SIGCHLD, signal_handler)
+    signal.signal(signal.SIGCHLD, lambda sv, frame: print(f"sv:{sv}, time:{datetime.datetime.now()},frame:{frame}"))
     if os.fork() == 0:
         time.sleep(1)
         print(f"in child process, time: {datetime.datetime.now()}")
