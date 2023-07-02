@@ -235,9 +235,7 @@ def dis_tutorial():
     # load_fast 把一个局部变量压入栈中
     # binary_add 弹出栈顶两个元素, 相加后结果入栈
     # return_value 反回栈顶元素
-    class A:
-        pass
-
+    A = type('A', (), {})
     dis.dis(A)  # 解释器实际执行的byte code是二进制编码
 
     def f():
@@ -652,7 +650,7 @@ def sum_tutorial():
     sum(_)  # 21
 
 
-def instance_tutorial():
+def isinstance_tutorial():
     # isinstance(object,class)    判断对象object是不是类class或其派生类的实例
     # issubclass(class ,baseclass) 判断一个类是否是另一个类的子类
     class Person: pass
@@ -661,9 +659,10 @@ def instance_tutorial():
 
     person = Person()
     student = Student()
-    print(isinstance(person, Person), isinstance(person, Student))  # True False
-    print(isinstance(student, Person), isinstance(student, Student))  # True True
-    assert issubclass(Student, Person)  # True
+    assert isinstance(person, Person)
+    assert not isinstance(person, Student)
+    assert isinstance(student, (Student, Person))
+    assert issubclass(Student, Person)
 
 
 def cache_tutorial():
@@ -1233,3 +1232,4 @@ if __name__ == "__main__":  # import到其他脚本中不会执行以下代码,�
     # metaclass_tutorial()
     # pickle_tutorial()
     # singleton_tutorial()
+    isinstance_tutorial()
