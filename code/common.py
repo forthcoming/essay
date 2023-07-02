@@ -3,10 +3,12 @@ import time
 from collections import deque
 from collections.abc import Iterable
 from inspect import getgeneratorstate
-from multiprocessing import Process, Pipe
+from multiprocessing import Process, Pipe, Value
 from multiprocessing.dummy import Barrier, Process as Thread
 from threading import BrokenBarrierError
 
+
+# 记录一些不是那么重要的用例
 
 def run_subroutine(subroutines):
     for subroutine in subroutines:
@@ -179,6 +181,30 @@ def barrier_tutorial():
     bla...
     bla...
     """
+
+
+def test_shared_value(share):
+    with share.get_lock():
+        time.sleep(.001)
+        share.value -= 1  # 涉及读写的操作不是原子操作
+
+
+def shared_value_tutorial():
+    """
+    multiprocessing.Value(typecode_or_type, *args, lock=True)
+    返回从共享内存分配的ctypes对象, 可以通过Value的value属性来访问对象本身
+    typecode_or_type确定返回对象的类型是ctypes类型或数组模块使用的单字符类型代码
+    如果lock为True(默认值), 则创建一个新的递归锁对象来同步对该值的访问
+    如果lock为False, 那么对返回对象的访问将不会自动受到锁的保护, 因此它不一定是“进程安全的”
+
+    multiprocessing.Array(typecode_or_type, size_or_initializer, *, lock=True)
+    返回从共享内存分配的ctypes数组,typecode_or_type和锁部分跟Value一样
+    如果size_or_initializer是一个整数,那么它决定了数组的长度,并且数组最初将被清零,否则是一个用于初始化数组的序列,其长度决定了数组长度
+    """
+    shared_value = Value('i', 100)  # 在不需要锁的情况下可以Value('i',100,lock=False)
+    processes = [Process(target=test_shared_value, args=(shared_value,)) for _ in range(100)]
+    run_subroutine(processes)
+    print(shared_value, shared_value.value)  # <Synchronized wrapper for c_int(0)> 0
 
 
 if __name__ == '__main__':

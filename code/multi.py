@@ -4,7 +4,7 @@ import random
 import re
 import time
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
-from multiprocessing import shared_memory, Value, Process, Manager, RLock as ProcessRLock
+from multiprocessing import shared_memory, Process, Manager, RLock as ProcessRLock
 from multiprocessing.dummy import Process as Thread, Lock as ThreadLock, RLock as ThreadRLock
 from threading import get_ident, local
 
@@ -31,7 +31,7 @@ daemon=True: 父进程结束,他会杀死自己的子线/进程使其终止,但�
 
 进程间通信
 进程间数据不共享,但共享同一套文件系统,所以访问同一文件或终端可以实现进程间通信,但效率低(文件是硬盘上的数据)且需要自己加锁处理
-常见方式是共享内存(Value & Array & shared_memory & Manager),队列(Queue)
+常见方式是共享内存(shared_memory & Manager & mmap),队列(Queue)
 
 sys.setswitchinterval(n) # 设置解释器的线程切换间隔(以秒为单位),实际值可能更高,特别是在使用长时间运行的内部函数或方法时
 在间隔结束时调度哪个线程是操作系统的决定,解释器没有自己的调度程序
@@ -215,30 +215,6 @@ def join_tutorial():
     '''
 
 
-def test_shared_value(share):
-    with share.get_lock():
-        time.sleep(.001)
-        share.value -= 1  # 涉及读写的操作不是原子操作
-
-
-def shared_value_tutorial():
-    """
-    multiprocessing.Value(typecode_or_type, *args, lock=True)
-    返回从共享内存分配的ctypes对象, 可以通过Value的value属性来访问对象本身
-    typecode_or_type确定返回对象的类型是ctypes类型或数组模块使用的单字符类型代码
-    如果lock为True(默认值), 则创建一个新的递归锁对象来同步对该值的访问
-    如果lock为False, 那么对返回对象的访问将不会自动受到锁的保护, 因此它不一定是“进程安全的”
-
-    multiprocessing.Array(typecode_or_type, size_or_initializer, *, lock=True)
-    返回从共享内存分配的ctypes数组,typecode_or_type和锁部分跟Value一样
-    如果size_or_initializer是一个整数,那么它决定了数组的长度,并且数组最初将被清零,否则是一个用于初始化数组的序列,其长度决定了数组长度
-    """
-    shared_value = Value('i', 100)  # 在不需要锁的情况下可以Value('i',100,lock=False)
-    processes = [Process(target=test_shared_value, args=(shared_value,)) for _ in range(100)]
-    run_subroutine(processes)
-    print(shared_value, shared_value.value)  # <Synchronized wrapper for c_int(0)> 0
-
-
 def test_shared_manager(shared_dict, shared_list, process_rlock):
     time.sleep(.001)
     with process_rlock:
@@ -399,14 +375,13 @@ def shared_mmap_tutorial():
 
 
 if __name__ == "__main__":
-    # shared_memory_tutorial()
-    # shared_value_tutorial()
-    # shared_manager_tutorial()
+    shared_memory_tutorial()
+    shared_manager_tutorial()
+    shared_mmap_tutorial()
     # pool_executor_tutorial()
     # DeriveRelationship.main()
     # join_tutorial()
     # rlock_tutorial()
     # ThreadLocal.thread_local_tutorial()
-    shared_mmap_tutorial()
 
 
