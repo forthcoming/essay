@@ -30,9 +30,8 @@ class Apollo:  # 进程安全
         self.ip = ip or '127.0.0.1'
         self.reset()
 
-        # this lock is acquired when the process id changes, such as after a fork. during this time, multiple threads in the child process could attempt to acquire this lock.
-        # the first thread to acquire the lock will reset the data structures and lock object of this pool.
-        # subsequent threads acquiring this lock will notice the first thread already did the work and simply release the lock.
+        # 当进程ID更改时(例如fork后)会获取此锁,在此期间子进程中的多个线程可能会尝试获取此锁
+        # 第一个获取锁的线程将重置该池的数据结构和锁对象,获取此锁的后续线程将注意到第一个线程已经完成工作并释放锁
         self._fork_lock = threading.Lock()
 
     def reset(self):
@@ -40,30 +39,30 @@ class Apollo:  # 进程安全
         self._cache = {}
         self._notification_map = {'application': -2}  # -2保证初始化时从apollo拉取最新配置到内存,只有版本号比服务端小才认为是配置有更新
         self.init_status = True
-
-        # this must be the last operation in this method. while reset() is called when holding _fork_lock,
-        # other threads in this process can call _checkpid() which compares self.pid and os.getpid() without holding any lock (for performance reasons).
-        # keeping this assignment as the last operation ensures that those other threads will also notice a pid difference and block waiting for the first thread to release _fork_lock.
-        # when each of these threads eventually acquire _fork_lock, they will notice that another thread already called reset() and they will immediately release _fork_lock and continue on.
+        # 必须最后一个操作,可确保其他线程也会注意到pid差异并阻止等待第一个线程释放_fork_lock,而reset()在持有_fork_lock时被调用
+        # 当所有这些线程最终获取_fork_lock时,它们会注意到另一个线程已经调用了reset(),直接释放_fork_lock并继续
+        # 该进程中的其他线程可以不持有任何锁调用_check_pid()来比较self.pid和getpid(),性能更佳
         self.pid = os.getpid()
 
-    def _checkpid(self):
-        # _checkpid() attempts to keep ConnectionPool fork-safe on modern systems. this is called by all ConnectionPool methods that manipulate the pool's state such as get_connection() and release().
-        # when the process ids differ, _checkpid() assumes that the process has forked and that we're now running in the child process. the child process cannot use the parent's file descriptors (e.g., sockets).
-        # therefore, when _checkpid() sees the process id change, it calls reset() in order to reinitialize the child's ConnectionPool. this will cause the child to make all new connection objects.
-        # _checkpid() is protected by self._fork_lock to ensure that multiple threads in the child process do not call reset() multiple times.
-        # there is an extremely small chance this could fail in the following scenario:
-        #   1. process A calls _checkpid() for the first time and acquires self._fork_lock.
-        #   2. while holding self._fork_lock, process A forks (the fork() could happen in a different thread owned by process A)
-        #   3. process B (the forked child process) inherits the ConnectionPool's state from the parent. that state includes a locked _fork_lock.
-        #      process B will not be notified when process A releases the _fork_lock and will thus never be able to acquire the _fork_lock.
+    def _check_pid(self):
+        """
+        _check_pid尝试保持ConnectionPool fork-safe, 所有更改池状态的ConnectionPool方法都会调用此方法
+        当进程ID不同时,_check_pid假定该进程已fork,并且我们现在正在子进程中运行,子进程不能使用父进程的文件描述符(如sockets)
+        因此当 _check_pid看到进程ID发生变化时,它会调用reset来重新初始化子进程的ConnectionPool,这将导致子进程创建所有新的连接对象
+        _check_pid受到self._fork_lock的保护,保证子进程中的多个线程不会多次调用reset
+        在以下情况下有极小可能性失败：
+        1. 进程A第一次调用_check_pid并获取self._fork_lock
+        2. 在持有self._fork_lock同时,进程A进行分叉(fork()可能发生在进程A的不同线程中)
+        3. 进程B(分叉的子进程)从父进程继承ConnectionPool状态,该状态包括锁定的_fork_lock
+        当进程A释放_fork_lock时,进程B不会收到通知,因此永远无法获取_fork_lock
+        """
         if self.pid != os.getpid():
             with self._fork_lock:  # 极小概率出现死锁
                 if self.pid != os.getpid():
                     self.reset()  # reset() the instance for the new process if another thread hasn't already done so
 
     def get_value(self, key, default_val=None, namespace='application', auto_fetch_on_cache_miss=False):
-        self._checkpid()
+        self._check_pid()
         if self.init_status:
             with self.lock:
                 if self.init_status:
