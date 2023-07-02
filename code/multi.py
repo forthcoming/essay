@@ -216,7 +216,7 @@ class DeriveRelationship:
         print('in main', os.getpid(), os.getppid())
         program = Thread(target=DeriveRelationship.kid1)  # daemon=False且无法更改,想自定义请用threading.Thread
         run_subroutine([program])
-        time.sleep(10)
+        time.sleep(5)
         # in main 15944 13085
         # in kid1 15944 13085
         # in kid2 15948 15944
@@ -228,19 +228,19 @@ class DeriveRelationship:
         print('in kid1', os.getpid(), os.getppid())
         program = mp.Process(target=DeriveRelationship.kid2)
         run_subroutine([program])
-        time.sleep(10)
+        time.sleep(5)
 
     @staticmethod
     def kid2():
         print('in kid2', os.getpid(), os.getppid())
         programs = [Thread(target=DeriveRelationship.kid3), mp.Process(target=DeriveRelationship.kid3)]
         run_subroutine(programs)
-        time.sleep(10)
+        time.sleep(5)
 
     @staticmethod
     def kid3():
         print('in kid3', os.getpid(), os.getppid())
-        time.sleep(10)
+        time.sleep(5)
 
 
 def join_tutorial():
