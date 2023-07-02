@@ -1,3 +1,4 @@
+import ctypes
 import mmap
 import os
 import random
@@ -31,7 +32,7 @@ daemon=True: 父进程结束,他会杀死自己的子线/进程使其终止,但�
 
 进程间通信
 进程间数据不共享,但共享同一套文件系统,所以访问同一文件或终端可以实现进程间通信,但效率低(文件是硬盘上的数据)且需要自己加锁处理
-常见方式是共享内存(shared_memory & Manager & mmap),队列(Queue)
+常见方式是共享内存(shared_memory & Manager),队列(Queue),memoryview基于mmap实现,shared_memory基于memoryview实现
 
 sys.setswitchinterval(n) # 设置解释器的线程切换间隔(以秒为单位),实际值可能更高,特别是在使用长时间运行的内部函数或方法时
 在间隔结束时调度哪个线程是操作系统的决定,解释器没有自己的调度程序
@@ -145,6 +146,60 @@ def shared_memory_tutorial():
     print(shared.buf[:6].tobytes(), shared.buf[:6].tolist())  # b"howdyB" [104, 111, 119, 100, 121, 66]
     shared.close()  # Close each SharedMemory instance
     shared.unlink()  # Call unlink only once to release the shared memory
+
+
+def shared_mmap_tutorial():
+    """
+    fileno=-1表示映射匿名内存,也可以是具体的文件句柄,如fileno=open('"xxx"').fileno(),读写权限要与mmap保持一致
+    length表示最大可操作字节数
+    向ACCESS_WRITE内存映射赋值会影响内存和底层的文件,向ACCESS_COPY内存映射赋值会影响内存,但不会更新底层的文件
+    flags=MAP_PRIVATE创建私有写时复制映射,进程间数据不同步,MAP_SHARED创建一个与映射文件相同区域的所有其他进程共享的映射,默认共享
+    共享的仅仅是内存,文件指针等属性不共享
+    """
+    mm = mmap.mmap(fileno=-1, length=13, flags=mmap.MAP_SHARED)
+    # buf = memoryview(mm)  # memoryview基于mmap实现
+    mm.write(b"Hello world!")
+    mm.seek(0)
+    pid = os.fork()
+    if pid == 0:  # In a child process
+        mm[6:12] = b'python'
+        print('child process: ', mm.readline(), mm.tell())
+        mm.close()
+        os._exit(0)  # 会停止进程,即使有异常处理也会失效
+    else:  # In a parent process
+        time.sleep(1)  # 让子进程先执行
+        print('parent process: ', mm.tell(), mm.readline())
+        mm.close()
+
+    with mmap.mmap(fileno=-1, length=256, access=mmap.ACCESS_COPY) as mm:
+        mm.write(b"Hello world!\n")  # 会移动文件指针,如果mmap使用ACCESS_READ创建,则写入会引发TypeError异常
+        mm.write(b"welcome to python!\n")  # 如果剩余空间不足,则抛出ValueError
+
+        # 不会移动文件指针,也不使用文件指针
+        print(re.findall(rb'!', mm))
+        mm[0] = 97
+        mm[6:12] = b'python'
+        print(mm[:5])
+
+        # 会移动文件指针
+        mm.seek(0)  # 指定文件指针到某个位置
+        print(mm.read(13))  # 读指定字节数据
+        print(mm.readline())  # 读一行数据
+
+
+def shared_value_simulation_tutorial():  # 模拟multiprocessing.Value
+    mm = mmap.mmap(fileno=-1, length=8)
+    obj = ctypes.c_int.from_buffer(mm, 2)  # buf大小不能小于c_int大小,返回一个共享源对象缓冲区的ctypes实例
+    # obj = ctypes.c_int(12)  # 此obj无法在进程间共享
+    ctypes.memset(ctypes.addressof(obj), 97, ctypes.sizeof(obj))  # 与标准C库函数相同,非必须,一般用于未给定初始值情况下的初始化工作
+    obj.value = 2 ** 31 - 1  # 最大数
+    print('in parent', mm[:], obj.value)  # in parent b'\x00\x00\xff\xff\xff\x7f\x00\x00' 2147483647 可以验证小端模式
+    if 0 == os.fork():
+        obj.value = 13
+        print('in son', obj.value)  # in son 13
+    else:
+        time.sleep(1)
+        print('in parent', obj.value)  # in parent 13
 
 
 class DeriveRelationship:
@@ -336,52 +391,13 @@ class ThreadLocal:
         """
 
 
-def shared_mmap_tutorial():
-    """
-    fileno=-1表示映射匿名内存,也可以是具体的文件句柄,如fileno=open('"xxx"').fileno(),读写权限要与mmap保持一致
-    length表示最大可操作字节数
-    向ACCESS_WRITE内存映射赋值会影响内存和底层的文件,向ACCESS_COPY内存映射赋值会影响内存,但不会更新底层的文件
-    flags=MAP_PRIVATE创建私有写时复制映射,进程间数据不同步,MAP_SHARED创建一个与映射文件相同区域的所有其他进程共享的映射,默认共享
-    共享的仅仅是内存,文件指针等属性不共享
-    """
-    mm = mmap.mmap(fileno=-1, length=13, flags=mmap.MAP_SHARED)
-    mm.write(b"Hello world!")
-    mm.seek(0)
-    pid = os.fork()
-    if pid == 0:  # In a child process
-        mm[6:12] = b'python'
-        print('child process: ', mm.readline(), mm.tell())
-        mm.close()
-        os._exit(0)  # 会停止进程,即使有异常处理也会失效
-    else:  # In a parent process
-        time.sleep(1)  # 让子进程先执行
-        print('parent process: ', mm.tell(), mm.readline())
-        mm.close()
-
-    with mmap.mmap(fileno=-1, length=256, access=mmap.ACCESS_COPY) as mm:
-        mm.write(b"Hello world!\n")  # 会移动文件指针,如果mmap使用ACCESS_READ创建,则写入会引发TypeError异常
-        mm.write(b"welcome to python!\n")  # 如果剩余空间不足,则抛出ValueError
-
-        # 不会移动文件指针,也不使用文件指针
-        print(re.findall(rb'!', mm))
-        mm[0] = 97
-        mm[6:12] = b'python'
-        print(mm[:5])
-
-        # 会移动文件指针
-        mm.seek(0)  # 指定文件指针到某个位置
-        print(mm.read(13))  # 读指定字节数据
-        print(mm.readline())  # 读一行数据
-
-
 if __name__ == "__main__":
-    shared_memory_tutorial()
-    shared_manager_tutorial()
-    shared_mmap_tutorial()
+    # shared_memory_tutorial()
+    # shared_manager_tutorial()
+    # shared_mmap_tutorial()
+    shared_value_simulation_tutorial()
     # pool_executor_tutorial()
     # DeriveRelationship.main()
     # join_tutorial()
     # rlock_tutorial()
     # ThreadLocal.thread_local_tutorial()
-
-
