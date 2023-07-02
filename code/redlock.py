@@ -1,7 +1,12 @@
-import logging, time, redis, random, threading
-from redis.exceptions import RedisError, NoScriptError
-from os import urandom
+import logging
+import random
+import redis
+import threading
+import time
 from hashlib import sha1
+from os import urandom
+
+from redis.exceptions import RedisError, NoScriptError
 
 
 def get_servers(connection_list):
@@ -16,13 +21,15 @@ def get_servers(connection_list):
         servers.append(server)
     return servers
 
-def do_something(idx,room_lock,song_lock):
+
+def do_something(idx, room_lock, song_lock):
     print('Im doing something in idx {}'.format(idx))
     lock = room_lock if idx & 1 else song_lock
     with lock:
         time.sleep(1)
         1 / 0
-        
+
+
 class Redlock:
     # KEYS[1] - lock name
     # ARGS[1] - token
@@ -73,7 +80,8 @@ class Redlock:
 
     def lock(self):
         self.local.token = urandom(16)
-        drift = int(self.ttl * .01) + 2  # Add 2 milliseconds to the drift to account for Redis expires precision which is 1 millisecond, plus 1 millisecond min drift for small TTLs.
+        drift = int(
+            self.ttl * .01) + 2  # Add 2 milliseconds to the drift to account for Redis expires precision which is 1 millisecond, plus 1 millisecond min drift for small TTLs.
         start_time = time.time()
         stop_at = start_time + self.blocking_timeout
         while start_time < stop_at:
@@ -90,7 +98,8 @@ class Redlock:
                 return True
             else:  # 如果锁获取失败应立马释放获取的锁定
                 self.unlock()
-                time.sleep(random.uniform(0,.4))  # a random delay in order to try to desynchronize multiple clients trying to acquire the lock for the same resource at the same time
+                time.sleep(random.uniform(0,
+                                          .4))  # a random delay in order to try to desynchronize multiple clients trying to acquire the lock for the same resource at the same time
             start_time = time.time()
         raise Exception("lock timeout")
 
@@ -104,6 +113,7 @@ class Redlock:
                 logging.exception("Error: unlocking lock {}".format(self.name))
                 raise
         return True
+
 
 servers = get_servers([
     {"host": "localhost", "port": 2345, "db": 0},
@@ -119,7 +129,7 @@ room_lock = Redlock(servers, 'room_lock', ttl=500)
 song_lock = Redlock(servers, 'song_lock', ttl=500)
 
 if __name__ == '__main__':
-    threads = [threading.Thread(target=do_something,args=(idx,room_lock,song_lock)) for idx in range(10)]
+    threads = [threading.Thread(target=do_something, args=(idx, room_lock, song_lock)) for idx in range(10)]
     for thread in threads:
         thread.start()
     for thread in threads:
