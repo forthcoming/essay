@@ -7,7 +7,7 @@ import re
 import signal
 import time
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
-from multiprocessing import shared_memory, Process, Manager, RLock as ProcessRLock
+from multiprocessing import shared_memory, Process, Manager, RLock as ProcessRLock, JoinableQueue
 from multiprocessing.dummy import Process as Thread, Lock as ThreadLock, RLock as ThreadRLock
 from threading import get_ident, local
 
@@ -212,7 +212,7 @@ class DeriveRelationship:
     @staticmethod
     def main():
         print('in main', os.getpid(), os.getppid())
-        program = Thread(target=DeriveRelationship.kid1)
+        program = Thread(target=DeriveRelationship.kid1)  # daemon=False且无法更改,想自定义请用threading.Thread
         run_subroutine([program])
         time.sleep(100)
         # in main 15944 13085
@@ -430,6 +430,35 @@ def fork_tutorial():
     #     print(f"pid:{os.getpid()} ppid:{os.getppid()} pgid:{os.getpgid(0)}")  # 2+4+8=14 outputs
 
 
+class QueueTutorial:
+    @staticmethod
+    def producer(task, index):
+        # task.qsize()  # 为什么抛NotImplementedError异常
+        task.put(index)
+        print("in producer")
+        time.sleep(2)
+
+    @staticmethod
+    def consumer(task):
+        while True:
+            item = task.get()  # (block=True, timeout=None)
+            time.sleep(2)
+            print("in consumer", item)
+            task.task_done()
+
+    @staticmethod
+    def scheduler():
+        task = JoinableQueue()  # 操作均为原子性,用户无需再加锁
+        for _ in range(2):
+            # 多进程一定要把task传递过去,这里daemon必须为True,否则主程序会一直等待consumer
+            process = Process(target=QueueTutorial.consumer, args=(task,), daemon=True)
+            process.start()
+        with ThreadPoolExecutor(3) as executor:  # 为什么不能用ProcessPoolExecutor??
+            for index in range(20):
+                executor.submit(QueueTutorial.producer, task, index)  # 多线程中task不用传,传了也没事
+        task.join()  # 阻塞主程序,每完成一次任务执行一次task_done,直到所有任务完成
+
+
 if __name__ == "__main__":
     # shared_memory_tutorial()
     # shared_manager_tutorial()
@@ -440,4 +469,5 @@ if __name__ == "__main__":
     # join_tutorial()
     # rlock_tutorial()
     # ThreadLocal.thread_local_tutorial()
-    fork_tutorial()
+    # fork_tutorial()
+    QueueTutorial.scheduler()
