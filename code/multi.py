@@ -1,8 +1,10 @@
 import ctypes
+import datetime
 import mmap
 import os
 import random
 import re
+import signal
 import time
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from multiprocessing import shared_memory, Process, Manager, RLock as ProcessRLock
@@ -27,8 +29,6 @@ GIL导致线程是并发运行(即便有多个cpu,线程会在其中一个cpu来
 标准库中所有阻塞型I/O函数都会释放GIL,time.sleep也会释放,因此尽管有GIL,线程还是能在I/O密集型应用中发挥作用
 daemon=False: 父线/进程运行完,会接着等子线/进程全部都执行完后才结束
 daemon=True: 父进程结束,他会杀死自己的子线/进程使其终止,但父进程被kill -9杀死时子进程不会结束,会被系统托管
-如果主进程开了多个子进程,而子进程出错,并不影响其他子进程和主进程的运行,但其自身会变为僵尸进程
-应为主进程没有join操作给其收尸,在Linux中用"defunct"标记该进程,通过top也能查看当前的僵尸进程个数
 
 进程间通信
 进程间数据不共享,但共享同一套文件系统,所以访问同一文件或终端可以实现进程间通信,但效率低(文件是硬盘上的数据)且需要自己加锁处理
@@ -150,7 +150,7 @@ def shared_memory_tutorial():
 
 def shared_mmap_tutorial():
     """
-    fileno=-1表示映射匿名内存,也可以是具体的文件句柄,如fileno=open('"xxx"').fileno(),读写权限要与mmap保持一致
+    fileno=-1表示映射匿名内存,也可以是具体的文件句柄,如fileno=open('xxx').fileno(),读写权限要与mmap保持一致
     length表示最大可操作字节数
     向ACCESS_WRITE内存映射赋值会影响内存和底层的文件,向ACCESS_COPY内存映射赋值会影响内存,但不会更新底层的文件
     flags=MAP_PRIVATE创建私有写时复制映射,进程间数据不同步,MAP_SHARED创建一个与映射文件相同区域的所有其他进程共享的映射,默认共享
@@ -244,7 +244,7 @@ class DeriveRelationship:
 def join_tutorial():
     """
     该方法阻塞主程序直到子进程终止,但不会阻塞其他子程序的运行,如果timeout是正数,则最多阻塞timeout秒,一个进程可以多次join
-    join会调用系统的os.waitpid()方法来获取子进程的退出信息,消除子进程,防止产生僵尸进程,但如果超过timeout后父进程被唤醒,子进程在这之后结束,仍可能产生僵尸进程
+    join会调用系统的os.waitpid()方法回收子进程资源,防止产生僵尸进程,但如果超过timeout后父进程被唤醒,子进程在这之后结束,仍可能产生僵尸进程
     如果timeout未指定,则主进程总的等待时间T = max(t1,t2,...,tn)
     如果timeout大于0,T1 = min(timeout,max(t1,0)),...,Tn = min(timeout,max(tn-Tn-1,0)),则主进程总的等待时间T = sum(T1+T2,...+Tn)
     """
@@ -391,22 +391,38 @@ class ThreadLocal:
         """
 
 
+def signal_handler(signal_value, frame):
+    print(f"signal_value:{signal_value}, time:{datetime.datetime.now()},frame:{frame}")
+
+
 def fork_tutorial():
     """
     子进程是从fork后面那个指令开始执行,在父进程中fork返回新创建子进程的进程ID,子进程返回0
     kill(跟linux一致),pid>0: 向进程号pid的进程发送信号,可以验证kill杀死父进程,子进程会不会结束;pid=0: 向当前进程所在的进程组发送信号
     父进程里使用wait,相当于join,这个函数会让父进程阻塞,直到任意一个子进程执行完成,回收该子进程的内核进程资源
+    每个进程都属于一个进程组,通过getpgid(0)获取,getpgid(pid)获取进程ID是pid所在组的组ID,默认为父进程id,父进程,子进程以及子子进程都属于这个进程组
+
+    孤儿进程: 父进程退出而它的子进程还在运行,则子进程将成为孤儿进程
+    僵尸进程: 使用fork创建子进程,如果子进程退出,父进程还在运行,并且没有调用wait/waitpid回收资源,则子进程成为僵死进程,Linux中用defunct标记
+    如果主进程开了多个子进程,当某个子进程出错,并不影响其他子进程和主进程的运行,但其自身会变为僵尸进程
+    multiprocessing不会产生孤儿进程,需要用os.fork模拟产生,可以产生僵尸进程
+    僵尸进程将会导致资源浪费,而孤儿进程并不会有什么危害,将被init进程(进程号为1)所收养,成为该子进程的父进程,并对它们完成状态收集工作
+    kill -9不能杀掉僵尸进程,可以先找到僵尸进程的父进程(ps -ef | grep defunct),将父进程杀掉,子进程就自动消失,通过top能查看当前僵尸进程个数
+
+    所有信号都由操作系统来发,应用程序通过signal()捕捉,SIGKILL和SIGSTOP信号除外
+    当子进程退出的时候,内核都会给父进程一个SIGCHLD信号,终端上按下ctrl+c会产生SIGINT信号
+    如果父进程不关心子进程什么时候结束,可以用signal(SIGCHLD,SIG_IGN)通知内核,当子进程结束后内核会回收,默认采用SIG_DFL,代表不理会该信号
     """
-    pid = os.fork()
-    if pid == 0:
+    signal.signal(signal.SIGCHLD, signal_handler)
+    if os.fork() == 0:
         time.sleep(1)
-        print(f"in child process, pid is {os.getpid()}")
+        print(f"in child process, time: {datetime.datetime.now()}")
         exit(1)
         print("此处不会被输出")
     else:
-        os.wait() 
+        os.wait()
         print("子进程结束,开始执行父进程")
-        time.sleep(2)
+        time.sleep(3)
 
     # os.fork()
     # os.fork() and os.fork() or os.fork()
