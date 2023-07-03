@@ -24,7 +24,7 @@ class Apollo:  # 进程安全
 
     def __init__(self, app_id, cluster='default', config_server_url='http://localhost:8080', timeout=35, ip=None):
         self.config_server_url = config_server_url
-        self.appId = app_id
+        self.app_id = app_id
         self.cluster = cluster
         self.timeout = timeout
         self.ip = ip or '127.0.0.1'
@@ -96,7 +96,7 @@ class Apollo:  # 进程安全
             notifications.append({'namespaceName': key, 'notificationId': self._notification_map[key]})
         r = requests.get(  # 如果检测到服务器的notificationId与本次提交一致,则最多等待30s,在这之间只要是服务器配置更新了,请求会立马返回
             url=url,
-            params={'appId': self.appId, 'cluster': self.cluster,
+            params={'appId': self.app_id, 'cluster': self.cluster,
                     'notifications': json.dumps(notifications, ensure_ascii=False)},
             timeout=timeout
         )
@@ -119,7 +119,7 @@ class Apollo:  # 进程安全
     # 该接口会从缓存中获取配置,适合频率较高的配置拉取请求,如简单的每30秒轮询一次配置,缓存最多会有一秒的延时
     # ip参数可选,应用部署的机器ip,用来实现灰度发布
     def _cached_http_get(self, key, default_val, namespace='application'):
-        url = f'{self.config_server_url}/configfiles/json/{self.appId}/{self.cluster}/{namespace}?ip={self.ip}'
+        url = f'{self.config_server_url}/configfiles/json/{self.app_id}/{self.cluster}/{namespace}?ip={self.ip}'
         r = requests.get(url)
         if r.ok:  # ok?
             data = r.json()
@@ -131,7 +131,7 @@ class Apollo:  # 进程安全
 
     # 不带缓存的Http接口从Apollo读取配置,如果需要配合配置推送通知实现实时更新配置的话需要调用该接口
     def _un_cached_http_get(self, namespace='application'):
-        url = '{}/configs/{}/{}/{}?ip={}'.format(self.config_server_url, self.appId, self.cluster, namespace, self.ip)
+        url = '{}/configs/{}/{}/{}?ip={}'.format(self.config_server_url, self.app_id, self.cluster, namespace, self.ip)
         r = requests.get(url)
         if r.status_code == 200:
             data = r.json()

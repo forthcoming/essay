@@ -3,12 +3,12 @@ import functools
 import os
 import pickle
 import random
+import socket
 import threading
 import time
 from contextlib import contextmanager
 from datetime import datetime
 from functools import wraps
-import platform
 
 from flask import request
 from rediscluster import RedisCluster
@@ -392,18 +392,13 @@ class DispatchWork:  # 功能类似分布式锁,保证同一时刻服务只在�
     @staticmethod
     def get_local_ip():
         ip = '127.0.0.1'
-        if 'Linux' in platform.system():
-            import socket, struct, fcntl
+        try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            for item in ['em2', 'eth1', 'eth0']:
-                try:
-                    ip = socket.inet_ntoa(fcntl.ioctl(sock.fileno(), 0x8915, struct.pack('256s', item))[20:24])
-                    if ip.startswith('10.'):
-                        break
-                except Exception as e:
-                    print(e)
-            else:
-                raise IOError
+            sock.connect(('8.8.8.8', 53))
+            ip = sock.getsockname()[0]
+            sock.close()
+        except Exception as e:
+            print(e)
         return ip
 
     def start(self, working, work_timeout=4, cache_timeout=120):  # 服务只包含一个任务
