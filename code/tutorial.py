@@ -1,6 +1,7 @@
 import copy
 import dis
 import hashlib
+import logging
 import os
 import pickle
 import random
@@ -1219,6 +1220,37 @@ def singleton_tutorial():
 
     assert TestSingleton() is TestSingleton()
     assert TestSingleTonPool() is TestSingleTonPool()
+
+
+class LogTutorial:
+    def __init__(self, level=logging.NOTSET, name='track.log'):
+        """
+        默认情况下日志打印到屏幕,日志级别为WARNING
+        日志级别：CRITICAL > ERROR > WARNING > INFO > DEBUG > NOTSET
+        logging.debug('this is debug info')
+        logging.info('this is information')
+        logging.warning('this is warning message')
+        logging.error('this is error message')
+        logging.critical('this is critical message')
+        """
+        logging.basicConfig(
+            filename=name,
+            filemode='a',
+            # format='%(asctime)s %(filename)s %(lineno)d %(process)s %(levelname)s %(module)s %(message)s',
+            format='%(asctime)s line:%(lineno)d pid:%(process)s level:%(levelname)s message:%(message)s',
+            datefmt='%Y-%m-%d %H:%M:%S %p',
+            level=level,
+        )
+        logging.root.name = __name__
+
+    def __call__(self, f):
+        def wrapper(*args):
+            try:
+                return f(*args)
+            except Exception as e:
+                logging.exception(e)
+
+        return wrapper
 
 
 if __name__ == "__main__":  # import到其他脚本中不会执行以下代码,spawn方式的多进程也需要
