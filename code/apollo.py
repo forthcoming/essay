@@ -92,7 +92,7 @@ class Apollo:  # 进程安全
         timeout = timeout or self.timeout
         url = '{}/notifications/v2'.format(self.config_server_url)
         notifications = []
-        for key in list(self._notification_map.keys()):  # 加list是为了兼容py3,keys是防止遍历字典的时候结构被get_value变更
+        for key in self._notification_map.keys():  # keys是防止遍历字典的时候结构被get_value变更
             notifications.append({'namespaceName': key, 'notificationId': self._notification_map[key]})
         r = requests.get(  # 如果检测到服务器的notificationId与本次提交一致,则最多等待30s,在这之间只要是服务器配置更新了,请求会立马返回
             url=url,

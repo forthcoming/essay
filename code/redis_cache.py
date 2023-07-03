@@ -8,6 +8,7 @@ import time
 from contextlib import contextmanager
 from datetime import datetime
 from functools import wraps
+import platform
 
 from flask import request
 from rediscluster import RedisCluster
@@ -388,7 +389,25 @@ class DispatchWork:  # 功能类似分布式锁,保证同一时刻服务只在�
     def __init__(self, suffix):
         self.suffix = suffix
 
-    def start(self, ip, working, work_timeout=4, cache_timeout=120):  # 服务只包含一个任务
+    @staticmethod
+    def get_local_ip():
+        ip = '127.0.0.1'
+        if 'Linux' in platform.system():
+            import socket, struct, fcntl
+            sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            for item in ['em2', 'eth1', 'eth0']:
+                try:
+                    ip = socket.inet_ntoa(fcntl.ioctl(sock.fileno(), 0x8915, struct.pack('256s', item))[20:24])
+                    if ip.startswith('10.'):
+                        break
+                except Exception as e:
+                    print(e)
+            else:
+                raise IOError
+        return ip
+
+    def start(self, working, work_timeout=4, cache_timeout=120):  # 服务只包含一个任务
+        ip = DispatchWork.get_local_ip()
         cache = 'webapi:{{common_service_hbt}}:{}:{}'.format(self.suffix, 0)
         count = 0
         while True:
@@ -407,7 +426,8 @@ class DispatchWork:  # 功能类似分布式锁,保证同一时刻服务只在�
                     os._exit(0)  # 退出子进程,由supervisord的autorestart=true机制重启程序
             time.sleep(work_timeout)
 
-    def multiple_start(self, ip, workings, work_timeout=4):  # 服务包含多个任务
+    def multiple_start(self, workings, work_timeout=4):  # 服务包含多个任务
+        ip = DispatchWork.get_local_ip()
         count = 0
         while True:
             for name, working in workings.items():
