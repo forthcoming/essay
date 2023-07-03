@@ -31,9 +31,9 @@ GIL导致线程是并发运行(即便有多个cpu,线程会在其中一个cpu来
 daemon=False: 父线/进程运行完,会接着等子线/进程全部都执行完后才结束
 daemon=True: 父进程结束,他会杀死自己的子线/进程使其终止,但父进程被kill -9杀死时子进程不会结束,会被系统托管
 
-进程间通信
-进程间数据不共享,但共享同一套文件系统,所以访问同一文件或终端可以实现进程间通信,但效率低(文件是硬盘上的数据)且需要自己加锁处理
-常见方式是共享内存(shared_memory & Manager),队列(Queue),memoryview基于mmap实现,shared_memory基于memoryview实现
+进程间通信(进程间数据不共享)
+共享内存如shared_memory, memoryview基于mmap实现,shared_memory基于memoryview实现
+文件系统如Queue & Pipe & Manager, Queue和Manager基于Pipe实现
 
 sys.setswitchinterval(n) # 设置解释器的线程切换间隔(以秒为单位),实际值可能更高,特别是在使用长时间运行的内部函数或方法时
 在间隔结束时调度哪个线程是操作系统的决定,解释器没有自己的调度程序
@@ -421,6 +421,7 @@ def fork_tutorial():
     如果父进程不关心子进程什么时候结束,可以用signal(SIGCHLD,SIG_IGN)通知内核,当子进程结束后内核会回收,默认采用SIG_DFL,代表不理会该信号
     """
     signal.signal(signal.SIGCHLD, lambda sv, frame: print(f"sv:{sv}, time:{datetime.datetime.now()},frame:{frame}"))
+    signal.signal(signal.SIGINT, signal.SIG_IGN)  # protect process from KeyboardInterrupt signals
     if os.fork() == 0:
         time.sleep(1)
         print(f"in child process, time: {datetime.datetime.now()}")
@@ -444,7 +445,7 @@ def fork_tutorial():
 class QueueTutorial:
     @staticmethod
     def producer(task, index):
-        # task.qsize()  # 为什么抛NotImplementedError异常
+        # task.qsize()  # 在Unix平台如macOS,由于sem_getvalue()没实现,可能抛NotImplementedError异常
         task.put(index)
         print("in producer")
         time.sleep(2)
@@ -470,8 +471,26 @@ class QueueTutorial:
         task.join()  # 阻塞主程序,每完成一次任务执行一次task_done,直到所有任务完成
 
 
+def test_shared_pipe(conn):
+    time.sleep(3)
+    conn.send([42, None, 'hello'])  # 内部用pickle序列化后再传输
+
+
+def shared_pipe_tutorial():
+    # 如果两个线/进程尝试同时读/写管道的同一端,管道中的数据可能会损坏,同时使用管道不同端的进程不存在损坏的风险
+    # 可以不用手动调用close函数,应为在对象引用计数为0时自定义的__del__会调用close释放资源
+    parent_conn, child_conn = mp.Pipe(False)  # parent_conn只读,child_conn只写,默认为True
+    # parent_conn, child_conn = mp.Pipe(True)  # parent_conn和child_conn可以读写
+    p = mp.Process(target=test_shared_pipe, args=(child_conn,))
+    p.start()
+    print(parent_conn.poll(timeout=.5))  # False,最多阻塞timeout秒,时间内收到数据返回True并停止阻塞
+    print(parent_conn.recv())  # [42, None, 'hello'], Blocks until there is something to receive.
+    p.join()
+
+
 if __name__ == "__main__":
-    shared_memory_tutorial()
+    # shared_memory_tutorial()
+    shared_pipe_tutorial()
     # shared_manager_tutorial()
     # shared_mmap_tutorial()
     # shared_value_simulation_tutorial()

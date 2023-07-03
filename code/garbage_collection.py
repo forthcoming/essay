@@ -34,7 +34,7 @@ gc.get_threshold()返回(700,10,10),当分配对象的个数达到700时,进行�
 gc.get_count()Return a three-tuple of the current collection counts,与get_threshold返回值相对应
 gc.collect()手动执行垃圾回收,返回不可达(unreachable objects)对象的数目
 gc.get_objects()Returns a list of all objects tracked by the collector, 不包括返回的列表
-对象被销毁(引用计数为0)时如果自定义了__del__,会执行__del__函数,然后销毁对象
+对象被销毁(引用计数为0)时如果自定义了__del__,会执行__del__函数(一般用于资源释放如数据库连接),然后销毁对象
 内存泄漏仅仅存在于某个进程中,无法进程间传递(即gc.get_objects仅仅统计所在进程的对象),会随着进程的结束而释放内存
 '''
 

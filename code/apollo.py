@@ -10,7 +10,7 @@ import requests
 from circuit_breaker import CircuitBreaker, Policy
 
 
-class Apollo:  # 进程安全
+class Apollo:  # 进程安全,单进程的读写问题待验证
     """
     refer:
         https://github.com/andymccurdy/redis-py/blob/master/redis/connection.py
@@ -61,7 +61,7 @@ class Apollo:  # 进程安全
                 if self.pid != os.getpid():
                     self.reset()  # reset() the instance for the new process if another thread hasn't already done so
 
-    def get_value(self, key, default_val=None, namespace='application', auto_fetch_on_cache_miss=False):
+    def get_value(self, key, default_val=None, namespace='application', auto_fetch=False):
         self._check_pid()
         if self.init_status:
             with self.lock:
@@ -77,12 +77,12 @@ class Apollo:  # 进程安全
         if namespace not in self._cache:
             logging.getLogger(__name__).info("Add namespace '%s' to local cache", namespace)
             # This is a new namespace, need to do a blocking fetch to populate the local cache
-            self._long_poll(2)  # 防止阻塞主进程,用于更新self._cache和self._notification_map
+            self._long_poll(2)  # 防止阻塞主进程(还需要加个max_retry_times),用于更新self._cache和self._notification_map
 
-        if key in self._cache[namespace]:
+        if key in self._cache[namespace]:  # key不存在怎么办
             return self._cache[namespace][key]
         else:
-            if auto_fetch_on_cache_miss:
+            if auto_fetch:
                 return self._cached_http_get(key, default_val, namespace)
             else:
                 return default_val
@@ -126,7 +126,7 @@ class Apollo:  # 进程安全
             self._cache[namespace] = data
             logging.getLogger(__name__).info('Updated local cache for namespace %s', namespace)
         else:
-            data = self._cache[namespace]
+            data = self._cache[namespace]  # 一定有吗
         return data.get(key, default_val)
 
     # 不带缓存的Http接口从Apollo读取配置,如果需要配合配置推送通知实现实时更新配置的话需要调用该接口

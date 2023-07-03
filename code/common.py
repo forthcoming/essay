@@ -3,7 +3,7 @@ import time
 from collections import deque
 from collections.abc import Iterable
 from inspect import getgeneratorstate
-from multiprocessing import Process, Pipe, Value
+from multiprocessing import Process, Value
 from multiprocessing.dummy import Barrier, Process as Thread
 from threading import BrokenBarrierError
 
@@ -128,34 +128,6 @@ def test_win32():
     win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, x, y, 0, 0)  # 鼠标左键弹起
 
 
-def test_pipe(conn):
-    time.sleep(3)
-    conn.send([42, None, 'hello'])
-    conn.close()
-
-
-def pipe_tutorial():
-    """
-    returns a pair of connection objects connected by a pipe which by default is duplex (two-way).
-    Each connection object has send() and recv() methods (among others). Note that data in a pipe may become corrupted
-    if two processes (or threads) try to read from or write to the same end of the pipe at the same time.
-    Of course there is no risk of corruption from processes using different ends of the pipe at the same time.
-    """
-    parent_conn, child_conn = Pipe(False)  # parent_conn只读,child_conn只写
-    # parent_conn, child_conn = Pipe(True)  # parent_conn和child_conn可以读写,默认为True
-    p = Process(target=test_pipe, args=(child_conn,))
-    p.start()
-    '''
-    返回值bool类型,whether there is any data available to be read.
-    If timeout is not specified then it will return immediately.
-    If timeout is a number then this specifies the maximum time in seconds to block.
-    If timeout is None then an infinite timeout is used.
-    '''
-    parent_conn.poll(timeout=1)
-    print(parent_conn.recv())  # [42, None, 'hello'], Blocks until there is something to receive.
-    p.join()
-
-
 def test_barrier(status, barrier):
     print(status)
     try:
@@ -209,5 +181,4 @@ def shared_value_tutorial():
 
 if __name__ == '__main__':
     # test_yield_from()
-    # pipe_tutorial()
     barrier_tutorial()
