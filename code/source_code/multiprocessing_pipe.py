@@ -150,6 +150,12 @@ class Connection:
 def Pipe(duplex=True):
     if duplex:
         s1, s2 = socket.socketpair()
+        """
+        socketpair相当于下面三句,所以是UDS
+        a, b = _socket.socketpair(AF_UNIX, SOCK_STREAM, 0)
+        a = socket.socket(AF_UNIX, SOCK_STREAM, 0, a.detach())
+        b = socket.socket(AF_UNIX, SOCK_STREAM, 0, b.detach())
+        """
         s1.setblocking(True)
         s2.setblocking(True)
         c1 = Connection(s1.detach())
