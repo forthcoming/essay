@@ -4,8 +4,11 @@ import threading
 from itertools import chain
 from queue import Empty, Full, LifoQueue
 
+from redis.exceptions import ChildDeadlockedError
+
 
 # 仅包含unix代码实现部分,参考 https://github.com/redis/redis-py/blob/master/redis/connection.py
+
 
 class Connection:
     def __init__(self, socket_timeout=None, socket_connect_timeout=None, host="localhost", port=6379,
@@ -52,14 +55,11 @@ class Connection:
 
 
 class ConnectionPool:
-    # If max_connections is set, then this object raises ConnectionError when the pool's limit is reached
     def __init__(self, max_connections=None, **connection_kwargs):
         assert isinstance(max_connections, int) and max_connections >= 0
         self.connection_class = Connection
         self.connection_kwargs = connection_kwargs
         self.max_connections = max_connections or 2 ** 31
-        # 锁_fork_lock保护_check_pid中的关键部分,当进程id改变(比如分叉)时获取这个锁,在此期间子进程的多个线程可以尝试获取此锁
-        # 第一个获取锁的线程将重置数据结构和锁等对象,后续线程获取此锁会注意到第一个线程已经完成了工作,直接释放锁
         self._fork_lock = threading.Lock()
         self.reset()
 
@@ -68,21 +68,18 @@ class ConnectionPool:
         self._created_connections = 0
         self._available_connections = []
         self._in_use_connections = set()
-        # 这必须是该方法中的最后一个操作,持有_fork_lock时调用reset,本进程其他线程可以无锁(性能更佳)调用_check_pid比较self.pid和getpid
-        # 最后一个操作确保其他线程也将注意到pid差异并阻塞等待第一个线程释放_fork_lock,当这些线程中的每一个最终获得_fork_lock
-        # 他们会注意到另一个线程已经调用reset,他们将立即释放_fork_lock并继续
+        # 这必须是该方法中的最后一个操作,确保其他线程也将注意到pid差异并阻塞等待第一个线程释放_fork_lock,释放时子进程已更新完毕ConnectionPool
         self.pid = os.getpid()
 
     def _check_pid(self):
         """
-        _check_pid尝试保持ConnectionPool fork-safe, 所有更改池状态的ConnectionPool方法都会调用此方法
-        当进程ID不同时,_check_pid假定该进程已fork,并且我们现在正在子进程中运行,子进程不能使用父进程的文件描述符(如sockets)
-        因此当 _check_pid看到进程ID发生变化时,它会调用reset来重新初始化子进程的ConnectionPool,这将导致子进程创建所有新的连接对象
-        _check_pid受到self._fork_lock的保护,保证子进程中的多个线程不会多次调用reset
+        所有更改池状态的ConnectionPool方法都会调用_check_pid,子进程不能使用父进程的文件描述符(如sockets)
+        当进程id改变(比如分叉)时获取_fork_lock锁,在此期间子进程的多个线程可以尝试获取此锁,持有此锁时最多调用一次reset
+        第一个获取锁的线程将重置数据结构和锁等对象,后续线程获取此锁会注意到第一个线程已经完成了工作,直接释放锁
         在以下情况下有极小可能性失败：
-        1. 进程A第一次调用_check_pid并获取self._fork_lock
-        2. 在持有self._fork_lock同时,进程A进行分叉(fork()可能发生在进程A的不同线程中)
-        3. 进程B(分叉的子进程)从父进程继承ConnectionPool状态,该状态包括锁定的_fork_lock
+        1. 进程A第一次调用_check_pid并获取_fork_lock
+        2. 在持有_fork_lock同时,进程A进行分叉(fork可能发生在进程A的不同线程中)产生进程B
+        3. 进程B从进程A继承ConnectionPool状态,该状态包括锁定的_fork_lock
         当进程A释放_fork_lock时,进程B不会收到通知,因此永远无法获取_fork_lock
         为了缓解这种可能的死锁,_check_pid最多只会等待5秒获取_fork_lock,超时抛出异常
         """
@@ -90,15 +87,13 @@ class ConnectionPool:
             acquired = self._fork_lock.acquire(timeout=5)
             if not acquired:
                 raise ChildDeadlockedError
-            # reset() the instance for the new process if another thread
-            # hasn't already done so
             try:
                 if self.pid != os.getpid():
                     self.reset()
             finally:
                 self._fork_lock.release()
 
-    def get_connection(self, command_name, *keys, **options):
+    def get_connection(self, command_name, *keys, **options):  # 核心
         self._check_pid()
         with self._lock:
             try:
@@ -106,28 +101,16 @@ class ConnectionPool:
             except IndexError:
                 connection = self.make_connection()
             self._in_use_connections.add(connection)
-
         try:
-            # ensure this connection is connected to Redis
-            connection.connect()
-            # connections that the pool provides should be ready to send
-            # a command. if not, the connection was either returned to the
-            # pool before all data has been read or the socket has been
-            # closed. either way, reconnect and verify everything is good.
-            try:
-                if connection.can_read():
-                    raise ConnectionError("Connection has data")
-            except (ConnectionError, OSError):
-                connection.disconnect()
-                connection.connect()
-                if connection.can_read():
-                    raise ConnectionError("Connection not ready")
+            connection.connect()  # 这一步才开始真正建立连接
+            # connections that the pool provides should be ready to send a command.
+            # if not, the connection was either returned to the pool before all data has been read
+            # or the socket has been closed. either way, reconnect and verify everything is good.
+            if connection.can_read():
+                raise ConnectionError("Connection not ready")
         except BaseException:
-            # release the connection back to the pool so that we don't
-            # leak it
             self.release(connection)
             raise
-
         return connection
 
     def make_connection(self):
@@ -136,107 +119,32 @@ class ConnectionPool:
         self._created_connections += 1
         return self.connection_class(**self.connection_kwargs)
 
-    def release(self, connection):  # Releases the connection back to the pool
+    def release(self, connection):
         self._check_pid()
         with self._lock:
-            try:
-                self._in_use_connections.remove(connection)
-            except KeyError:
-                # Gracefully fail when a connection is returned to this pool
-                # that the pool doesn't actually own
-                pass
-
-            if self.owns_connection(connection):
+            self._in_use_connections.discard(connection)
+            if connection.pid == self.pid:
                 self._available_connections.append(connection)
-            else:
-                # pool doesn't own this connection. do not add it back
-                # to the pool and decrement the count so that another
-                # connection can take its place if needed
+            else:  # 池不拥有此连接,减少计数并且不要将其添加回池
                 self._created_connections -= 1
                 connection.disconnect()
-                return
-
-    def owns_connection(self, connection):
-        return connection.pid == self.pid
 
     def disconnect(self, inuse_connections=True):  # __del__中执行
-        """
-        Disconnects connections in the pool
-
-        If ``inuse_connections`` is True, disconnect connections that are
-        current in use, potentially by other threads. Otherwise only disconnect
-        connections that are idle in the pool.
-        """
         self._check_pid()
         with self._lock:
             if inuse_connections:
-                connections = chain(
-                    self._available_connections, self._in_use_connections
-                )
+                connections = chain(self._available_connections, self._in_use_connections)
             else:
                 connections = self._available_connections
-
             for connection in connections:
                 connection.disconnect()
 
-    def set_retry(self, retry: "Retry") -> None:
-        self.connection_kwargs.update({"retry": retry})
-        for conn in self._available_connections:
-            conn.retry = retry
-        for conn in self._in_use_connections:
-            conn.retry = retry
 
-
-class BlockingConnectionPool(ConnectionPool):
-    """
-    Thread-safe blocking connection pool::
-
-        >>> from redis.client import Redis
-        >>> client = Redis(connection_pool=BlockingConnectionPool())
-
-    It performs the same function as the default
-    :py:class:`~redis.ConnectionPool` implementation, in that,
-    it maintains a pool of reusable connections that can be shared by
-    multiple redis clients (safely across threads if required).
-
-    The difference is that, in the event that a client tries to get a
-    connection from the pool when all of connections are in use, rather than
-    raising a :py:class:`~redis.ConnectionError` (as the default
-    :py:class:`~redis.ConnectionPool` implementation does), it
-    makes the client wait ("blocks") for a specified number of seconds until
-    a connection becomes available.
-
-    Use ``max_connections`` to increase / decrease the pool size::
-
-        >>> pool = BlockingConnectionPool(max_connections=10)
-
-    Use ``timeout`` to tell it either how many seconds to wait for a connection
-    to become available, or to block forever:
-
-        >>> # Block forever.
-        >>> pool = BlockingConnectionPool(timeout=None)
-
-        >>> # Raise a ``ConnectionError`` after five seconds if a connection is
-        >>> # not available.
-        >>> pool = BlockingConnectionPool(timeout=5)
-    """
-
-    def __init__(
-            self,
-            max_connections=50,
-            timeout=20,
-            connection_class=Connection,
-            queue_class=LifoQueue,
-            **connection_kwargs,
-    ):
-
+class BlockingConnectionPool(ConnectionPool):  # 线程安全的阻塞连接池,当所有连接都在使用时,如果客户试图从池中获得连接,会被阻塞最多指定秒数,直到连接可用
+    def __init__(self, max_connections=50, timeout=20, queue_class=LifoQueue, **connection_kwargs):
         self.queue_class = queue_class
         self.timeout = timeout
-        super().__init__(
-            connection_class=connection_class,
-            max_connections=max_connections,
-            **connection_kwargs,
-        )
+        super().__init__(max_connections=max_connections, **connection_kwargs)
 
     def reset(self):
         # Create and fill up a thread safe queue with ``None`` values.
@@ -246,24 +154,11 @@ class BlockingConnectionPool(ConnectionPool):
                 self.pool.put_nowait(None)
             except Full:
                 break
-
-        # Keep a list of actual connection instances so that we can
-        # disconnect them later.
+        # Keep a list of actual connection instances so that we can disconnect them later.
         self._connections = []
-
-        # this must be the last operation in this method. while reset() is
-        # called when holding _fork_lock, other threads in this process
-        # can call _checkpid() which compares self.pid and os.getpid() without
-        # holding any lock (for performance reasons). keeping this assignment
-        # as the last operation ensures that those other threads will also
-        # notice a pid difference and block waiting for the first thread to
-        # release _fork_lock. when each of these threads eventually acquire
-        # _fork_lock, they will notice that another thread already called
-        # reset() and they will immediately release _fork_lock and continue on.
         self.pid = os.getpid()
 
     def make_connection(self):
-        "Make a fresh connection."
         connection = self.connection_class(**self.connection_kwargs)
         self._connections.append(connection)
         return connection
@@ -285,7 +180,6 @@ class BlockingConnectionPool(ConnectionPool):
 
         # Try and get a connection from the pool. If one isn't available within
         # self.timeout then raise a ``ConnectionError``.
-        connection = None
         try:
             connection = self.pool.get(block=True, timeout=self.timeout)
         except Empty:
@@ -297,7 +191,6 @@ class BlockingConnectionPool(ConnectionPool):
         # a new connection to add to the pool.
         if connection is None:
             connection = self.make_connection()
-
         try:
             # ensure this connection is connected to Redis
             connection.connect()
@@ -324,7 +217,7 @@ class BlockingConnectionPool(ConnectionPool):
         "Releases the connection back to the pool."
         # Make sure we haven't changed process.
         self._check_pid()
-        if not self.owns_connection(connection):
+        if connection.pid != self.pid:
             # pool doesn't own this connection. do not add it back
             # to the pool. instead add a None value which is a placeholder
             # that will cause the pool to recreate the connection if
@@ -342,7 +235,6 @@ class BlockingConnectionPool(ConnectionPool):
             pass
 
     def disconnect(self):
-        "Disconnects all connections in the pool."
         self._check_pid()
         for connection in self._connections:
             connection.disconnect()

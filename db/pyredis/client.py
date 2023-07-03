@@ -1,7 +1,8 @@
-from itertools import chain
 import sys
+from itertools import chain
+
 from redis.connection import ConnectionPool
-from redis.exceptions import ConnectionError,ExecAbortError,RedisError,ResponseError,TimeoutError,WatchError
+from redis.exceptions import ConnectionError, ExecAbortError, RedisError, ResponseError, TimeoutError, WatchError
 
 '''
 Starting an iteration with a cursor value of 0, and calling SCAN until the returned cursor is 0 again is called a full iteration.
@@ -17,8 +18,10 @@ As a result, redis-py does not implement the SELECT command on client instances.
 If you use multiple Redis databases within the same application, you should create a separate client instance (and possibly a separate connection pool) for each database.
 It is not safe to pass PubSub or Pipeline objects between threads.
 '''
+
+
 class Redis:
-    def __init__(self, host='localhost', port=6379,db=0, password=None,connection_pool=None,max_connections=None):
+    def __init__(self, host='localhost', port=6379, db=0, password=None, connection_pool=None, max_connections=None):
         if not connection_pool:
             kwargs = {
                 'host': host,
@@ -31,7 +34,7 @@ class Redis:
         self.connection_pool = connection_pool
 
     def parse_response(self, connection, **options):
-        response = connection.read_response()  #   "Parses a response from the Redis server"
+        response = connection.read_response()  # "Parses a response from the Redis server"
         pass
 
     def execute_command(self, *args, **options):
@@ -50,9 +53,10 @@ class Redis:
             return self.parse_response(connection, command_name, **options)
         finally:
             pool.release(connection)
-            
+
     def pipeline(self, transaction=True, shard_hint=None):
-        return Pipeline(self.connection_pool,transaction,shard_hint)
+        return Pipeline(self.connection_pool, transaction, shard_hint)
+
 
 class Pipeline(Redis):
     """
@@ -91,7 +95,7 @@ class Pipeline(Redis):
 
     UNWATCH_COMMANDS = {'DISCARD', 'EXEC', 'UNWATCH'}
 
-    def __init__(self, connection_pool, transaction,shard_hint):
+    def __init__(self, connection_pool, transaction, shard_hint):
         self.connection_pool = connection_pool
         self.connection = None
         self.transaction = transaction
@@ -162,7 +166,7 @@ class Pipeline(Redis):
         conn = self.connection
         # if this is the first call, we need a connection
         if not conn:
-            conn = self.connection_pool.get_connection(command_name,self.shard_hint)
+            conn = self.connection_pool.get_connection(command_name, self.shard_hint)
             self.connection = conn
         try:
             conn.send_command(*args)
@@ -219,9 +223,9 @@ class Pipeline(Redis):
             return execute(conn, stack)
         finally:
             self.reset()
-            
+
     def _execute_transaction(self, connection, commands):
-        cmds = chain([(('MULTI', ), {})], commands, [(('EXEC', ), {})])
+        cmds = chain([(('MULTI',), {})], commands, [(('EXEC',), {})])
         all_cmds = connection.pack_commands([args for args, options in cmds if EMPTY_RESPONSE not in options])
         connection.send_packed_command(all_cmds)
         errors = []
@@ -281,7 +285,6 @@ class Pipeline(Redis):
                 response.append(sys.exc_info()[1])
         return response
 
-
     def parse_response(self, connection, command_name, **options):
         result = Redis.parse_response(self, connection, command_name, **options)
         if command_name in self.UNWATCH_COMMANDS:
@@ -289,4 +292,3 @@ class Pipeline(Redis):
         elif command_name == 'WATCH':
             self.watching = True
         return result
-

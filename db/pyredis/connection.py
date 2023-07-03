@@ -1,9 +1,12 @@
+import os
+import socket
+import threading
 from itertools import chain
-from time import time
-import io, os, socket, threading
 from queue import LifoQueue, Empty, Full
+from time import time
 
-class Connection: # Manages TCP communication to and from a Redis server
+
+class Connection:  # Manages TCP communication to and from a Redis server
 
     def __init__(self,
                  host='localhost',
@@ -24,8 +27,8 @@ class Connection: # Manages TCP communication to and from a Redis server
                  health_check_interval=0,
                  client_name=None,
                  username=None
-    ):
-        self.pid = os.getpid()   # 注意
+                 ):
+        self.pid = os.getpid()  # 注意
         self.host = host
         self.port = int(port)
         self.db = db
@@ -40,14 +43,13 @@ class Connection: # Manages TCP communication to and from a Redis server
         self.retry_on_timeout = retry_on_timeout
         self.health_check_interval = health_check_interval
         self.next_health_check = 0
-        self.encoder = Encoder(encoding, encoding_errors, decode_responses)
         self._sock = None
         self._parser = parser_class(socket_read_size=socket_read_size)
 
     def __del__(self):  # 为什么要定义__del__
         self.disconnect()
 
-    def can_read(self, timeout=0): # Poll the socket to see if there's data that can be read.
+    def can_read(self, timeout=0):  # Poll the socket to see if there's data that can be read.
         pass
 
     def connect(self):  # Connects to the Redis server if not already connected
@@ -60,7 +62,7 @@ class Connection: # Manages TCP communication to and from a Redis server
                 raise
 
     def _connect(self):  # Create a TCP socket connection
-        for res in socket.getaddrinfo(self.host, self.port, self.socket_type,socket.SOCK_STREAM):
+        for res in socket.getaddrinfo(self.host, self.port, self.socket_type, socket.SOCK_STREAM):
             family, socktype, proto, canonname, socket_address = res
             sock = None
             try:
@@ -74,9 +76,9 @@ class Connection: # Manages TCP communication to and from a Redis server
                 socket_connect_timeout: 连接redis资源时的超时时间,可通过rds = redis.Redis(host='10.1.169.215', port=6379, socket_connect_timeout=3,socket_timeout=1)验证
                 socket_timeout: 每条命令执行的超时时间,可以通过rds.eval("while(true) do local a=1; end",0)验证
                 '''
-                sock.settimeout(self.socket_connect_timeout)    # 注意,set the socket_connect_timeout before we connect
+                sock.settimeout(self.socket_connect_timeout)  # 注意,set the socket_connect_timeout before we connect
                 sock.connect(socket_address)
-                sock.settimeout(self.socket_timeout)            # 注意,set the socket_timeout now that we're connected
+                sock.settimeout(self.socket_timeout)  # 注意,set the socket_timeout now that we're connected
                 return sock
 
             except socket.error as _:
@@ -89,18 +91,19 @@ class Connection: # Manages TCP communication to and from a Redis server
                 auth_args = (self.username, self.password or '')
             else:
                 auth_args = (self.password,)
-            self.send_command('AUTH', *auth_args, check_health=False)  # avoid checking health here -- PING will fail if we try to check the health prior to the AUTH
+            self.send_command('AUTH', *auth_args,
+                              check_health=False)  # avoid checking health here -- PING will fail if we try to check the health prior to the AUTH
 
         if self.db:
             self.send_command('SELECT', self.db)
 
-    def disconnect(self):   # Disconnects from the Redis server
+    def disconnect(self):  # Disconnects from the Redis server
         if self._sock:
             if os.getpid() == self.pid:  # 判断是否是当前进程
                 shutdown(self._sock, socket.SHUT_RDWR)
             self._sock.close()
             self._sock = None
-            
+
     def check_health(self):
         '''
         Connections maintain an open socket to the Redis server. Sometimes these sockets are interrupted or disconnected for a variety of reasons.
@@ -110,16 +113,17 @@ class Connection: # Manages TCP communication to and from a Redis server
         '''
         if self.health_check_interval and time() > self.next_health_check:
             try:
-                self.send_command('PING', check_health=False)  # Check the health of the connection with a PING/PONG,没有socket连接的话会先建立连接(此处check_health=False防止无穷调用)
+                self.send_command('PING',
+                                  check_health=False)  # Check the health of the connection with a PING/PONG,没有socket连接的话会先建立连接(此处check_health=False防止无穷调用)
                 if nativestr(self.read_response()) != 'PONG':  # 更新next_health_check
                     raise ConnectionError('Bad response from PING health check')
             except (ConnectionError, TimeoutError):
                 self.disconnect()
-                self.send_command('PING', check_health=False)   # 重新建立连接
+                self.send_command('PING', check_health=False)  # 重新建立连接
                 if nativestr(self.read_response()) != 'PONG':
                     raise ConnectionError('Bad response from PING health check')
 
-    def send_command(self, *args, **kwargs): # Send an already packed command to the Redis server
+    def send_command(self, *args, **kwargs):  # Send an already packed command to the Redis server
         command = args
         if not self._sock:
             self.connect()
@@ -141,11 +145,11 @@ class Connection: # Manages TCP communication to and from a Redis server
         if self.health_check_interval:
             self.next_health_check = time() + self.health_check_interval
         return response
-   
+
 
 class ConnectionPool:
 
-    def __init__(self, connection_class=Connection, max_connections=None,**connection_kwargs):
+    def __init__(self, connection_class=Connection, max_connections=None, **connection_kwargs):
         self.connection_class = connection_class
         self.connection_kwargs = connection_kwargs
         self.max_connections = max_connections or 2 ** 31  # 相当于sqlalchemy的pool_size + max_overflow
@@ -158,7 +162,7 @@ class ConnectionPool:
 
     def reset(self):
         self._lock = threading.RLock()
-        self._created_connections = 0     # 已创建的连接数
+        self._created_connections = 0  # 已创建的连接数
         self._available_connections = []  # 连接池
         self._in_use_connections = set()  # 应为有删除(remove)操作,所以用set更高效,应为有ConnectionPool.disconnect操作,才需要_in_use_connections
 
@@ -182,7 +186,7 @@ class ConnectionPool:
             with self._fork_lock:  # 极小概率出现死锁
                 # time.sleep(2)    # 构造死锁场景
                 if self.pid != os.getpid():
-                    self.reset()   # reset() the instance for the new process if another thread hasn't already done so   
+                    self.reset()  # reset() the instance for the new process if another thread hasn't already done so
 
     def make_connection(self):  # Create a new connection
         if self._created_connections >= self.max_connections:
@@ -199,7 +203,7 @@ class ConnectionPool:
                 connection = self.make_connection()
             self._in_use_connections.add(connection)
             try:
-                connection.connect()   # ensure this connection is connected to Redis,connections that the pool provides should be ready to send a command(只有第一次使用才会建立连接)
+                connection.connect()  # ensure this connection is connected to Redis,connections that the pool provides should be ready to send a command(只有第一次使用才会建立连接)
                 try:
                     if connection.can_read():
                         raise ConnectionError('Connection has data')
@@ -209,7 +213,7 @@ class ConnectionPool:
                     if connection.can_read():
                         raise ConnectionError('Connection not ready')
             except BaseException:
-                self.release(connection)    # release the connection back to the pool so that we don't leak it
+                self.release(connection)  # release the connection back to the pool so that we don't leak it
                 raise
             return connection
 
@@ -223,9 +227,9 @@ class ConnectionPool:
     def disconnect(self):  # Disconnects all connections in the pool
         self._checkpid()
         with self._lock:
-            for connection in chain(self._available_connections,self._in_use_connections):
+            for connection in chain(self._available_connections, self._in_use_connections):
                 connection.disconnect()
-        
+
 
 class BlockingConnectionPool(ConnectionPool):
     """
@@ -236,22 +240,25 @@ class BlockingConnectionPool(ConnectionPool):
     in the event that a client tries to get a connection from the pool when all of connections are in use, rather than raising a ConnectionError,
     it makes the client wait ("blocks") for a specified number of seconds until a connection becomes available.
     """
-    def __init__(self, max_connections=50, timeout=20,connection_class=Connection, queue_class=LifoQueue,**connection_kwargs):
+
+    def __init__(self, max_connections=50, timeout=20, connection_class=Connection, queue_class=LifoQueue,
+                 **connection_kwargs):
         self.queue_class = queue_class
         self.timeout = timeout  # how many seconds to wait for a connection to become available, or to block forever
-        super().__init__(connection_class=connection_class,max_connections=max_connections,**connection_kwargs) # 调用父类构造函数,由于父类构造函数调用了reset,并且子类进行了重构,so子类的reset随后会被调用
+        super().__init__(connection_class=connection_class, max_connections=max_connections,
+                         **connection_kwargs)  # 调用父类构造函数,由于父类构造函数调用了reset,并且子类进行了重构,so子类的reset随后会被调用
 
     def reset(self):
         self.pool = self.queue_class(self.max_connections)
         while True:
             try:
-                self.pool.put(None,block=False)  # 用None将连接池填满
+                self.pool.put(None, block=False)  # 用None将连接池填满
             except Full:
                 break
-        self._connections = []    # Keep a list of actual connection instances so that we can disconnect them later.
-        self.pid = os.getpid()    # 必须放最后赋值
+        self._connections = []  # Keep a list of actual connection instances so that we can disconnect them later.
+        self.pid = os.getpid()  # 必须放最后赋值
 
-    def make_connection(self):   # Make a fresh connection
+    def make_connection(self):  # Make a fresh connection
         connection = self.connection_class(**self.connection_kwargs)
         self._connections.append(connection)
         return connection
@@ -296,4 +303,3 @@ class BlockingConnectionPool(ConnectionPool):
         self._checkpid()
         for connection in self._connections:
             connection.disconnect()
-            
