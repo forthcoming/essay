@@ -29,9 +29,6 @@ class Apollo:  # 进程安全,单进程的读写问题待验证
         self.timeout = timeout
         self.ip = ip or '127.0.0.1'
         self.reset()
-
-        # 当进程ID更改时(例如fork后)会获取此锁,在此期间子进程中的多个线程可能会尝试获取此锁
-        # 第一个获取锁的线程将重置该池的数据结构和锁对象,获取此锁的后续线程将注意到第一个线程已经完成工作并释放锁
         self._fork_lock = threading.Lock()
 
     def reset(self):
@@ -39,23 +36,9 @@ class Apollo:  # 进程安全,单进程的读写问题待验证
         self._cache = {}
         self._notification_map = {'application': -2}  # -2保证初始化时从apollo拉取最新配置到内存,只有版本号比服务端小才认为是配置有更新
         self.init_status = True
-        # 必须最后一个操作,可确保其他线程也会注意到pid差异并阻止等待第一个线程释放_fork_lock,而reset()在持有_fork_lock时被调用
-        # 当所有这些线程最终获取_fork_lock时,它们会注意到另一个线程已经调用了reset(),直接释放_fork_lock并继续
-        # 该进程中的其他线程可以不持有任何锁调用_check_pid()来比较self.pid和getpid(),性能更佳
         self.pid = os.getpid()
 
     def _check_pid(self):
-        """
-        _check_pid尝试保持ConnectionPool fork-safe, 所有更改池状态的ConnectionPool方法都会调用此方法
-        当进程ID不同时,_check_pid假定该进程已fork,并且我们现在正在子进程中运行,子进程不能使用父进程的文件描述符(如sockets)
-        因此当 _check_pid看到进程ID发生变化时,它会调用reset来重新初始化子进程的ConnectionPool,这将导致子进程创建所有新的连接对象
-        _check_pid受到self._fork_lock的保护,保证子进程中的多个线程不会多次调用reset
-        在以下情况下有极小可能性失败：
-        1. 进程A第一次调用_check_pid并获取self._fork_lock
-        2. 在持有self._fork_lock同时,进程A进行分叉(fork()可能发生在进程A的不同线程中)
-        3. 进程B(分叉的子进程)从父进程继承ConnectionPool状态,该状态包括锁定的_fork_lock
-        当进程A释放_fork_lock时,进程B不会收到通知,因此永远无法获取_fork_lock
-        """
         if self.pid != os.getpid():
             with self._fork_lock:  # 极小概率出现死锁
                 if self.pid != os.getpid():

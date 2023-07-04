@@ -250,8 +250,7 @@ def is_tutorial():
     # is比较的内存地址; == 比较的是字面值
     x = y = [4, 5, 6]
     z = [4, 5, 6]
-    assert x == y
-    assert x == z
+    assert x == y == z
     assert x is y
     assert x is not z
     print(id(x), id(y), id(z))  # 1685786989512 1685786989512 1685786991112

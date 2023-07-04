@@ -314,6 +314,7 @@ class RWLock:
         self.name_prefix = name_prefix
         self.pttl = pttl  # 锁过期时间,单位ms
         self.timeout = timeout  # 上锁最多重试时间,单位s
+        # 如果一个线程获得锁,然后把这个锁实例传递给另一个线程稍后释放它,这种情况不能用thread_local
         self.local = threading.local() if thread_local else type('dummy', (), {})
         self.local.token = None
 

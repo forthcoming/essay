@@ -44,7 +44,7 @@ class Redlock:
     unlock_script_sha = sha1(bytes(unlock_script, encoding='utf8')).hexdigest()
 
     def __init__(self, servers, name, ttl=10000, blocking_timeout=20):
-        '''
+        """
         reference:
             https://redis.io/topics/distlock
             https://github.com/SPSCommerce/redlock-py
@@ -60,7 +60,7 @@ class Redlock:
         For example, if you have code where one thread acquires a lock and passes that lock instance to a worker thread to release later.
         If thread local storage isn't disabled in this case, the worker thread won't see the token set by the thread that acquired the lock.
         Our assumption is that these cases aren't common and as such default to using thread local storage.
-        '''
+        """
         assert isinstance(ttl, int), 'ttl {} is not an integer'.format(ttl)
         self.servers = servers
         self.quorum = len(servers) // 2 + 1
