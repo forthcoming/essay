@@ -1,11 +1,13 @@
-from threading import Lock
-from collections import deque
-from itertools import islice,count as _count
-from time import monotonic
-from weakref import WeakSet
+import _thread
+import functools
 import os as _os
 import sys as _sys
-import _thread,functools
+from collections import deque
+from itertools import islice, count as _count
+from threading import Lock
+from time import monotonic
+from weakref import WeakSet
+
 
 ##########################################################################
 # refer: https://github.com/python/cpython/blob/main/Lib/threading.py
@@ -19,8 +21,8 @@ class _RLock:
 
     def __init__(self):
         self._block = Lock()
-        self._owner = None     # get_ident返回的线程id
-        self._count = 0        # 上锁次数
+        self._owner = None  # get_ident返回的线程id
+        self._count = 0  # 上锁次数
 
     def __repr__(self):
         return "<%s %s.%s object owner=%r count=%d at %s>" % (
@@ -32,11 +34,12 @@ class _RLock:
             hex(id(self))
         )
 
-    def _at_fork_reinit(self):  # reinitialize the lock after fork in the child process; reset the lock to the unlocked state.
+    def _at_fork_reinit(
+            self):  # reinitialize the lock after fork in the child process; reset the lock to the unlocked state.
         self._block._at_fork_reinit()
         self._owner = None
         self._count = 0
-        
+
     def acquire(self, blocking=True, timeout=-1):
         """
         When invoked without arguments:
@@ -57,7 +60,7 @@ class _RLock:
 
     __enter__ = acquire
 
-    def release(self): # 只能释放自己上的锁
+    def release(self):  # 只能释放自己上的锁
         """
         If after the decrement it is zero, reset the lock to unlocked, and if any other threads are blocked waiting for the lock to become unlocked, allow exactly one of them to proceed.
         If after the decrement the recursion level is still nonzero, the lock remains locked and owned by the calling thread.
@@ -73,12 +76,12 @@ class _RLock:
     def __exit__(self, t, v, tb):
         self.release()
 
-    def _acquire_restore(self, state):     # Internal methods used by condition variables
+    def _acquire_restore(self, state):  # Internal methods used by condition variables
         self._block.acquire()
         self._count, self._owner = state
 
-    def _release_save(self):                # Internal methods used by condition variables
-        if self._count == 0:                # 允许释放其他线程的锁
+    def _release_save(self):  # Internal methods used by condition variables
+        if self._count == 0:  # 允许释放其他线程的锁
             raise RuntimeError("cannot release un-acquired lock")
         count = self._count
         self._count = 0
@@ -106,13 +109,13 @@ class Condition:
         self.release = lock.release
         self._release_save = lock._release_save
         self._acquire_restore = lock._acquire_restore
-        self._is_owned = lock._is_owned # Lock无此函数,需要自己实现,但Condition中实现的_is_owned跟RLock的_is_owned有点区别(锁L在线程T1获取,在T2判断)
+        self._is_owned = lock._is_owned  # Lock无此函数,需要自己实现,但Condition中实现的_is_owned跟RLock的_is_owned有点区别(锁L在线程T1获取,在T2判断)
         self._waiters = deque()
 
     def _at_fork_reinit(self):
         self._lock._at_fork_reinit()
         self._waiters.clear()
-        
+
     def __enter__(self):
         return self._lock.__enter__()
 
@@ -139,7 +142,7 @@ class Condition:
         self._waiters.append(waiter)
         saved_state = self._release_save()  # 释放self._lock锁
         gotit = False
-        try:    # 再次上锁挂起线程,等待notify通知后释放锁
+        try:  # 再次上锁挂起线程,等待notify通知后释放锁
             if timeout is None:
                 gotit = waiter.acquire()
             else:
@@ -175,7 +178,7 @@ class Condition:
     def notify_all(self):
         self.notify(len(self._waiters))
 
-        
+
 class Semaphore:
     """
     信号量的主要用途是控制线程并发量(类似线程池),初始值为1的信号量为互斥量,其实就是线程锁
@@ -241,7 +244,7 @@ class Semaphore:
         return rc
 
     __enter__ = acquire
-            
+
     def release(self, n=1):
         """
         Release a semaphore, incrementing the internal counter by one or more.
@@ -253,11 +256,11 @@ class Semaphore:
             self._value += n
             for i in range(n):
                 self._cond.notify()
-                
+
     def __exit__(self, t, v, tb):
         self.release()
 
-        
+
 class BoundedSemaphore(Semaphore):  # 建议使用BoundedSemaphore代替Semaphore,应为他会对release做检测,减小程序bug
     """
     A bounded semaphore checks to make sure its current value doesn't exceed its initial value. If it does, ValueError is raised.
@@ -283,7 +286,7 @@ class BoundedSemaphore(Semaphore):  # 建议使用BoundedSemaphore代替Semaphor
             self._value += n
             for i in range(n):
                 self._cond.notify()
-            
+
 
 class Event:
     """
@@ -302,12 +305,13 @@ class Event:
     def is_set(self):  # Return true if and only if the internal flag is true.
         return self._flag
 
-    def set(self):   # All threads waiting for it to become true are awakened. Threads that call wait() once the flag is true will not block at all.
+    def set(self):  # All threads waiting for it to become true are awakened. Threads that call wait() once the flag is true will not block at all.
         with self._cond:
             self._flag = True
             self._cond.notify_all()
 
-    def clear(self):  # Subsequently, threads calling wait() will block until set() is called to set the internal flag to true again.
+    def clear(
+            self):  # Subsequently, threads calling wait() will block until set() is called to set the internal flag to true again.
         with self._cond:
             self._flag = False
 
@@ -323,10 +327,11 @@ class Event:
             if not signaled:
                 signaled = self._cond.wait(timeout)
             return signaled
-        
-        
+
+
 class BrokenBarrierError(RuntimeError):
     pass
+
 
 class Barrier:
     """
@@ -346,8 +351,8 @@ class Barrier:
         self._action = action
         self._timeout = timeout
         self._parties = parties  # the number of threads required to trip the barrier.
-        self._state = 0          # 0 filling, 1, draining, -1 resetting, -2 broken
-        self._count = 0          # the number of threads currently waiting at the barrier.
+        self._state = 0  # 0 filling, 1, draining, -1 resetting, -2 broken
+        self._count = 0  # the number of threads currently waiting at the barrier.
 
     @property
     def parties(self):
@@ -355,7 +360,7 @@ class Barrier:
 
     @property
     def n_waiting(self):
-        if self._state == 0:   # We don't need synchronization here since this is an ephemeral result anyway.  It returns the correct value in the steady state.
+        if self._state == 0:  # We don't need synchronization here since this is an ephemeral result anyway.  It returns the correct value in the steady state.
             return self._count
         return 0
 
@@ -363,28 +368,29 @@ class Barrier:
     def broken(self):  # Return True if the barrier is in a broken state.
         return self._state == -2
 
-    def _enter(self):      # Block until the barrier is ready for us, or raise an exception if it is broken.
+    def _enter(self):  # Block until the barrier is ready for us, or raise an exception if it is broken.
         while self._state in (-1, 1):  # It is draining or resetting, wait until done
             self._cond.wait()
-        if self._state < 0:            # see if the barrier is in a broken state
+        if self._state < 0:  # see if the barrier is in a broken state
             raise BrokenBarrierError
         assert self._state == 0
 
     def _release(self):
         try:
-            if self._action:      # Optionally run the 'action' and release the threads waiting in the barrier.
+            if self._action:  # Optionally run the 'action' and release the threads waiting in the barrier.
                 self._action()
-            self._state = 1       # enter draining state
+            self._state = 1  # enter draining state
             self._cond.notify_all()
         except:
-            self._break()         # an exception during the _action handler.  Break and reraise
+            self._break()  # an exception during the _action handler.  Break and reraise
             raise
 
     def _break(self):  # An internal error was detected.  The barrier is set to a broken state all parties awakened.
         self._state = -2
         self._cond.notify_all()
 
-    def abort(self):  # Useful in case of error.  Any currently waiting threads and threads attempting to 'wait()' will have BrokenBarrierError raised.
+    def abort(
+            self):  # Useful in case of error.  Any currently waiting threads and threads attempting to 'wait()' will have BrokenBarrierError raised.
         with self._cond:
             self._break()
 
@@ -398,44 +404,46 @@ class Barrier:
         if timeout is None:
             timeout = self._timeout
         with self._cond:
-            self._enter() # Block while the barrier drains.
+            self._enter()  # Block while the barrier drains.
             index = self._count
             self._count += 1
             try:
                 if index + 1 == self._parties:
                     self._release()
                 else:
-                    self._wait(timeout)       # We wait until someone releases us
+                    self._wait(timeout)  # We wait until someone releases us
                 return index
             finally:
                 self._count -= 1
-                self._exit()     # Wake up any threads waiting for barrier to drain.
+                self._exit()  # Wake up any threads waiting for barrier to drain.
 
-    def _wait(self, timeout):    # Wait in the barrier until we are released.  Raise an exception if the barrier is reset or broken.
-        if not self._cond.wait_for(lambda : self._state != 0, timeout):
-            #timed out.  Break the barrier
+    def _wait(self,
+              timeout):  # Wait in the barrier until we are released.  Raise an exception if the barrier is reset or broken.
+        if not self._cond.wait_for(lambda: self._state != 0, timeout):
+            # timed out.  Break the barrier
             self._break()
             raise BrokenBarrierError
         if self._state < 0:
             raise BrokenBarrierError
         assert self._state == 1
 
-    def _exit(self):      # If we are the last thread to exit the barrier, signal any threads waiting for the barrier to drain.
+    def _exit(
+            self):  # If we are the last thread to exit the barrier, signal any threads waiting for the barrier to drain.
         if self._count == 0:
             if self._state in (-1, 1):
                 self._state = 0
                 self._cond.notify_all()
 
-    def reset(self):    # Any threads currently waiting will get the BrokenBarrier exception raised.
+    def reset(self):  # Any threads currently waiting will get the BrokenBarrier exception raised.
         with self._cond:
             if self._count > 0:
-                if self._state in (0,-2):
+                if self._state in (0, -2):
                     self._state = -1
             else:
                 self._state = 0
             self._cond.notify_all()
 
-        
+
 ########################################Thread开始########################################        
 get_ident = _thread.get_ident
 get_native_id = _thread.get_native_id
@@ -444,7 +452,7 @@ _counter()  # Consume 0 so first non-main thread has id 1.
 _newname = lambda: "Thread-{}".format(_counter())
 
 _active_limbo_lock = Lock()
-_active = {}    # maps thread id to Thread object
+_active = {}  # maps thread id to Thread object
 _limbo = {}
 _dangling = WeakSet()  # 所有申请过的线程对象集合
 
@@ -455,11 +463,11 @@ _shutdown_locks = set()
 _threading_atexits = []
 _SHUTTING_DOWN = False
 
-class Thread:
 
+class Thread:
     _initialized = False
 
-    def __init__(self, group=None, target=None, name=None,args=(), kwargs=None, *, daemon=None):
+    def __init__(self, group=None, target=None, name=None, args=(), kwargs=None, *, daemon=None):
         """
         This constructor should always be called with keyword arguments.
         *group* should be None; reserved for future extension when a ThreadGroup class is implemented.
@@ -478,8 +486,8 @@ class Thread:
         self._started = Event()
         self._is_stopped = False
         self._initialized = True
-        self._stderr = _sys.stderr    # sys.stderr is not stored in the class like sys.exc_info since it can be changed between instances
-        _dangling.add(self)           # For debugging and _after_fork()
+        self._stderr = _sys.stderr  # sys.stderr is not stored in the class like sys.exc_info since it can be changed between instances
+        _dangling.add(self)  # For debugging and _after_fork()
 
     def _bootstrap_inner(self):
         try:
@@ -497,7 +505,7 @@ class Thread:
         finally:
             with _active_limbo_lock:
                 try:
-                    del _active[get_ident()]   # We don't call self._delete() because it also grabs _active_limbo_lock.
+                    del _active[get_ident()]  # We don't call self._delete() because it also grabs _active_limbo_lock.
                 except:
                     pass
 
@@ -559,7 +567,7 @@ class Thread:
             status += " %s" % self._ident
         return "<%s(%s, %s)>" % (self.__class__.__name__, self._name, status)
 
-    def _delete(self):    # Remove current thread from the dict of currently running threads.
+    def _delete(self):  # Remove current thread from the dict of currently running threads.
         with _active_limbo_lock:
             del _active[get_ident()]
             # There must not be any python code between the previous line and after the lock is released.
@@ -573,10 +581,10 @@ class Thread:
         """
         assert self._initialized, "Thread.__init__() not called"
         return self._native_id
-    
+
     def _set_native_id(self):
-        self._native_id = get_native_id() 
-        
+        self._native_id = get_native_id()
+
     @property
     def ident(self):
         """
@@ -593,11 +601,11 @@ class Thread:
         # Set a lock object which will be released by the interpreter when the underlying thread state (see pystate.h) gets deleted.
         self._tstate_lock = _thread._set_sentinel()
         self._tstate_lock.acquire()
-        if not self.daemon:   # 非守护线程
+        if not self.daemon:  # 非守护线程
             with _shutdown_locks_lock:
                 _shutdown_locks.add(self._tstate_lock)
 
-    def _wait_for_tstate_lock(self, block=True, timeout=-1): # 获取哨兵锁
+    def _wait_for_tstate_lock(self, block=True, timeout=-1):  # 获取哨兵锁
         '''
         Issue #18808: wait for the thread state to be gone.
         At the end of the thread's life, after all knowledge of the thread is removed from C data structures, C code releases our _tstate_lock.
@@ -607,9 +615,9 @@ class Thread:
         lock = self._tstate_lock
         if lock is None:  # already determined that the C code is done
             assert self._is_stopped
-        elif lock.acquire(block, timeout): # 说明线程已结束
+        elif lock.acquire(block, timeout):  # 说明线程已结束
             lock.release()
-            self._stop()                   # 更新self._is_stopped和self._tstate_lock
+            self._stop()  # 更新self._is_stopped和self._tstate_lock
 
     def _stop(self):
         '''
@@ -625,10 +633,11 @@ class Thread:
             assert not lock.locked()
         self._is_stopped = True
         self._tstate_lock = None
-        if not self.daemon: # 非守护线程结束,删除集合中对应的哨兵锁
+        if not self.daemon:  # 非守护线程结束,删除集合中对应的哨兵锁
             with _shutdown_locks_lock:
-                _shutdown_locks.discard(lock)  # Remove an element from a set if it is a member.If the element is not a member, do nothing.
-                
+                _shutdown_locks.discard(
+                    lock)  # Remove an element from a set if it is a member.If the element is not a member, do nothing.
+
     def is_alive(self):
         """
         Return whether the thread is alive.
@@ -696,7 +705,7 @@ class Thread:
         if self._started.is_set():  # 线程已经启动
             raise RuntimeError("cannot set daemon status of active thread")
         self._daemonic = daemonic
-            
+
     def _reset_internal_locks(self, is_alive):
         # private!  Called by _after_fork() to reset our internal locks as they may be in an invalid state leading to a deadlock or crash.
         self._started._at_fork_reinit()
@@ -707,7 +716,7 @@ class Thread:
             # The thread isn't alive after fork: it doesn't have a tstate anymore.
             self._is_stopped = True
             self._tstate_lock = None
-            
+
 
 class _MainThread(Thread):  # Special thread class to represent the main thread
 
@@ -720,7 +729,9 @@ class _MainThread(Thread):  # Special thread class to represent the main thread
         with _active_limbo_lock:
             _active[self._ident] = self
 
-_main_thread = _MainThread()   # Create the main thread object, and make it available for the interpreter (Py_Main) as threading._shutdown.
+
+_main_thread = _MainThread()  # Create the main thread object, and make it available for the interpreter (Py_Main) as threading._shutdown.
+
 
 def _register_atexit(func, *arg, **kwargs):
     """
@@ -733,17 +744,18 @@ def _register_atexit(func, *arg, **kwargs):
         raise RuntimeError("can't register atexit after shutdown")
     call = functools.partial(func, *arg, **kwargs)  # 添加或修改原函数的默认参数,产生一个新的函数
     _threading_atexits.append(call)
-    
+
+
 def _shutdown():
     """
     每个进程结束时都会调用
     Wait until the Python thread state of all non-daemon threads get deleted.   
     Note that just calling _stop() isn't enough:  other threads may already be waiting on _tstate_lock.
     """
-    
-    if _main_thread._is_stopped: # _shutdown() was already called
+
+    if _main_thread._is_stopped:  # _shutdown() was already called
         return
-    
+
     global _SHUTTING_DOWN
     _SHUTTING_DOWN = True
     tlock = _main_thread._tstate_lock
@@ -756,7 +768,7 @@ def _shutdown():
     # Call registered threading atexit functions before threads are joined.Order is reversed, similar to atexit.
     for atexit_call in reversed(_threading_atexits):
         atexit_call()
-        
+
     # Join all non-deamon threads
     while True:
         with _shutdown_locks_lock:
@@ -772,8 +784,10 @@ def _shutdown():
             lock.release()
         # new threads can be spawned while we were waiting for the other threads to complete
 
-def current_thread():   # Return the current Thread object, corresponding to the caller's thread of control.
+
+def current_thread():  # Return the current Thread object, corresponding to the caller's thread of control.
     return _active[get_ident()]
+
 
 def enumerate():
     """
@@ -783,6 +797,7 @@ def enumerate():
     """
     with _active_limbo_lock:
         return list(_active.values()) + list(_limbo.values())
+
 
 def _after_fork():
     """
@@ -817,7 +832,8 @@ def _after_fork():
                 thread._reset_internal_locks(False)
                 thread._stop()
         assert len(_active) == 1
-       
+
+
 """
 Register callables to be called when forking a new process.
 before: A callable to be called in the parent before the fork() syscall.
@@ -827,7 +843,9 @@ after_in_parent: A callable to be called in the parent after fork().
 """
 if hasattr(_os, "register_at_fork"):
     _os.register_at_fork(after_in_child=_after_fork)
-########################################Thread结束########################################        
+
+
+########################################Thread结束########################################
 
 
 class Timer(Thread):  # Call a function after a specified number of seconds
@@ -842,7 +860,7 @@ class Timer(Thread):  # Call a function after a specified number of seconds
         self.kwargs = kwargs if kwargs is not None else {}
         self.finished = Event()
 
-    def cancel(self):   # Stop the timer if it hasn't finished yet.
+    def cancel(self):  # Stop the timer if it hasn't finished yet.
         self.finished.set()
 
     def run(self):
@@ -850,4 +868,3 @@ class Timer(Thread):  # Call a function after a specified number of seconds
         if not self.finished.is_set():
             self.function(*self.args, **self.kwargs)
         self.finished.set()
-     
