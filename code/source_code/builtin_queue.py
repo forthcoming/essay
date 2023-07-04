@@ -90,13 +90,7 @@ class Queue:
             self.unfinished_tasks += 1
             self.not_empty.notify()
 
-    def get(self, block=True, timeout=None):
-        """
-        If optional args 'block' is true and 'timeout' is None (the default),block if necessary until an item is available.
-        If 'timeout' is a non-negative number, it blocks at most 'timeout' seconds
-        and raises the Empty exception if no item was available within that time,Otherwise ('block' is false),
-        return an item if one is immediately available, else raise the Empty exception(忽略timeout)
-        """
+    def get(self, block=True, timeout=None):  # If block = false,如果item立即可用则返回否则引发Empty异常,此时忽略timeout
         with self.not_empty:
             if not block:
                 if not self._qsize():
@@ -160,7 +154,6 @@ class SimpleQueue:
     缺少如任务追踪等高级功能的简单队列
     Note: This pure Python implementation is not reentrant.while this pure Python version provides fairness
     by using a threading.Semaphore which is itself fair,being based on threading.Condition,
-    fairness is not part of the API contract.This allows the C version to use a different implementation.
     """
 
     def __init__(self):
