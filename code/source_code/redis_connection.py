@@ -1,7 +1,6 @@
 import os
 import socket
 import threading
-from itertools import chain
 from queue import Empty, Full, LifoQueue
 from time import time
 
@@ -218,7 +217,9 @@ class ConnectionPool:
     def disconnect(self):  # __del__中执行
         self._check_pid()
         with self._lock:
-            for connection in chain(self._available_connections, self._in_use_connections):
+            for connection in self._available_connections:
+                connection.disconnect()
+            for connection in self._in_use_connections:
                 connection.disconnect()
 
 
