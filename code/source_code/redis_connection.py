@@ -18,7 +18,7 @@ class Connection:
         self.socket_connect_timeout = socket_connect_timeout
         self._sock = None
         self.host = host
-        self.port = int(port)
+        self.port = port
         self.socket_keepalive = socket_keepalive
         self.socket_keepalive_options = socket_keepalive_options or {}
         self.socket_type = socket_type
@@ -52,6 +52,14 @@ class Connection:
         sock.settimeout(self.socket_connect_timeout)
         sock.connect(path)
         sock.settimeout(self.socket_timeout)
+
+    def disconnect(self):  # Disconnects from the Redis server
+        if self._sock is None:
+            return
+        conn_sock, self._sock = self._sock, None
+        if os.getpid() == self.pid:
+            conn_sock.shutdown(socket.SHUT_RDWR)
+        conn_sock.close()
 
 
 class ConnectionPool:
@@ -93,7 +101,7 @@ class ConnectionPool:
             finally:
                 self._fork_lock.release()
 
-    def get_connection(self, command_name, *keys, **options):  # 核心
+    def get_connection(self, *keys, **options):  # 核心
         self._check_pid()
         with self._lock:
             try:
@@ -163,7 +171,7 @@ class BlockingConnectionPool(ConnectionPool):  # 线程安全的阻塞连接池,
         self._connections.append(connection)
         return connection
 
-    def get_connection(self, command_name, *keys, **options):
+    def get_connection(self, *keys, **options):
         """
         Get a connection, blocking for ``self.timeout`` until a connection
         is available from the pool.
