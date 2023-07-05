@@ -39,9 +39,9 @@ class Apollo:
         if self.pid != os.getpid():
             with self._fork_lock:  # 极小概率出现死锁
                 if self.pid != os.getpid():
-                    self.reset()  # reset the instance for the new process if another thread hasn't already done so
+                    self._reset()  # reset the instance for the new process if another thread hasn't already done so
 
-    def reset(self):
+    def _reset(self):
         thread = threading.Thread(target=self._listener, daemon=True)
         thread.start()
         self.pid = os.getpid()
