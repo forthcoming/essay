@@ -5,7 +5,7 @@ import threading
 import time
 
 
-def tcplink(sock, addr):
+def tcp_link(sock, addr):
     print('Accept new connection from {}:{}...'.format(*addr))
     sock.send(b'Welcome!')  # 必须是byte类型
     while True:
@@ -27,7 +27,7 @@ while True:  # 服务器程序通过一个永久循环来接受来自客户端�
     # 接受一个新连接:
     sock, addr = server.accept()  # 每个连接都必须创建新线程(或进程)来处理,否则单线程在处理连接的过程中,无法接受其他客户端的连接
     # 创建新线程来处理TCP连接:
-    t = threading.Thread(target=tcplink, args=(sock, addr))
+    t = threading.Thread(target=tcp_link, args=(sock, addr))
     t.start()
 
 ########################################################################################################################
