@@ -8,7 +8,7 @@ from multiprocessing.dummy import Process
 import requests
 
 from circuit_breaker import CircuitBreaker, Policy
-from tutorial import singleton
+from tutorial import singleton, get_ip
 
 
 @singleton
@@ -24,11 +24,11 @@ class Apollo:
     public权限的Namespace,能被任何应用获取,所以公共的Namespace的名称必须全局唯一
     """
 
-    def __init__(self, app_id, cluster='default', server_url='http://localhost:8080', ip=None, time_interval=5):
+    def __init__(self, app_id, cluster='default', server_url='http://localhost:8080', time_interval=5):
         self.server_url = server_url
         self.app_id = app_id
         self.cluster = cluster
-        self.ip = ip or '127.0.0.1'
+        self.ip = get_ip()
         self._cache = {}
         self._notification_map = {'application': -1}  # -1保证初始化时从apollo拉取最新配置到内存,只有版本号比服务端小才认为是配置有更新
         self.time_interval = time_interval

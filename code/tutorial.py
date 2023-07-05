@@ -6,6 +6,7 @@ import os
 import pickle
 import random
 import re
+import socket
 import sys
 import time
 from bisect import insort_right, bisect_left, bisect_right
@@ -164,19 +165,30 @@ class Singleton(type):
 
 def singleton(cls):
     _instance_pool = {}
-    _instance_pool_lock = Lock()
+    _instance_lock = Lock()
 
     def _singleton(*args, **kwargs):
         _kwargs = {_key: kwargs[_key] for _key in sorted(kwargs)}
         hash_key = f"{args}:{_kwargs}"
         if hash_key not in _instance_pool:
-            with _instance_pool_lock:  # 线程安全单例池
+            with _instance_lock:  # 线程安全单例池
                 if hash_key not in _instance_pool:
-                    _instance = cls(*args, **kwargs)
-                    _instance_pool[hash_key] = _instance
+                    _instance_pool[hash_key] = cls(*args, **kwargs)
         return _instance_pool[hash_key]
 
     return _singleton
+
+
+def get_ip():
+    ip = '127.0.0.1'
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.connect(('8.8.8.8', 53))
+        ip = sock.getsockname()[0]
+        sock.close()
+    except Exception as e:
+        print(e)
+    return ip
 
 
 def str_tutorial():

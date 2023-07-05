@@ -3,7 +3,7 @@ import functools
 import os
 import pickle
 import random
-import socket
+from tutorial import get_ip
 import threading
 import time
 from contextlib import contextmanager
@@ -390,20 +390,8 @@ class DispatchWork:  # 功能类似分布式锁,保证同一时刻服务只在�
     def __init__(self, suffix):
         self.suffix = suffix
 
-    @staticmethod
-    def get_local_ip():
-        ip = '127.0.0.1'
-        try:
-            sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            sock.connect(('8.8.8.8', 53))
-            ip = sock.getsockname()[0]
-            sock.close()
-        except Exception as e:
-            print(e)
-        return ip
-
     def start(self, working, work_timeout=4, cache_timeout=120):  # 服务只包含一个任务
-        ip = DispatchWork.get_local_ip()
+        ip = get_ip()
         cache = 'webapi:{{common_service_hbt}}:{}:{}'.format(self.suffix, 0)
         count = 0
         while True:
@@ -423,7 +411,7 @@ class DispatchWork:  # 功能类似分布式锁,保证同一时刻服务只在�
             time.sleep(work_timeout)
 
     def multiple_start(self, workings, work_timeout=4):  # 服务包含多个任务
-        ip = DispatchWork.get_local_ip()
+        ip = get_ip()
         count = 0
         while True:
             for name, working in workings.items():
