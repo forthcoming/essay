@@ -4,8 +4,6 @@ from collections import deque
 from collections.abc import Iterable
 from inspect import getgeneratorstate
 from multiprocessing import Process, Value
-from multiprocessing.dummy import Barrier, Process as Thread
-from threading import BrokenBarrierError
 
 
 # 记录一些不是那么重要的用例
@@ -128,33 +126,6 @@ def test_win32():
     win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, x, y, 0, 0)  # 鼠标左键弹起
 
 
-def test_barrier(status, barrier):
-    print(status)
-    try:
-        barrier.wait(2)  # 如果2秒内没有达到障碍线程数量,会进入断开状态,引发BrokenBarrierError错误
-    except BrokenBarrierError:
-        print("等待超时了... ")
-    else:
-        print("bla...")
-
-
-def barrier_tutorial():
-    # 每个任务按规定的分组数进行任务执行,如果没有达到规定的分组数,则需要一直阻塞等待满足规定的分数组(屏障点)才会继续执行任务
-    status_list = ["init ready", "video ready", "audio ready"]
-    barrier = Barrier(3, action=lambda: print('初始化完成,开始播放'), timeout=None)  # 设置3个障碍对象
-    threads = [Thread(target=test_barrier, args=(status_list[i], barrier)) for i in range(3)]
-    run_subroutine(threads)
-    """
-    init ready
-    video ready
-    audio ready
-    初始化完成,开始播放
-    bla...
-    bla...
-    bla...
-    """
-
-
 def test_shared_value(share):
     with share.get_lock():
         time.sleep(.001)
@@ -180,5 +151,4 @@ def shared_value_tutorial():
 
 
 if __name__ == '__main__':
-    # test_yield_from()
-    barrier_tutorial()
+    test_yield_from()

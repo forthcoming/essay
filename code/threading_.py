@@ -180,30 +180,6 @@ class Condition:
 
 
 class Semaphore:
-    """
-    信号量的主要用途是控制线程并发量(类似线程池),初始值为1的信号量为互斥量,其实就是线程锁
-    信号量用的是非重入锁,但信号量本身可重入
-    Semaphores manage a counter representing the number of release() calls minus the number of acquire() calls, plus an initial value.
-    The acquire() method blocks if necessary until it can return without making the counter negative. If not given, value defaults to 1.
-    
-    ######################## 死锁试例 ########################
-    semaphore = Semaphore(2)
-    def work(idx): 
-        with semaphore:
-            time.sleep(.1)
-            with semaphore:
-                print('working in {}'.format(idx))
-    def work_v1(idx):
-        with semaphore:
-            with semaphore:
-                with semaphore:
-                    print('working in {}'.format(idx))
-    threads = [Thread(target=work,args=(idx,)) for idx in range(5)]  # or work_v1
-    for thread in threads:
-        thread.start()
-    for thread in threads:
-        thread.join()
-    """
 
     def __init__(self, value=1):
         if value < 0:
@@ -232,7 +208,7 @@ class Semaphore:
                     break
                 if timeout is not None:
                     if endtime is None:
-                        endtime = monotonic() + timeout  # monotonic单调时间,它指的是系统启动以后流逝的时间,不区分线程进程,按调用顺序递增
+                        endtime = monotonic() + timeout
                     else:
                         timeout = endtime - monotonic()
                         if timeout <= 0:
@@ -261,7 +237,7 @@ class Semaphore:
         self.release()
 
 
-class BoundedSemaphore(Semaphore):  # 建议使用BoundedSemaphore代替Semaphore,应为他会对release做检测,减小程序bug
+class BoundedSemaphore(Semaphore):
     """
     A bounded semaphore checks to make sure its current value doesn't exceed its initial value. If it does, ValueError is raised.
     If the semaphore is released too many times it's a sign of a bug. If not given, value defaults to 1.
@@ -339,7 +315,6 @@ class Barrier:
     In addition, a 'resetting' state exists which is similar to 'draining' except that threads leave with a BrokenBarrierError,and a 'broken' state in which all threads get the exception.
     Useful for synchronizing a fixed number of threads at known synchronization points.
     Threads block on 'wait()' and are simultaneously awoken once they have all made that call.
-    多线程Barrier会设置一个线程障碍数量parties,如果等待的线程数量没有达到障碍数量parties,所有线程会处于阻塞状态,当等待的线程到达了这个数量就会唤醒所有的等待线程
     """
 
     def __init__(self, parties, action=None, timeout=None):
@@ -396,7 +371,6 @@ class Barrier:
 
     def wait(self, timeout=None):
         """
-        如果等待超时,障碍将进入断开状态,如果在线程等待期间障碍断开或重置,此方法会引发BrokenBarrierError错误
         When the specified number of threads have started waiting, they are all simultaneously awoken.
         If an 'action' was provided for the barrier, one of the threads will have executed that callback prior to returning.
         Returns an individual index number from 0 to 'parties-1'.

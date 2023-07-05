@@ -9,8 +9,8 @@ import signal
 import time
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from multiprocessing import shared_memory
-from multiprocessing.dummy import Process as Thread, Lock as ThreadLock, RLock as ThreadRLock
-from threading import get_ident, local
+from multiprocessing.dummy import Lock as ThreadLock, RLock as ThreadRLock
+from threading import get_ident, local, Barrier, BrokenBarrierError, BoundedSemaphore, Thread
 
 """
 atexit
@@ -94,20 +94,20 @@ def pool_executor_tutorial():
     如果提交的任务是一样的,就可以简化成map.假如提交的任务不一样,或者执行的过程之可能出现异常(map执行过程中发现问题会直接抛错)就要用到submit
     """
     args = [3, 2, 4]
-    start_time = time.time()
+    start_time = time.monotonic()
     with ThreadPoolExecutor(2) as executor:
         futures = [executor.submit(pool_work, arg) for arg in args]  # concurrent.futures._base.Future,不阻塞下一行语句的执行
         time.sleep(3.5)  # 已经完成了两个任务
         # 任何在调用as_completed()之前完成的futures将首先被生成
         for future in as_completed(futures, timeout=3):  # 只要有任务完成或取消就返回,timeout秒后如果还有未完成任务抛出TimeoutError异常
             print(future.result(), futures)
-    print(f"cost {time.time() - start_time} seconds")  # cost 6.006827116012573 seconds
+    print(f"cost {time.monotonic() - start_time} seconds")  # cost 6.006827116012573 seconds
 
-    start_time = time.time()
+    start_time = time.monotonic()
     with ProcessPoolExecutor(2) as executor:  # 只创建max_worker=2个进程
         results = executor.map(pool_work, args)  # generator,不阻塞下一行语句的执行
         print(f'the results is {list(results)}')  # 都完成后按任务顺序返回
-    print(f"cost {time.time() - start_time} seconds")  # cost 6.156317949295044 seconds
+    print(f"cost {time.monotonic() - start_time} seconds")  # cost 6.156317949295044 seconds
 
     thread_lock = ThreadLock()
     tasks = [1, 2, 3, 2, 1, 5, 3, 4, 4, 6, 1, 5, 2, 7, 1, 10, 4, 6, 3, 5, 32, 4, 7, 2, 7, 3, 1, 9, 5, 2] * 100
@@ -265,11 +265,11 @@ def join_tutorial():
     ]
     for process in processes:
         process.start()
-    begin = end = time.time()
+    begin = end = time.monotonic()
     for process in processes:
         process.join()
-        print('子进程阻塞耗时:', time.time() - end)
-        end = time.time()
+        print('子进程阻塞耗时:', time.monotonic() - end)
+        end = time.monotonic()
     print('总耗时:', end - begin)
     '''
     OUTPUT:
@@ -338,7 +338,7 @@ def shared_manager_tutorial():
         print(namespace)  # Namespace(dict_={'a': {'b': 'ab'}, 'c': 'c'}, int_=3, list_=[0, 2, 4], string_='hi')
 
 
-def test_lock(lock, salary):
+def test_rlock(lock, salary):
     time.sleep(.05)
     with lock:
         with lock:
@@ -346,19 +346,47 @@ def test_lock(lock, salary):
             salary[0] += 1
 
 
-def rlock_tutorial():
+def test_barrier(status, barrier):
+    try:
+        time.sleep(random.random())
+        barrier.wait(2)  # 如果2秒内没有达到障碍线程数量,会进入断开状态,引发BrokenBarrierError错误
+        print(status, datetime.datetime.now())
+    except BrokenBarrierError:
+        print(f"等待超时,status:{status}")
+
+
+def test_semaphore(timeout, semaphore):
+    with semaphore:
+        time.sleep(timeout)
+        print('working in {}'.format(timeout))
+
+
+def lock_tutorial():
     """
     线程Lock的获取与释放可以在不同线程中完成,进程Lock的获取与释放可以在不同进程或线程中完成,嵌套Lock会导致死锁,但可以顺序出现多次
     线程RLock的获取与释放必须在同一个线程中完成,进程RLock的获取与释放必须在同一个进程或线程中完成,RLock可以嵌套,也可以顺序
-    Semaphore是信号量锁,用来控制线/进程的并发数量,with semaphore启动
+    Barrier每个任务按规定的分组数进行任务执行,如果没有达到规定的分组数,则需要一直阻塞等待满足规定的分数组(屏障点)才会继续执行任务
+    Semaphore用于控制线/进程并发量(类似线程池),初始值为1的信号量等效为非重入锁
+    Semaphore管理一个计数器,计数器 = release调用次数 - acquire调用次数 + 初始值(默认1),当计数器为负时acquire会阻塞
+    建议使用BoundedSemaphore代替Semaphore,应为他会对release做检测,如果计数器大于初始值则会引发ValueError
     """
     salary = [0]
     thread_rlock = ThreadRLock()
-    threads = [Thread(target=test_lock, args=(thread_rlock, salary)) for _ in range(100)]  # ok
+    threads = [Thread(target=test_rlock, args=(thread_rlock, salary)) for _ in range(100)]  # ok
     # thread_lock = ThreadLock()
     # threads = [Thread(target=test_rlock, args=(thread_lock, salary)) for _ in range(100)]  # deadlock
     run_subroutine(threads)
     assert salary[0] == 100
+
+    barrier = Barrier(3, action=lambda: print('开始执行任务'))  # 设置3个障碍对象
+    threads = [Thread(target=test_barrier, args=(i, barrier)) for i in range(8)]
+    run_subroutine(threads)
+
+    semaphore = BoundedSemaphore(2)
+    t1 = time.monotonic()
+    threads = [Thread(target=test_semaphore, args=(idx, semaphore)) for idx in range(5)]
+    run_subroutine(threads)
+    print(time.monotonic() - t1)  # 6
 
 
 class ThreadLocal:
@@ -490,14 +518,14 @@ def shared_pipe_tutorial():
 
 if __name__ == "__main__":
     # shared_memory_tutorial()
-    shared_pipe_tutorial()
+    # shared_pipe_tutorial()
     # shared_manager_tutorial()
     # shared_mmap_tutorial()
     # shared_value_simulation_tutorial()
     # pool_executor_tutorial()
     # DeriveRelationship.main()
     # join_tutorial()
-    # rlock_tutorial()
+    lock_tutorial()
     # ThreadLocal.thread_local_tutorial()
     # fork_tutorial()
     # QueueTutorial.scheduler()

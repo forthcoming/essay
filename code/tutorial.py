@@ -604,7 +604,9 @@ def datetime_tutorial():
     print(datetime.now() - timedelta(days=2))  # weeks,minutes
     print(datetime.strptime('2016-9-9 18:19:59', '%Y-%m-%d %H:%M:%S'))  # <class 'datetime.datetime'>
     print(datetime.fromtimestamp(time.time()))  # 2020-08-12 15:48:21.636170
-    _ = datetime(2020, 10, 9, 11, 12, 13)  # 2020-10-09 11:12:13
+    _ = datetime(2020, 10, 9, 11, 12, 13)  # 2020-10-09 11:12:13, time.time受系统时间影响
+
+    time.monotonic()  # 不区分线程进程,按调用顺序递增,以小数秒为单位,时钟不受系统时钟更新的影响,只有两次调用结果之间的差值才有效
 
 
 def heap_tutorial():
