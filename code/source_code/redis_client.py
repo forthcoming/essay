@@ -29,6 +29,21 @@ class Redis(RedisModuleCommands, CoreCommands, SentinelCommands):
             connection_pool = ConnectionPool(**kwargs)
         self.connection_pool = connection_pool
 
+    def execute_command(self, *args, **options):  # Execute a command and return a parsed response
+        # command_name = args[0]
+        connection = self.connection_pool.get_connection(**options)  # 第一次运行命令时才会尝试去建立新连接
+        try:
+            connection.send_command(*args)
+            return connection.read_response()
+        except (ConnectionError, TimeoutError) as e:
+            connection.disconnect()
+            if not (connection.retry_on_timeout and isinstance(e, TimeoutError)):
+                raise
+            connection.send_command(*args)
+            return connection.read_response()
+        finally:
+            self.connection_pool.release(connection)
+
     def pipeline(self, transaction=True, shard_hint=None):
         return Pipeline(self.connection_pool, transaction, shard_hint)
 
@@ -53,24 +68,6 @@ class Redis(RedisModuleCommands, CoreCommands, SentinelCommands):
                     if watch_delay is not None and watch_delay > 0:
                         time.sleep(watch_delay)
                     continue
-
-    def parse_response(self, connection, command_name, disable_decoding=True):
-        return connection.read_response(disable_decoding=disable_decoding)
-
-    def execute_command(self, *args, **options):  # Execute a command and return a parsed response
-        command_name = args[0]
-        connection = self.connection_pool.get_connection(**options)  # 此处才会尝试去建立新连接
-        try:
-            connection.send_command(*args)
-            return self.parse_response(connection, command_name)
-        except (ConnectionError, TimeoutError) as e:
-            connection.disconnect()
-            if not (connection.retry_on_timeout and isinstance(e, TimeoutError)):
-                raise
-            connection.send_command(*args)
-            return self.parse_response(connection, command_name)
-        finally:
-            self.connection_pool.release(connection)
 
 
 class Pipeline(Redis):  # 一般通过调用Redis实例的pipeline方法获取Pipeline实例
@@ -198,7 +195,7 @@ class Pipeline(Redis):  # 一般通过调用Redis实例的pipeline方法获取Pi
         return response
 
     def parse_response(self, connection, command_name, disable_decoding=True):
-        result = super().parse_response(connection, command_name, disable_decoding)
+        result = connection.read_response()
         if command_name in self.UNWATCH_COMMANDS:
             self.watching = False
         elif command_name == 'WATCH':

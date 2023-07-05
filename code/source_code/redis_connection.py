@@ -43,7 +43,7 @@ class Connection:
             if disconnect_on_error:
                 self.disconnect()
             raise
-        if self.health_check_interval:  # 每次执行完命令,都会更新next_health_check
+        if self.health_check_interval:  # 每次执行完命令,都会更新next_health_check,interval时间内不会再触发check_health
             self.next_health_check = time() + self.health_check_interval
         return response
 
@@ -85,6 +85,8 @@ class Connection:
                 raise ConnectionError("Bad response from PING health check")
 
     def connect(self):  # Create a TCP socket connection to the Redis server
+        if self._sock:
+            return
         sock = None
         for res in socket.getaddrinfo(self.host, self.port, self.socket_type, socket.SOCK_STREAM):
             family, sock_type, proto, _, socket_address = res
@@ -187,7 +189,7 @@ class ConnectionPool:
                 connection = self.make_connection()
             self._in_use_connections.add(connection)
         try:
-            connection.connect()  # 只有第一次使用,这步才会建立连接
+            connection.connect()
             # connections that the pool provides should be ready to send a command.
             # if not, the connection was either returned to the pool before all data has been read
             # or the socket has been closed. either way, reconnect and verify everything is good.
