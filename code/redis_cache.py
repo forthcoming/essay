@@ -11,17 +11,17 @@ from datetime import datetime
 from functools import wraps
 
 from flask import request
-from rediscluster import RedisCluster
+from redis.cluster import RedisCluster, ClusterNode
 
 startup_nodes = [
-    {"host": "localhost", "port": "8001"},
-    {"host": "localhost", "port": "8002"},
-    {"host": "localhost", "port": "8003"},
-    {"host": "localhost", "port": "8004"},
-    {"host": "localhost", "port": "8005"},
-    {"host": "localhost", "port": "8006"},
+    ClusterNode(host="localhost", port=8001),
+    ClusterNode(host="localhost", port=8002),
+    ClusterNode(host="localhost", port=8003),
+    ClusterNode(host="localhost", port=8004),
+    ClusterNode(host="localhost", port=8005),
+    ClusterNode(host="localhost", port=8006),
 ]
-rc = RedisCluster(startup_nodes=startup_nodes)
+rc: RedisCluster = RedisCluster(startup_nodes=startup_nodes)
 
 
 class RedisCache:  # 接口缓存
