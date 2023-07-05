@@ -31,7 +31,7 @@ class Redis(RedisModuleCommands, CoreCommands, SentinelCommands):
 
     def execute_command(self, *args, **options):  # Execute a command and return a parsed response
         # command_name = args[0]
-        connection = self.connection_pool.get_connection(**options)  # 第一次运行命令时才会尝试去建立新连接
+        connection = self.connection_pool.get_connection()  # 第一次运行命令时才会尝试去建立新连接
         try:
             connection.send_command(*args)
             return connection.read_response()
@@ -144,7 +144,7 @@ class Pipeline(Redis):  # 一般通过调用Redis实例的pipeline方法获取Pi
         conn = self.connection
         # if this is the first call, we need a connection
         if not conn:
-            conn = self.connection_pool.get_connection(command_name, self.shard_hint)
+            conn = self.connection_pool.get_connection()
             self.connection = conn
         try:
             conn.send_command(*args)
@@ -225,7 +225,7 @@ class Pipeline(Redis):  # 一般通过调用Redis实例的pipeline方法获取Pi
             execute = self._execute_pipeline
         conn = self.connection
         if not conn:
-            conn = self.connection_pool.get_connection('MULTI', self.shard_hint)
+            conn = self.connection_pool.get_connection()
             # assign to self.connection so reset() releases the connection back to the pool after we're done
             self.connection = conn
         try:

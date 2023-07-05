@@ -248,7 +248,7 @@ class BlockingConnectionPool(ConnectionPool):  # 线程安全的阻塞连接池,
         self._connections.append(connection)
         return connection
 
-    def get_connection(self, *keys, **options):
+    def get_connection(self):
         """
         阻塞获取(最多等待self.timeout)池中连接,如果返回的连接是None则创建一个新连接
         因为我们使用后进先出队列(栈),有效连接将在None之前返回,意味着只有真正需要时才会创建新链接
