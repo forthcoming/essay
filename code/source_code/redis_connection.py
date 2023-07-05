@@ -286,11 +286,11 @@ class BlockingConnectionPool(ConnectionPool):  # 线程安全的阻塞连接池,
         if connection.pid != self.pid:
             connection.disconnect()
             self.pool.put(None, block=False)  # 不要将不属于自己的连接添加回池,而是添加一个占位符None,将导致池在需要时重新创建连接
-            return
-        try:
-            self.pool.put(connection, block=False)
-        except Full:  # perhaps the pool has been reset() after a fork? regardless,we don't want this connection
-            pass
+        else:
+            try:
+                self.pool.put(connection, block=False)
+            except Full:  # perhaps the pool has been reset() after a fork? regardless,we don't want this connection
+                pass
 
     def disconnect(self):
         self._check_pid()
