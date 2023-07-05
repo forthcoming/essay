@@ -32,10 +32,22 @@ class Apollo:
         self._cache = {}
         self._notification_map = {'application': -1}  # -1保证初始化时从apollo拉取最新配置到内存,只有版本号比服务端小才认为是配置有更新
         self.time_interval = time_interval
+        self.pid = 0
+        self._check_pid()
+
+    def _check_pid(self):
+        if self.pid != os.getpid():
+            with self._fork_lock:  # 极小概率出现死锁
+                if self.pid != os.getpid():
+                    self.reset()  # reset the instance for the new process if another thread hasn't already done so
+
+    def reset(self):
         thread = threading.Thread(target=self._listener, daemon=True)
         thread.start()
+        self.pid = os.getpid()
 
     def get_value(self, key, default_val=None, namespace='application'):
+        self._check_pid()
         try:
             return self._cache[namespace][key]  # 绝大多数情况key都存在,此种方式更快
         except KeyError:
@@ -106,8 +118,9 @@ class TestApollo:
     @staticmethod
     def test_concurrency():
         apollo = Apollo(app_id='ktv', server_url='http://10.16.4.194:8080')
-        threads = [Process(target=lambda apl: print(apl.get_value('test', "default", namespace='config')), args=(apollo,)) for
-                   _ in range(1000)]
+        threads = [
+            Process(target=lambda apl: print(apl.get_value('test', "default", namespace='config')), args=(apollo,)) for
+            _ in range(1000)]
         for thread in threads:
             thread.start()
         for thread in threads:
