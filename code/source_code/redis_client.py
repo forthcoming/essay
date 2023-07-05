@@ -1,6 +1,7 @@
 import time
 from itertools import chain
 
+from redis.commands import CoreCommands, RedisModuleCommands, SentinelCommands
 from redis.exceptions import ConnectionError, ExecAbortError, RedisError, ResponseError, TimeoutError, WatchError
 
 from redis_connection import ConnectionPool
@@ -8,11 +9,12 @@ from redis_connection import ConnectionPool
 
 # 仅包含unix代码实现部分,参考 https://github.com/redis/redis-py/blob/master/redis/client.py
 
-class Redis:
+class Redis(RedisModuleCommands, CoreCommands, SentinelCommands):
     """
     以游标值为0开始迭代,调用SCAN直到返回的游标再次为0称为完整迭代,Redis客户端实例可以在线程之间安全地共享,线程之间传递PubSub或Pipeline对象是不安全
     SELECT命令允许您切换连接当前使用的数据库,这会导致不同数据库连接返回到同一个连接池,因此不会在客户端实例上实现SELECT命令
     如果您在同一应用程序中使用多个Redis数据库,则应该为每个数据库创建一个单独的客户端实例
+    redis命令都是调用的Commands类的函数,再通过execute_command调用子类Redis函数
     """
 
     def __init__(self, host='localhost', port=6379, db=0, password=None, connection_pool=None, max_connections=None):

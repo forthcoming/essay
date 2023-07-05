@@ -43,7 +43,7 @@ class Connection:
             if disconnect_on_error:
                 self.disconnect()
             raise
-        if self.health_check_interval:
+        if self.health_check_interval:  # 每次执行完命令,都会更新next_health_check
             self.next_health_check = time() + self.health_check_interval
         return response
 
