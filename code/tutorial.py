@@ -1196,17 +1196,18 @@ def singleton_tutorial():
             return cls._instance
 
     def singleton_pool(cls):
-        _instance_pool = []
+        _instance_pool = {}
         _instance_pool_lock = Lock()
 
         def _singleton(*args, **kwargs):
-            with _instance_pool_lock:  # 线程安全单例池
-                for _args, _kwargs, _instance in _instance_pool:
-                    if (_args, _kwargs) == (args, kwargs):
-                        return _instance
-                _instance = cls(*args, **kwargs)
-                _instance_pool.append((args, kwargs, _instance))
-                return _instance
+            _kwargs = {_key: kwargs[_key] for _key in sorted(kwargs)}
+            hash_key = f"{args}:{_kwargs}"
+            if hash_key not in _instance_pool:
+                with _instance_pool_lock:  # 线程安全单例池
+                    if hash_key not in _instance_pool:
+                        _instance = cls(*args, **kwargs)
+                        _instance_pool[hash_key] = _instance
+            return _instance_pool[hash_key]
 
         return _singleton
 
@@ -1216,10 +1217,11 @@ def singleton_tutorial():
 
     @singleton_pool
     class TestSingleTonPool:
-        def __init__(self):
-            print("init TestSingleTonPool instance")
+        def __init__(self, *args, **kwargs):
+            print(f"args:{args},kwargs:{kwargs},init TestSingleTonPool instance")
 
     assert TestSingleton() is TestSingleton()
+    assert TestSingleTonPool(1, "2", c=2.4, d="d") is TestSingleTonPool(1, "2", c=2.4, d="d")
     assert TestSingleTonPool() is TestSingleTonPool()
 
 
@@ -1255,7 +1257,7 @@ class LogTutorial:
 
 
 if __name__ == "__main__":  # import到其他脚本中不会执行以下代码,spawn方式的多进程也需要
-    arguments_tutorial()
+    # arguments_tutorial()
     # list_tutorial()
     # is_tutorial()
     # str_tutorial()
@@ -1266,5 +1268,5 @@ if __name__ == "__main__":  # import到其他脚本中不会执行以下代码,s
     # inherit_tutorial()
     # metaclass_tutorial()
     # pickle_tutorial()
-    # singleton_tutorial()
+    singleton_tutorial()
     # isinstance_tutorial()
