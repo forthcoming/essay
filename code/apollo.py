@@ -4,17 +4,18 @@ import os
 import threading
 import time
 from multiprocessing.dummy import Process
-
+from tutorial import singleton
 import requests
 
 from circuit_breaker import CircuitBreaker, Policy
 
 
+@singleton
 class Apollo:
     """
     refer:
-        https://github.com/andymccurdy/redis-py/blob/master/redis/connection.py
-        https://github.com/filamoon/pyapollo/blob/master/pyapollo/apollo_client.py
+        https://www.apolloconfig.com/#/zh/README
+        https://github.com/BruceWW/pyapollo/tree/master
     Namespace是配置项的集合,类似于一个配置文件的概念
     Apollo在创建项目的时候,都会默认创建一个application的Namespace
     Namespace的获取权限分为两种: private & public
@@ -22,8 +23,8 @@ class Apollo:
     public权限的Namespace,能被任何应用获取,所以公共的Namespace的名称必须全局唯一
     """
 
-    def __init__(self, app_id, cluster='default', config_server_url='http://localhost:8080', timeout=35, ip=None):
-        self.config_server_url = config_server_url
+    def __init__(self, app_id, cluster='default', server_url='http://localhost:8080', timeout=35, ip=None):
+        self.server_url = server_url
         self.app_id = app_id
         self.cluster = cluster
         self.timeout = timeout
@@ -34,7 +35,7 @@ class Apollo:
     def reset(self):
         self.lock = threading.Lock()
         self._cache = {}
-        self._notification_map = {'application': -2}  # -2保证初始化时从apollo拉取最新配置到内存,只有版本号比服务端小才认为是配置有更新
+        self._notification_map = {'application': -1}  # -1保证初始化时从apollo拉取最新配置到内存,只有版本号比服务端小才认为是配置有更新
         thread = threading.Thread(target=self._listener, daemon=True)
         thread.start()
         self.pid = os.getpid()
@@ -45,34 +46,33 @@ class Apollo:
                 if self.pid != os.getpid():
                     self.reset()  # reset() the instance for the new process if another thread hasn't already done so
 
-    def get_value(self, key, default_val=None, namespace='application', auto_fetch=False):
+    def get_value(self, key, default_val=None, namespace='application'):
         self._check_pid()
-
         # 正常来说_notification_map和_cache的key是一一对应
         if namespace not in self._cache:
             with self.lock:
                 if namespace not in self._cache:
-                    self._notification_map[namespace] = -2
+                    self._notification_map[namespace] = -1
                     logging.getLogger(__name__).info("Add namespace '%s' to local cache", namespace)
                     self._long_poll(2)  # 防止阻塞主进程,用于更新self._cache和self._notification_map
-
-        if namespace in self._cache:
-            if key in self._cache[namespace]:  # key不存在怎么办
-                return self._cache[namespace][key]
-            else:
-                if auto_fetch:
-                    return self._cached_http_get(key, default_val, namespace)
-                else:
-                    return default_val
-        else:
+        try:
+            return self._cache[namespace][key]  # 绝大多数情况key都存在,此种方式更快
+        except KeyError:
             return default_val
 
     @CircuitBreaker(timeout=60, threshold=10, policy=Policy.COUNTER, fallback=None)
     def _long_poll(self, timeout=None):
         notifications = [{'namespaceName': k, 'notificationId': v} for k, v in self._notification_map.items()]
         timeout = timeout or self.timeout
-        r = requests.get(  # 如果检测到服务器的notificationId与本次提交一致,则最多等待30s,在这之间只要是服务器配置更新了,请求会立马返回
-            url='{}/notifications/v2'.format(self.config_server_url),
+        """
+        服务端针对传过来的每一个namespace和对应的notificationId,检查notificationId是否是最新的
+        如果都是最新的,则保持住请求60秒,如果60秒内没有配置变化,则返回状态码304,如果60秒内有配置变化,则返回最新notificationId,状态码200
+        如果传过来的notifications中发现有notificationId比服务端老,则直接返回最新notificationId,状态码200
+        客户端判断状态码=304则不操作,200则针对变化的namespace用不带缓存的Http接口从服务端拉取最新配置
+        由于服务端会hold住请求60秒,所以请确保客户端访问服务端的超时时间要大于60秒
+        """
+        r = requests.get(
+            url='{}/notifications/v2'.format(self.server_url),
             params={
                 'appId': self.app_id,
                 'cluster': self.cluster,
@@ -88,39 +88,47 @@ class Apollo:
                 namespace = entry['namespaceName']
                 notification_id = entry['notificationId']
                 logging.getLogger(__name__).info("%s has changes: notificationId=%d", namespace, notification_id)
-                self._un_cached_http_get(namespace)
                 self._notification_map[namespace] = notification_id
+                self._un_cached_http_get(namespace)
         else:
             logging.getLogger(__name__).debug(f'_long_poll error,status:{r.status_code},notifications:{notifications}')
             time.sleep(timeout)
 
-    # 不带缓存的Http接口从Apollo读取配置,如果需要配合配置推送通知实现实时更新配置的话需要调用该接口
-    def _un_cached_http_get(self, namespace='application'):
-        url = f'{self.config_server_url}/configs/{self.app_id}/{self.cluster}/{namespace}?ip={self.ip}'
-        r = requests.get(url)
+    def _un_cached_http_get(self, namespace, timeout):
+        # 不带缓存的Http接口从Apollo读取配置,如果需要配合配置推送通知实现实时更新配置的话需要调用该接口
+        url = f'{self.server_url}/configs/{self.app_id}/{self.cluster}/{namespace}?ip={self.ip}'
+        r = requests.get(url, timeout)
         if r.status_code == 200:
             data = r.json()
             self._cache[namespace] = data['configurations']  # dict,包含当前namespace下的所有key-value
         else:
             print('_un_cached_http_get error, status:{}, namespace:{}'.format(r.status_code, namespace))
 
-    # 该接口会从缓存中获取配置,适合频率较高的配置拉取请求,如简单的每30秒轮询一次配置,缓存最多会有一秒的延时
-    # ip参数可选,应用部署的机器ip,用来实现灰度发布
-    def _cached_http_get(self, key, default_val, namespace='application'):
-        url = f'{self.config_server_url}/configfiles/json/{self.app_id}/{self.cluster}/{namespace}?ip={self.ip}'
-        r = requests.get(url)
+    def _listener(self):
+        while True:
+            print('in _listener,pid:{}, time:{}'.format(os.getpid(), time.time()))
+            self._long_poll()
+
+    def _get_namespaces(self, timeout) -> dict:
+        url = f"{self.server_url}/apps/{self.app_id}/clusters/{self.cluster}/namespaces"
+        r = requests.get(url=url, timeout=timeout)
+        if r.status_code == 200:
+            namespaces = r.json()
+            return {_.get("namespaceName"): _.get("id") for _ in namespaces}
+        else:
+            return {"application": -1}
+
+    def _cached_http_get(self, key, default_val, namespace, timeout):
+        # 该接口会从缓存中获取配置,适合频率较高的配置拉取请求,如简单的每30秒轮询一次配置,缓存最多会有一秒的延时
+        url = f'{self.server_url}/configfiles/json/{self.app_id}/{self.cluster}/{namespace}?ip={self.ip}'
+        r = requests.get(url, timeout)
         if r.ok:  # ok?
             data = r.json()
             self._cache[namespace] = data
             logging.getLogger(__name__).info('Updated local cache for namespace %s', namespace)
         else:
-            data = self._cache[namespace]  # 一定有吗
+            data = self._cache[namespace]
         return data.get(key, default_val)
-
-    def _listener(self):
-        while True:
-            print('in _listener,pid:{}, time:{}'.format(os.getpid(), time.time()))
-            self._long_poll()
 
 
 class TestApollo:

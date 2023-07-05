@@ -150,6 +150,35 @@ bool is_big_endian() //如果字节序为big-endian,返回1,反之返回0
 """
 
 
+class Singleton(type):
+    _instance = None
+    _instance_lock = Lock()
+
+    def __call__(cls, *args, **kwargs):
+        if cls._instance is None:
+            with cls._instance_lock:  # 线程安全单例模式
+                if cls._instance is None:
+                    cls._instance = type.__call__(cls, *args, **kwargs)
+        return cls._instance
+
+
+def singleton(cls):
+    _instance_pool = {}
+    _instance_pool_lock = Lock()
+
+    def _singleton(*args, **kwargs):
+        _kwargs = {_key: kwargs[_key] for _key in sorted(kwargs)}
+        hash_key = f"{args}:{_kwargs}"
+        if hash_key not in _instance_pool:
+            with _instance_pool_lock:  # 线程安全单例池
+                if hash_key not in _instance_pool:
+                    _instance = cls(*args, **kwargs)
+                    _instance_pool[hash_key] = _instance
+        return _instance_pool[hash_key]
+
+    return _singleton
+
+
 def str_tutorial():
     """
     isalnum: 如果string至少有一个字符并且所有字符都是字母或数字则返回True,否则返回False
@@ -1184,38 +1213,11 @@ def pickle_tutorial():
 
 
 def singleton_tutorial():
-    class Singleton(type):
-        _instance = None
-        _instance_lock = Lock()
-
-        def __call__(cls, *args, **kwargs):
-            if cls._instance is None:
-                with cls._instance_lock:  # 线程安全单例模式
-                    if cls._instance is None:
-                        cls._instance = type.__call__(cls, *args, **kwargs)
-            return cls._instance
-
-    def singleton_pool(cls):
-        _instance_pool = {}
-        _instance_pool_lock = Lock()
-
-        def _singleton(*args, **kwargs):
-            _kwargs = {_key: kwargs[_key] for _key in sorted(kwargs)}
-            hash_key = f"{args}:{_kwargs}"
-            if hash_key not in _instance_pool:
-                with _instance_pool_lock:  # 线程安全单例池
-                    if hash_key not in _instance_pool:
-                        _instance = cls(*args, **kwargs)
-                        _instance_pool[hash_key] = _instance
-            return _instance_pool[hash_key]
-
-        return _singleton
-
     class TestSingleton(metaclass=Singleton):  # 继承了元类的_instance和_instance_lock
         def __init__(self):
             print("init TestSingleton instance")
 
-    @singleton_pool
+    @singleton
     class TestSingleTonPool:
         def __init__(self, *args, **kwargs):
             print(f"args:{args},kwargs:{kwargs},init TestSingleTonPool instance")
