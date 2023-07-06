@@ -65,9 +65,6 @@ class ObjectId:
     def __str__(self):  # 将byte类型转换成byte十六进制类型,再转换成str类型,eg: binascii.hexlify(b'aA').decode()输出6141
         return binascii.hexlify(self.__id).decode()
 
-    def __hash__(self):
-        return hash(self.__id)
-
 
 if __name__ == "__main__":
     obj_id = ObjectId()
