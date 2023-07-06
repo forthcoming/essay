@@ -10,7 +10,7 @@ import time
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from multiprocessing import shared_memory
 from multiprocessing.dummy import Lock as ThreadLock, RLock as ThreadRLock
-from threading import get_ident, local, Barrier, BrokenBarrierError, BoundedSemaphore, Thread
+from threading import get_ident, local, Barrier, BrokenBarrierError, BoundedSemaphore, Thread, Condition
 
 """
 atexit
@@ -361,6 +361,32 @@ def test_semaphore(timeout, semaphore):
         print('working in {}'.format(timeout))
 
 
+class TestCondition:
+    product = 15
+
+    @staticmethod
+    def producer(con):
+        while True:
+            with con:  # 获取锁
+                if TestCondition.product >= 15:
+                    con.wait()  # 先释放con,内部新建一个锁并阻塞,等wait超时或接收到notify时取消阻塞,然后重新尝试获取con
+                else:
+                    TestCondition.product += 5
+                    con.notify()  # 处理完成发出通知告诉consumer
+                time.sleep(2)
+
+    @staticmethod
+    def consumer(con):
+        while True:
+            with con:
+                if TestCondition.product <= 10:
+                    con.wait()
+                else:
+                    TestCondition.product -= 1
+                    con.notify()
+                time.sleep(1)
+
+
 def lock_tutorial():
     """
     线程Lock的获取与释放可以在不同线程中完成,进程Lock的获取与释放可以在不同进程或线程中完成,嵌套Lock会导致死锁,但可以顺序出现多次
@@ -387,6 +413,11 @@ def lock_tutorial():
     threads = [Thread(target=test_semaphore, args=(idx, semaphore)) for idx in range(5)]
     run_subroutine(threads)
     print(time.monotonic() - t1)  # 6
+
+    condition = Condition()
+    threads = [Thread(target=TestCondition.producer, args=(condition,)) for _ in range(2)]
+    threads += [Thread(target=TestCondition.consumer, args=(condition,)) for _ in range(3)]
+    run_subroutine(threads)
 
 
 class ThreadLocal:
