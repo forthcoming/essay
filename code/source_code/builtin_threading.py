@@ -1,4 +1,4 @@
-import _thread
+from _thread import allocate_lock as Lock, get_ident, get_native_id, TIMEOUT_MAX
 from collections import deque
 from threading import Thread
 from time import monotonic
@@ -7,13 +7,6 @@ from time import monotonic
 
 __all__ = ['get_ident', 'Condition', 'TIMEOUT_MAX', 'Event', 'Lock', 'RLock', 'Semaphore', 'BoundedSemaphore',
            'Barrier', 'BrokenBarrierError', 'Timer', 'get_native_id']
-
-# Rename some stuff so "from threading import *" is safe
-Lock = _thread.allocate_lock
-get_ident = _thread.get_ident
-get_native_id = _thread.get_native_id
-TIMEOUT_MAX = _thread.TIMEOUT_MAX
-del _thread
 
 
 class RLock:
