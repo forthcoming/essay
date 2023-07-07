@@ -111,7 +111,7 @@ static Py_ssize_t gc_collect_main(PyThreadState *tstate, int generation,
         gc_list_merge(GEN_HEAD(gcstate, i), GEN_HEAD(gcstate, generation)); // 将所有子代的追踪对象合并到当前代
     }
 
-    young = GEN_HEAD(gcstate, generation);  // 当前代设为yong
+    young = GEN_HEAD(gcstate, generation);  // 当前代设为yong,即young = [0, 当前代]
     if (generation < NUM_GENERATIONS-1)  // young不是最老代
         old = GEN_HEAD(gcstate, generation+1);  // 父代设为old
     else
@@ -347,15 +347,16 @@ def test_garbage_collection():
     a = [{}, (), 1, ""]
     b = a,
     c = {1: a}
-    d = ""
-    e = {1: 2}
     print(gc.get_referents(a))  # 返回所有被a引用的对象
     print(gc.get_referrers(a))  # 返回所有引用了a的对象
-    assert gc.is_tracked(a)
+
+    d = ""
+    e = {1: 2}
     assert not gc.is_tracked(d)  # 非容器对象不会被垃圾回收追踪
     assert not gc.is_tracked(e)  # 简单容器也不被垃圾回收追踪
     e[2] = []
     assert gc.is_tracked(e)  # 复杂容器会被垃圾回收追踪
+
     assert gc.get_threshold() == (700, 10, 10)  # 垃圾回收每代阈值
     print(gc.get_count())  # (407,9,2), 表示当前每一代count值,与get_threshold返回值相对应
     # print(gc.get_objects())  # 返回被垃圾回收器追踪的所有对象的列表,不包括返回的列表
