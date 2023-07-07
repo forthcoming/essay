@@ -27,11 +27,157 @@ x=[]
 y=[]
 x.append(y)
 y.append(x)
-只有容器对象才会产生循环引用,比如列表、字典、用户自定义类的对象、元组等,而像数字,字符串这类简单类型不会出现循环引用
 
+容器指可以引用其他对象的对象,如列表、字典、用户自定义类的对象、元组等,只有容器才可能出现循环引用,而像数字,字符串这类简单类型不会出现循环引用
+当新增一个容器时,g0计数器加一,当容器个数达到阈值700时,进行一次g0回收
+当g0回收一次时g1计数器加一,当g1计数器达到阈值10时,进行一次g1回收
+当g1回收一次时g2计数器加一,当g2计数器达到阈值10时,进行一次g2回收
 垃圾回收包含引用计数(不可解决循环引用),标记清除(可解决循环引用)和分代回收
 对象被销毁(引用计数为0)时如果自定义了__del__,会执行__del__函数(一般用于资源释放如数据库连接),然后销毁对象
 内存泄漏仅仅存在于某个进程中,无法进程间传递(即gc.get_objects仅仅统计所在进程的对象),会随着进程的结束而释放内存
+
+gc流程
+1. 创建容器(https://github.com/python/cpython/blob/main/Include/internal/pycore_object.h#L195)
+static inline void _PyObject_GC_TRACK(PyObject *op) {
+    PyGC_Head *gc = _Py_AS_GC(op);
+    PyInterpreterState *interp = _PyInterpreterState_GET();
+    PyGC_Head *generation0 = interp->gc.generation0;
+    PyGC_Head *last = (PyGC_Head*)(generation0->_gc_prev);
+    _PyGCHead_SET_NEXT(last, gc);
+    _PyGCHead_SET_PREV(gc, last);
+    _PyGCHead_SET_NEXT(gc, generation0);    // 每新建一个容器,都会把它插入到垃圾回收的0代环状双向链表g0中
+    generation0->_gc_prev = (uintptr_t)gc;
+}
+
+2. 判断g0是否满足垃圾回收条件(https://github.com/python/cpython/blob/main/Modules/gcmodule.c#L2266)
+void _PyObject_GC_Link(PyObject *op) {
+    PyGC_Head *g = AS_GC(op);
+    assert(((uintptr_t)g & (sizeof(uintptr_t)-1)) == 0);  // g must be correctly aligned
+    PyThreadState *tstate = _PyThreadState_GET();
+    GCState *gcstate = &tstate->interp->gc;
+    g->_gc_next = 0;
+    g->_gc_prev = 0;
+    gcstate->generations[0].count++;   // 0代计数器自增1
+    if (gcstate->generations[0].count > gcstate->generations[0].threshold &&  // 0代计数器大于0代阈值
+        gcstate->enabled &&  
+        gcstate->generations[0].threshold &&
+        !gcstate->collecting &&
+        !_PyErr_Occurred(tstate)) {
+        _Py_ScheduleGC(tstate->interp);
+    }
+}
+
+3. g0追踪对象数量超过阈值时,开启垃圾回收(https://github.com/python/cpython/blob/main/Modules/gcmodule.c#L1432)
+static Py_ssize_t gc_collect_generations(PyThreadState *tstate) {
+    GCState *gcstate = &tstate->interp->gc;
+    Py_ssize_t n = 0;
+    for (int i = NUM_GENERATIONS-1; i >= 0; i--) {  // i从2由老到年轻开始遍历
+        if (gcstate->generations[i].count > gcstate->generations[i].threshold) {
+            if (i == NUM_GENERATIONS - 1 && gcstate->long_lived_pending < gcstate->long_lived_total / 4)
+                continue; // 如果是最老一代,且次代追踪对象数量long_lived_pending小与最老一代追踪对象数量long_lived_total的1/4,则不回收,提高效率
+            n = gc_collect_with_callback(tstate, i);  // 找到计数超过阈值最老的一代,连同比它年轻的代追踪的对象将被收集
+            break;  // 退出循环,应为更年轻的generation一定满足阈值
+        }
+    }
+    return n;
+}
+
+4. 执行垃圾回收(https://github.com/python/cpython/blob/main/Modules/gcmodule.c#L1193)
+static Py_ssize_t gc_collect_main(PyThreadState *tstate, int generation,
+    Py_ssize_t *n_collected, Py_ssize_t *n_uncollectable, int nofail) {
+    int i;
+    Py_ssize_t m = 0;  // objects collected
+    Py_ssize_t n = 0; // unreachable objects that couldn't be collected
+    PyGC_Head *young; // the generation we are examining
+    PyGC_Head *old;   // next older generation
+    PyGC_Head unreachable; // non-problematic unreachable trash
+    PyGC_Head finalizers;  // objects with, & reachable from, __del__
+    PyGC_Head *gc;
+    _PyTime_t t1 = 0;  
+    GCState *gcstate = &tstate->interp->gc;
+
+    if (gcstate->debug & DEBUG_STATS) { // 如果设置了gc.set_debug(gc.DEBUG_STATS)
+        PySys_WriteStderr("gc: collecting generation %d...\n", generation);
+        show_stats_each_generations(gcstate);
+        t1 = _PyTime_GetPerfCounter();
+    }
+
+    if (generation+1 < NUM_GENERATIONS)  // 如果父代不是最老代
+        gcstate->generations[generation+1].count += 1; //父代计数器自增1(应为其子代将要执行垃圾回收)
+    for (i = 0; i <= generation; i++)
+        gcstate->generations[i].count = 0;  // 重置子代及其自身的计数器
+
+    for (i = 0; i < generation; i++) {
+        gc_list_merge(GEN_HEAD(gcstate, i), GEN_HEAD(gcstate, generation)); // 将所有子代的追踪对象合并到当前代
+    }
+
+    young = GEN_HEAD(gcstate, generation);  // 当前代设为yong
+    if (generation < NUM_GENERATIONS-1)  // young不是最老代
+        old = GEN_HEAD(gcstate, generation+1);  // 父代设为old
+    else
+        old = young;  // young设为old
+
+    deduce_unreachable(young, &unreachable); // 没看懂,貌似把不可达对象清除了
+    untrack_tuples(young);   // 找到可以停止追踪的tuples,减少垃圾回收工作量
+    
+    if (young != old) {
+        if (generation == NUM_GENERATIONS - 2) {  // 如果young是最老代的次代
+            gcstate->long_lived_pending += gc_list_size(young); // 更新long_lived_pending,自增young追踪的可达对象数量
+        }
+        gc_list_merge(young, old);  // 将young追踪的可达对象合并到old
+    }
+    else {
+        untrack_dicts(young);  // We only un-track dicts in full collections, 以避免二次dict build-up. See issue #14775
+        gcstate->long_lived_pending = 0;  // 重置long_lived_pending
+        gcstate->long_lived_total = gc_list_size(young); // 更新long_lived_total,赋值为young/old追踪的可达对象数量 
+    }
+
+    move_legacy_finalizers(&unreachable, &finalizers);
+    move_legacy_finalizer_reachable(&finalizers);
+
+    if (gcstate->debug & DEBUG_COLLECTABLE) {  // 如果设置了gc.set_debug(gc.DEBUG_COLLECTABLE)
+        for (gc = GC_NEXT(&unreachable); gc != &unreachable; gc = GC_NEXT(gc)) {
+            debug_cycle("collectable", FROM_GC(gc));
+        }
+    }
+
+    m += handle_weakrefs(&unreachable, old);  // 清除弱引用并根据需要调用回调
+    finalize_garbage(tstate, &unreachable);  // 调用tp_finalize即__del__
+
+    PyGC_Head final_unreachable;
+    handle_resurrected_objects(&unreachable, &final_unreachable, old);  // 没看懂
+    m += gc_list_size(&final_unreachable);
+    delete_garbage(tstate, gcstate, &final_unreachable, old);
+
+    /* Collect statistics on uncollectable objects found and print
+     * debugging information. */
+    for (gc = GC_NEXT(&finalizers); gc != &finalizers; gc = GC_NEXT(gc)) {
+        n++;  // 统计发现的不可收集对象
+        if (gcstate->debug & DEBUG_UNCOLLECTABLE)
+            debug_cycle("uncollectable", FROM_GC(gc));
+    }
+    if (gcstate->debug & DEBUG_STATS) {
+        double d = _PyTime_AsSecondsDouble(_PyTime_GetPerfCounter() - t1);
+        PySys_WriteStderr("gc: done, %zd unreachable, %zd uncollectable, %.4fs elapsed\n",n+m, n, d);
+    }
+
+    if (generation == NUM_GENERATIONS-1) {
+        clear_freelists(tstate->interp);  // 仅在最高代回收期间清除freelist
+    }
+    if (n_collected) {
+        *n_collected = m;
+    }
+    if (n_uncollectable) {
+        *n_uncollectable = n;
+    }
+
+    struct gc_generation_stats *stats = &gcstate->generation_stats[generation];
+    stats->collections++; // 对应gc.get_stats()
+    stats->collected += m;
+    stats->uncollectable += n;
+
+    return n + m;
+}
 '''
 
 
