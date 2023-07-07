@@ -48,7 +48,7 @@ class ObjectId:
     @classmethod
     def _random(cls) -> bytes:  # Generate a 5-byte random number once per process
         pid = os.getpid()
-        if pid != cls._pid:  # 为什么不对_inc_lock重置
+        if pid != cls._pid: 
             cls._pid = pid
             cls._inc_lock = threading.Lock()
             cls.__random = os.urandom(5)
