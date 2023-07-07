@@ -30,10 +30,6 @@ y.append(x)
 只有容器对象才会产生循环引用,比如列表、字典、用户自定义类的对象、元组等,而像数字,字符串这类简单类型不会出现循环引用
 
 垃圾回收包含引用计数(不可解决循环引用),标记清除(可解决循环引用)和分代回收
-gc.get_threshold()返回(700,10,10),当分配对象的个数达到700时,进行一次0代回收; 当进行10次0代回收后触发一次1代回收; 当进行10次1代回收后触发一次2代回收
-gc.get_count()Return a three-tuple of the current collection counts,与get_threshold返回值相对应
-gc.collect()手动执行垃圾回收,返回不可达(unreachable objects)对象的数目
-gc.get_objects()Returns a list of all objects tracked by the collector, 不包括返回的列表
 对象被销毁(引用计数为0)时如果自定义了__del__,会执行__del__函数(一般用于资源释放如数据库连接),然后销毁对象
 内存泄漏仅仅存在于某个进程中,无法进程间传递(即gc.get_objects仅仅统计所在进程的对象),会随着进程的结束而释放内存
 '''
@@ -48,8 +44,8 @@ class Gc:
 def circular_reference_to_leak():
     a = Gc()
     b = Gc()
-    a.next = b  # a.next = weakref.ref(b),解决循环引用嗯题
-    b.next = a  # b.next = weakref.ref(a),解决循环引用嗯题
+    a.next = b  # a.next = weakref.ref(b),解决循环引用问题
+    b.next = a  # b.next = weakref.ref(a),解决循环引用问题
 
 
 def default_parameter_to_leak(idx, _cache={}):
@@ -183,7 +179,7 @@ class ObjGraph:
         peak_stats, a dictionary from type names to previously seen peak object counts.
         Usually you don't need to pay attention to this argument.
         """
-        gc.collect()  # 手动执行垃圾回收,避免循环引用干扰
+        gc.collect()  # 避免循环引用干扰
         stats = ObjGraph.type_stats()
         deltas = {}
         for name, count in stats.items():
@@ -201,9 +197,29 @@ class ObjGraph:
                 sys.stdout.write('%-*s%9d %+9d\n' % (width, name, count, delta))
 
 
+def test_garbage_collection():
+    a = [{}, (), 1, ""]
+    b = a,
+    c = {1: a}
+    d = ""
+    e = {1: 2}
+    print(gc.get_referents(a))  # 返回所有被a引用的对象
+    print(gc.get_referrers(a))  # 返回所有引用了a的对象
+    assert gc.is_tracked(a)
+    assert not gc.is_tracked(d)  # 非容器对象不会被垃圾回收追踪
+    assert not gc.is_tracked(e)  # 简单容器也不被垃圾回收追踪
+    e[2] = []
+    assert gc.is_tracked(e)  # 复杂容器会被垃圾回收追踪
+    assert gc.get_threshold() == (700, 10, 10)  # 垃圾回收每代阈值
+    print(gc.get_count())  # (407,9,2), 表示当前每一代count值,与get_threshold返回值相对应
+    # print(gc.get_objects())  # 返回被垃圾回收器追踪的所有对象的列表,不包括返回的列表
+    print(gc.collect())  # 手动执行垃圾回收, 返回不可达(unreachable objects)对象的数目
+
+
 if __name__ == '__main__':
+    test_garbage_collection()
     # test_ref()
-    test_cache()
+    # test_cache()
     # test_circular_reference()
     # test_multiprocess_circular_reference()
     # test_default_parameter()
