@@ -18,17 +18,14 @@ class OnetimePassword:
     def secret(self):
         return self.__secret
 
-    def _hotp(self, counter):
+    def _totp(self, clock):
+        counter = clock // self._interval  # used for getting different tokens, it is incremented with each use
         key = base64.b32decode(self.__secret)  # 10 bytes
         challenge = struct.pack('>Q', counter)  # unsigned long long,8bytes
         hmac_digest = hmac.new(key, challenge, self.digest_method).digest()
         offset = hmac_digest[-1] & 0b1111
         token_base = struct.unpack('>I', hmac_digest[offset:offset + 4])[0] & 0x7fffffff  # 舍弃最高位的符号位
         return token_base % (10 ** self._length)  # 如果长度不够6位,可以考虑填充前置0
-
-    def _totp(self, clock):
-        counter = clock // self._interval  # used for getting different tokens, it is incremented with each use
-        return self._hotp(counter)
 
     def totp(self):
         clock = int(time.time())
