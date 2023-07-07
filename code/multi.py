@@ -548,7 +548,7 @@ def shared_pipe_tutorial():
 
 
 if __name__ == "__main__":
-    # shared_memory_tutorial()
+    shared_memory_tutorial()
     # shared_pipe_tutorial()
     # shared_manager_tutorial()
     # shared_mmap_tutorial()
@@ -556,7 +556,7 @@ if __name__ == "__main__":
     # pool_executor_tutorial()
     # DeriveRelationship.main()
     # join_tutorial()
-    lock_tutorial()
+    # lock_tutorial()
     # ThreadLocal.thread_local_tutorial()
     # fork_tutorial()
     # QueueTutorial.scheduler()

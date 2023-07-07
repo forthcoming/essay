@@ -50,6 +50,7 @@ class ObjectId:
         pid = os.getpid()
         if pid != cls._pid:  # 为什么不对_inc_lock重置
             cls._pid = pid
+            cls._inc_lock = threading.Lock()
             cls.__random = os.urandom(5)
         return cls.__random
 
