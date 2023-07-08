@@ -1284,6 +1284,7 @@ def frame_tutorial():
     def son():
         frame = inspect.currentframe()
         print(frame.f_code.co_name)  # son,当前函数名
+        print(frame.f_back.f_code.co_name)  # parent,父函数名
         print(frame.f_back.f_locals)  # {'a': 1, 'b': [2], 'son': <function son>},父函数局部变量
         whereis = f"{frame.f_back.f_code.co_filename} at line {frame.f_back.f_lineno}"
         print(whereis)  # 调用该函数的文件路径名 + 代码在该文件在行,方便调试,还可以递归打印二叉树路径
