@@ -53,7 +53,6 @@ compiler是将编程语言翻译成01机器语言的软件
 interpreter是将编程语言一行行翻译成01机器语言的软件
 python属于解释性语言,_开头的变量名表示不建议用户使用; _结尾的变量名表示避免与关键字冲突
 函数名跟普通变量名一样,都可以被赋值,传参,返回等操作,都是pyobject对象
-每个函数编译期间会编译出一个code object,运行时,每次调用会产生一个新的frame,通过inspect.currentframe获取
 cpython源码,Python: 解释器相关代码; Objects: built-in objects实现(如list,dict); Include: c头文件; Lib: python写的内置库; Modules:c写的内置库
 
 
@@ -1282,6 +1281,7 @@ def frame_tutorial():
         son()
 
     def son():
+        # 每个函数编译期间会编译出一个code object, 运行时每次调用会产生一个新的frame
         frame = inspect.currentframe()
         print(frame.f_code.co_name)  # son,当前函数名
         print(frame.f_back.f_code.co_name)  # parent,父函数名

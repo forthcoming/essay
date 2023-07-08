@@ -23,7 +23,7 @@ concurrent(并发) & parallel(并行)
 当系统有多个CPU时,不同线程可以同时工作在不同的CPU上,这种方式我们称为并行
 
 线程 & 进程
-GIL只存在于CPython解释器中,其他解释器如Jython、IronPython、PyPy等不存在GIL的问题
+GIL存在于CPython,PyPy解释器中,其他解释器如Jython、IronPython不存在GIL的问题
 每个Python进程都有自己的Python解释器和内存空间,因此GIL不会成为问题
 对于CPU密集型任务通常使用多进程,进程数不是越大越好,默认进程数等于电脑核数
 GIL导致线程是并发运行(即便有多个cpu,线程会在其中一个cpu来回切换),而进程是并行
