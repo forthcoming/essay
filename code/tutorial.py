@@ -1,6 +1,7 @@
 import copy
 import dis
 import hashlib
+import inspect
 import logging
 import os
 import pickle
@@ -601,8 +602,12 @@ def arguments_tutorial():
 
     number = 5
 
-    # *后面的参数在函数调用时必须通过key=value形式赋值
-    def test_default(element, *, num=number, arr=[], arr1=None):  # 如果默认值是一个可变对象如列表,字典,大多类对象时,函数在随后调用中会累积参数值
+    def test_default(element, num=number, /, *, arr=[], arr1=None):
+        """
+        positional only argument(/): 前面的参数必须是未知参数
+        keyword only argument(*): 后面的参数必须是关键字参数
+        默认值在函数定义时已被确定,如果默认值是一个可变对象如列表,字典,大多类对象时,函数在随后调用中会累积参数值
+        """
         arr.append(element)
         if arr1 is None:  # 防止默认值在不同子调用间被共享
             arr1 = []
@@ -612,7 +617,6 @@ def arguments_tutorial():
     number = 6
     test_default(1)  # 5 [1] [1]
     test_default(2)  # 5 [1, 2] [2]
-    print(test_default.__defaults__)  # (5, [1, 2], None), 默认值在函数定义时已被确定
 
 
 def delayed_binding_tutorial():
@@ -1272,7 +1276,23 @@ class LogTutorial:
         return wrapper
 
 
+def frame_tutorial():
+    def parent(a=1):
+        b = [2]
+        son()
+
+    def son():
+        frame = inspect.currentframe()
+        print(frame.f_code.co_name)  # son,当前函数名
+        print(frame.f_back.f_locals)  # {'a': 1, 'b': [2], 'son': <function son>},父函数局部变量
+        whereis = f"{frame.f_back.f_code.co_filename} at line {frame.f_back.f_lineno}"
+        print(whereis)  # 调用该函数的文件路径名 + 代码在该文件在行,方便调试
+
+    parent()
+
+
 if __name__ == "__main__":  # import到其他脚本中不会执行以下代码,spawn方式的多进程也需要
+    frame_tutorial()
     # arguments_tutorial()
     # list_tutorial()
     # is_tutorial()
@@ -1280,7 +1300,7 @@ if __name__ == "__main__":  # import到其他脚本中不会执行以下代码,s
     # subprocess_tutorial()
     # dict_tutorial()
     # iterable_tutorial()
-    common_tutorial()
+    # common_tutorial()
     # inherit_tutorial()
     # metaclass_tutorial()
     # pickle_tutorial()
