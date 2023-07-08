@@ -34,6 +34,7 @@ daemon=True: 父进程结束,他会杀死自己的子线/进程使其终止,但�
 进程间通信(进程间数据不共享)
 共享内存如shared_memory, memoryview基于mmap实现,shared_memory基于memoryview实现
 文件系统如Queue & Pipe & Manager, Queue和Manager基于Pipe实现
+信号如signal
 
 sys.setswitchinterval(n) # 设置解释器的线程切换间隔(以秒为单位),实际值可能更高,特别是在使用长时间运行的内部函数或方法时
 在间隔结束时调度哪个线程是操作系统的决定,解释器没有自己的调度程序

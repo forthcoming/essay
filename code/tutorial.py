@@ -322,7 +322,9 @@ def common_tutorial():
 
     x = 1
     print(eval('x+1'), x)  # 2, 1  执行字符串形式的表达式,返回执行结果
-    print(exec('x += 10'), x)  # None, 1  执行字符串形式的代码,一般用于不太好直接写的代码,返回None,当x是全局变量时返回11
+    result = {}
+    exec('x+=10;print(f"in exec x={x}")', locals(), result)  # in exec x=11,执行字符串形式的代码,结果存到result,exec返回None
+    print(result, x)  # {'x': 11} 1
 
     secret = hashlib.md5(b"hello blockchain world, this is yeasy@github")
     print(secret.hexdigest())  # 1ee216d3ef1d217cd2807348f5f7ce19
@@ -1278,9 +1280,9 @@ if __name__ == "__main__":  # import到其他脚本中不会执行以下代码,s
     # subprocess_tutorial()
     # dict_tutorial()
     # iterable_tutorial()
-    # common_tutorial()
+    common_tutorial()
     # inherit_tutorial()
     # metaclass_tutorial()
     # pickle_tutorial()
-    singleton_tutorial()
+    # singleton_tutorial()
     # isinstance_tutorial()
