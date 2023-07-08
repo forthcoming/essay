@@ -396,6 +396,7 @@ def lock_tutorial():
     Semaphore用于控制线/进程并发量(类似线程池),初始值为1的信号量等效为非重入锁
     Semaphore管理一个计数器,计数器 = release调用次数 - acquire调用次数 + 初始值(默认1),当计数器为负时acquire会阻塞
     建议使用BoundedSemaphore代替Semaphore,应为他会对release做检测,如果计数器大于初始值则会引发ValueError
+    注意: 线程锁没法在spawn产生的进程间传递(pickle没法序列化)
     """
     salary = [0]
     thread_rlock = ThreadRLock()
