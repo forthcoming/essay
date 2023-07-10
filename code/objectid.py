@@ -63,7 +63,7 @@ class ObjectId:
         timestamp = struct.unpack(">i", self.__id[0:4])[0]
         return datetime.datetime.fromtimestamp(timestamp)
 
-    def __str__(self):  # 将byte类型转换成byte十六进制类型,再转换成str类型,eg: binascii.hexlify(b'aA').decode()输出6141
+    def __str__(self):
         return binascii.hexlify(self.__id).decode()
 
 

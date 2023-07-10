@@ -1,3 +1,4 @@
+import binascii
 import copy
 import dis
 import hashlib
@@ -8,6 +9,7 @@ import pickle
 import random
 import re
 import socket
+import struct
 import sys
 import time
 from bisect import insort_right, bisect_left, bisect_right
@@ -315,7 +317,11 @@ def common_tutorial():
     followlinks - - 设置为true, 则通过软链接访问目录
     """
 
-    int('0x01002', 16)  # 字符串是16进制,并将其转换成10进制
+    assert "test".encode() == b"test" and b"test".decode() == "test"
+    print(struct.pack(">I", 0b11111111000000010000001100000000))  # b'\xff\x01\x03\x00', >: big-endian, i: int
+    print(struct.pack("<I", 0b11111111000000010000001100000000))  # b'\x00\x03\x01\xff'
+    int('0x0102', 16)  # 258, 字符串是16进制,并将其转换成10进制
+    print(binascii.hexlify(b'ab'))  # b'6162', hexlify将b字符串按字符转换为16进制数字b串
     print("content", end="\t", flush=True)  # flush=True意思是不缓存,有内容则输出
     print(None is None)  # None用is判断,速度更快,还防止__eq__风险,不建议用==
     print(sys.getsizeof([]))  # Return the size of object in bytes.
