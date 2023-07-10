@@ -318,6 +318,7 @@ def common_tutorial():
     """
 
     assert "test".encode() == b"test" and b"test".decode() == "test"
+    assert ord('a') == 97 and chr(97) == 'a' and struct.unpack(">B", b'a')[0] == 97
     print(struct.pack(">I", 0b11111111000000010000001100000000))  # b'\xff\x01\x03\x00', >: big-endian, i: int
     print(struct.pack("<I", 0b11111111000000010000001100000000))  # b'\x00\x03\x01\xff'
     int('0x0102', 16)  # 258, 字符串是16进制,并将其转换成10进制
@@ -663,7 +664,7 @@ def datetime_tutorial():
 
 def heap_tutorial():
     heap = [3, 54, 64, 4, 34, 24, 2, 4, 24, 33]
-    heapify(heap)  # 小顶堆
+    heapify(heap)  # 小顶堆,没有大顶堆
     print(heap)
     print([heappop(heap) for _ in range(len(heap))])  # 此时heap为空
 
@@ -1299,7 +1300,7 @@ def frame_tutorial():
 
 
 if __name__ == "__main__":  # import到其他脚本中不会执行以下代码,spawn方式的多进程也需要
-    frame_tutorial()
+    # frame_tutorial()
     # arguments_tutorial()
     # list_tutorial()
     # is_tutorial()
@@ -1307,7 +1308,7 @@ if __name__ == "__main__":  # import到其他脚本中不会执行以下代码,s
     # subprocess_tutorial()
     # dict_tutorial()
     # iterable_tutorial()
-    # common_tutorial()
+    common_tutorial()
     # inherit_tutorial()
     # metaclass_tutorial()
     # pickle_tutorial()
