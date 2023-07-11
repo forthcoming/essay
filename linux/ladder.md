@@ -84,20 +84,23 @@ export https_proxy=http://192.168.1.1:8118
 ```
 
 ### 测试
-```pycon
+```python
 import requests
-r=requests.get('https://check.torproject.org/?lang=zh_CN',proxies={'https':'https://127.0.0.1:8118'})  # 访问被墙的网址，请求的这一层只能走https代理
+from stem import Signal
+from stem.control import Controller
+
+r = requests.get('https://check.torproject.org/?lang=zh_CN',
+                 proxies={'https': 'https://127.0.0.1:8118'})  # 访问被墙的网址，请求的这一层只能走https代理
 print(r.text)
-r=requests.get('https://httpbin.org/ip',proxies={'https':'socks5://127.0.0.1:9050'})   # tor
+r = requests.get('https://httpbin.org/ip', proxies={'https': 'socks5://127.0.0.1:9050'})  # tor
 print(r.json()['origin'])
-r=requests.get('https://httpbin.org/ip',proxies={'https':'socks5://127.0.0.1:33947'})  # lantern
+r = requests.get('https://httpbin.org/ip', proxies={'https': 'socks5://127.0.0.1:33947'})  # lantern
 print(r.json()['origin'])
-r=requests.get('https://httpbin.org/ip')  # local
+r = requests.get('https://httpbin.org/ip')  # local
 print(r.json()['origin'])
 
-from stem.control import Controller
-from stem import Signal
-with Controller.from_port(port = 9051) as controller:  # tells us how many bytes Tor has sent and received since it started
+with Controller.from_port(port=9051) as controller:  
+    # tells us how many bytes Tor has sent and received since it started
     controller.authenticate()  # provide the password here if you set one
     controller.signal(Signal.NEWNYM)
     controller.signal(Signal.HUP)
