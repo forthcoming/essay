@@ -59,7 +59,7 @@ hmset user_info_1 name admin level 9999
 hmset user_info_2 name jack level 10
 hmset user_info_3 name peter level 25
 hmset user_info_4 name mary level 70
-通过使用by选项,可以让uid按其他键的元素来排序,不在user_level_*下面的uid默认比其他uid要小,且也会按指定顺序排序
+通过by可以让uid按其他键的元素来排序,不在user_level_*下面的uid默认比其他uid要小,且也会按指定顺序排序
 sort uid by user_info_*->level
 1) "0"
 2) "5"
@@ -67,8 +67,8 @@ sort uid by user_info_*->level
 4) "3"
 5) "4"
 6) "1"
-get #获取被排序键的值,类似与sorted-set withscores
-sort uid get # get user_info_*->name get user_info_*->level
+get #获取元素本身(被排序键的值),类似与sorted-set withscores
+sort uid get # get user_info_*->name get user_info_*->level 
  1) "0"
  2) (nil)
  3) (nil)
@@ -87,11 +87,9 @@ sort uid get # get user_info_*->name get user_info_*->level
 16) "5"
 17) (nil)
 18) (nil)
-默认情况下只返回排序结果,并不进行保存操作
 通过给store指定一个key,返回排序结果的元素个数,并将排序结果保存到给定key上,key类型是list
-通常还需要为key设置生存时间,另外为了正确实现这一用法,可能需要加锁以避免多个客户端同时进行缓存重建
 如果被指定key已存在,那么原有的值将被排序结果覆盖
-sort uid by user_info_*->level get # store result
+sort uid by user_info_*->level store result
 (integer) 6
 lrange result 0 -1
 1) "0"
@@ -101,7 +99,7 @@ lrange result 0 -1
 5) "4"
 6) "1"
 通过将一个不存在的键作为参数传给by选项,可以跳过排序
-这种用法单独使用没什么实际用处,不过通过将这种用法和GET选项配合,就可以在不排序的情况下获取多个外部键,类似于SQL的join
+通过将这种用法和GET选项配合,就可以在不排序的情况下获取多个外部键,类似于SQL的join
 sort uid by not-exists-key get user_info_*->level get user_info_*->name
  1) (nil)
  2) (nil)
