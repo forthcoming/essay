@@ -1,3 +1,4 @@
+```
 Redis集群中内置了16384(2的14次方)个哈希槽,当需要在Redis集群中放置一个key-value时,先对key使用crc16算法算出一个结果,然后把结果对16384求余数
 这样每个key都会对应一个编号在0-16383之间的哈希槽,redis会根据节点数量大致均等的将哈希槽映射到不同的节点(没使用一致性哈希)
 当主节点A挂掉后其从节点B会自动升级为主节点,重启A后A会成为B的从节点
@@ -366,3 +367,4 @@ At startup in order to populate the initial slots configuration.
 When a MOVED redirection is received.
 
 数据预热: 预先访问接口或者程序,填充缓存,防止单位时间内大量请求访问数据库
+```

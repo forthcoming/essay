@@ -1,3 +1,4 @@
+```
 git cherry-pick commitID  # 将某个分支的某次提交合并到当前分支
 git remote -v  #显示需要读写远程仓库的简写与其对应的URL
 origin    https://github.com/xxoome/Spiders.git (fetch)
@@ -64,7 +65,9 @@ git commit -m'comments' # 将暂存区(add提交)提交到本地版本库,同个
 删除README.md文件及其历史提交记录
 git filter-branch --force --index-filter 'git rm --cached --ignore-unmatch README.md' --prune-empty --tag-name-filter cat -- --all
 git push origin --force --all
+```
 
+```
 [root@local github]# git status  # 可以标记冲突文件
 # On branch master
 #
@@ -93,7 +96,9 @@ Changes not staged for commit:
 要暂存这次更新,需要运行git add命令
 这是个多功能命令: 可以用它开始跟踪新文件,或者把已跟踪的文件放到暂存区,还能用于合并时把有冲突的文件标记为已解决状态等
 将这个命令理解为"添加内容到下一次提交中"而不是"将一个文件添加到项目中"要更加合适
+```
 
+```
 merge冲突时git用<<<<<<<,=======,>>>>>>>标记出不同分支的内容,解决冲突就是把git合并失败的文件手动编辑为我们希望的内容,再提交
 merge时含有大量的未commit文件将使你在冲突中难以回退
 建议使用stash命令将这些未commit文件暂存起来,并在解决冲突以后使用git stash pop把这些未commit文件还原出来
@@ -120,3 +125,4 @@ build/
 doc/*.txt
 # ignore all .pdf files in the doc/ directory
 doc/**/*.pdf
+```

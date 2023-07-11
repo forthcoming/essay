@@ -1,4 +1,5 @@
-Step 0(Lantern)
+### Step 0(Lantern)
+```shell
 wget https://raw.githubusercontent.com/getlantern/lantern-binaries/master/lantern-installer-64-bit.deb
 dpkg -i lantern
 
@@ -11,10 +12,10 @@ Manage system proxy
 Proxy all traffic   # 所有请求都走代理(默认只有部分请求走代理)
 HTTP(S) proxy: 127.0.0.1:42787
 SOCKS proxy: 127.0.0.1:33947
+```
 
-###################################################################################################################################
-
-Step 0(Shadowsocks)
+### Step 0(Shadowsocks)
+```shell
 pip install git+https://github.com/shadowsocks/shadowsocks.git@master
 vim /etc/shadowsocks.json
 {
@@ -37,10 +38,10 @@ GUI安装
 https://github.com/shadowsocks/shadowsocks-qt5/releases 下载最新的版本是后缀为.AppImage的文件
 chmod a+x Shadowsocks-Qt5-3.0.0-x86_64.AppImage
 ./Shadowsocks-Qt5-3.0.0-x86_64.AppImage
+```
 
-###################################################################################################################################
-
-Step 1
+### Step 1
+```shell
 wget http://www.theonionrouter.com/dist/tor-0.3.2.10.tar.gz
 tar xzf tor-0.3.2.10.tar.gz
 cd tor-0.3.2.10
@@ -66,10 +67,10 @@ pkill -sighup tor
 [notice] Parsing GEOIP IPv4 file /usr/local/share/tor/geoip.
 [notice] Parsing GEOIP IPv6 file /usr/local/share/tor/geoip6.
 [warn] You are running Tor as root. You don't need to, and you probably shouldn't.
+```
 
-###################################################################################################################################
-
-Step 2
+### Step 2
+```shell
 apt install privoxy  # 有些应用只能使用https代理,访问被墙的网站等都得使用privoxy来做一次转换
 vim /etc/privoxy/config
 listen-address  0.0.0.0:8118  # 同一局域网下的其他设备都能访问privoxy代理,127.0.0.1意思是只有本地应用才能使用该代理
@@ -80,10 +81,10 @@ forward-socks5t   /   127.0.0.1:9050 .    # 将tor的socks代理转换成https�
 将下面的代码添加到~/.bashrc即可
 export http_proxy=http://192.168.1.1:8118
 export https_proxy=http://192.168.1.1:8118
+```
 
-###################################################################################################################################
-
-# 测试
+### 测试
+```pycon
 import requests
 r=requests.get('https://check.torproject.org/?lang=zh_CN',proxies={'https':'https://127.0.0.1:8118'})  # 访问被墙的网址，请求的这一层只能走https代理
 print(r.text)
@@ -103,11 +104,10 @@ with Controller.from_port(port = 9051) as controller:  # tells us how many bytes
     read = controller.get_info("traffic/read")
     written = controller.get_info("traffic/written")
     print(f"Tor relay has read {read} bytes and written {written}.")
-
 # 在可以使用SOCKS5代理的情况下尽量使用SOCKS5模式,HTTP(S)代理模式本质上是二重代理(把HTTP请求通过上级SOCKS5代理转发),对性能有一定的影响
+```
 
-###################################################################################################################################
-
+```
 onion
 https://3g2upl4pq6kufc4m.onion/
 http://torlinkbgs6aabns.onion/
@@ -120,3 +120,5 @@ https://torcheck.xenobite.eu/
 A类: 10.0.0.0~10.255.255.255
 B类: 172.16.0.0~172.31.255.255
 C类: 192.168.0.0~192.168.255.255
+```
+
