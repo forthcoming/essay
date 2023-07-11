@@ -22,17 +22,34 @@ OK
 
 ### string
 ```
-set key value [ex 秒数]  [nx]/[xx] :  nx表示key不存在时执行操作,xx表示key存在时执行操作
-get key
-mget key1 key2...  :  类似的还有mset
-setrange key offset value ：把字符串key的第offset个位置起替换成value，只覆盖value个长度
-getrange key start stop ：获取字符串中 [start, stop]范围的值，左数从0开始,右数从-1开始
 append key value
-incr key:key值加1,并返回加1后的值，key必须是数字型字符串，对立操作是decr
-getbit key offset : 获取值的二进制表示对应位上的值,offset从左从0编号,最大不能超过2^32-1,so key最大为512M
-setbit key offset 0/1 : 设置offset对应二进制位上的值,返回该位上的旧值
-bitcount key : 统计1的个数
-bitop operation destkey key1 [key2 ...] : 对key1,key2..keyN作operation,并将结果保存到destkey上。
+incr key: key值加1,并返回加1后的值,key必须是数字型字符串,不存在时初始值为0,对立操作是decr
+get key
+decrby key decrement
+incrbyfloat key increment
+setrange key offset value: 把字符串key的第offset个位置起替换成value,只覆盖value个长度
+getrange key start stop: 获取字符串中[start, stop]范围的值，左数从0开始,右数从-1开始
+mget key1 key2...: 类似的还有mset
+strlen key: 返回存储在key处的字符串值的长度
+lcs key1 key2 [LEN]: 返回最长公共子串,len意思是只返回子串长度
+set key value [NX | XX] [GET] [PX milliseconds | EXAT unix-time-seconds | KEEPTTL]
+如果key已存在,则无论其类型如何都会被覆盖,成功后该key先前生存时间将被丢弃
+[NX | XX]-- key[不存在|存在]时生效
+GET -- Return the old string stored at key
+PX milliseconds -- 设置指定的过期时间,以毫秒为单位
+EXAT timestamp-seconds -- 设置key过期的指定Unix时间,以秒为单位
+KEEPTTL -- 保留key原有的生存周期
+```
+
+### bitmap
+```
+bitop and|or|xor|not destkey key1 [key2 ...]: 对key1,key2..keyN位运算,结果存到destkey
+bitpos key bit [start [end]]: 返回字符串第一个设置为1或0的位置,范围参考getrange,默认单位是字节
+bitcount key [start end]: 统计1的个数,范围参考getrange
+getbit key offset: 获取值的二进制表示对应位上的值,offset从0编号,最大值2^32-1,so key最大为512M
+setbit key offset 0|1: 设置offset对应二进制位上的值,返回该位上的旧值
+当需要多次调用setbit完成初始化时,可以使用set来设置整个位图
+位图不是实际的数据类型,而是在string类型上定义的一组面向位的操作,这意味着位图可以与字符串命令一起使用
 127.0.0.1:6379> setbit lower 2 1
 (integer) 0
 127.0.0.1:6379> get lower
