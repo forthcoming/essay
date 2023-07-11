@@ -1,38 +1,59 @@
+### generic
 ```
-SORT key [BY pattern] [LIMIT offset count] [GET pattern [GET pattern ...]] [ASC | DESC] [ALPHA] [STORE destination]
-返回或保存给定列表、集合、有序集合key中经过排序的元素
-只能根据一个字段排序(无法实现类似order by name,score功能),无法在集群下运行,提示ERR BY option of SORT denied in Cluster mode.
-Time complexity: 
-O(N+M*log(M)) where N is the number of elements in the list or set to sort, and M the number of returned elements. 
-When the elements are not sorted, complexity is currently O(N) as there is a copy step that will be avoided in next releases.
+type key: 返回key类型 (eg:string, list, set, zset, hash and stream)
+randomkey: 返回随机key
+ttl key: 返回key剩余的过期时间秒数(不过期的key返回-1,不存在的key返回-2)
+rename key newkey: 如果newkey已存在,则newkey的原值和过期时间被覆盖,当发生这种情况时会执行隐式del操作,集群模式下新旧key必须位于同一哈希槽中
+del key [key ...]: 当key包含字符串以外的值时,该键的单独复杂度为O(M),其中M是列表、集合、排序集合或哈希中的元素数量
+unlink key [key ...]: 在不同的线程中执行O(N)操作删除指定的key以回收内存,它不会阻塞,而del会阻塞
+persist key: 把key置为永久有效
+exists key [key ...]: 判断key是否存在, 返回1/0
+expiretime key: 返回给定key到期的绝对Unix时间戳(以秒为单位)
+expireat key unix-time-seconds [NX | XX | GT | LT]
 
-排序默认以数字作为对象,值被解释为双精度浮点数
+expire key seconds [NX | XX | GT | LT],所有涉及更新key值的操作不会影响原本的过期时间,set命令是替换新建
+密钥过期信息存储为绝对Unix时间戳,这意味着即使Redis实例不活动,时间也在流动,为了使过期功能正常工作,计算机时间必须保持稳定
+即使正在运行的实例也会始终检查计算机时钟,如果您将key生存时间设置为1000秒,然后将计算机时间设置为未来2000秒,则该key将立即过期
+key过期机制如下
+key被动过期: 当某个客户端尝试访问它时,发现key超时
+key主动过期: 定期(每秒10次,由配置变量hz控制)在设置了过期时间的key中随机测试一些(20个)键,所有已过期的key都将被删除,如果超过1/4的key已过期,再重新开始
+内存淘汰机制: 由配置变量maxmemory-policy控制,常用策略allkeys-lru、volatile-lru等
+
+keys pattern: 查找所有符合给定模式pattern的key,生产环境慎用,可考虑使用SCAN或集合
+*:通配任意多个字符  ?:通配单个字符  []:通配括号内的某1个字符
+127.0.0.1:6379> keys *
+(empty list or set)
+127.0.0.1:6379> mset one 1 two 2 three 3 four 4
+OK
+127.0.0.1:6379> keys o*
+1) "one"
+127.0.0.1:6379> keys ???
+1) "one"
+2) "two"
+127.0.0.1:6379> keys on[dce]
+1) "one"
+
+scan cursor [MATCH pattern] [COUNT count] [TYPE type]: 遍历所有键,类似的还有sscan,hscan,zscan
+游标从0开始,到0遍历结束,count只是个hint,返回的结果可多可少
+遍历过程中如果有数据修改,改动后的数据能不能遍历到是不确定的,返回的结果可能会有重复
+scan 0 match premissions:* count 100  
+
+sort key [BY pattern] [LIMIT offset count] [GET pattern [GET pattern ...]] [ASC | DESC] [ALPHA] [STORE destination]
+返回或保存给定列表、集合、有序集合key中经过排序的元素,只能根据一个字段排序(无法实现类似order by name,score功能),无法在集群下运行
+排序默认以数字作为对象,值被解释为双精度浮点数,当需要对字符串进行排序时,需要显式地添加alpha修饰符
+有序集合是根据member而非score排序
 lpush rank 1 3 2 5 4
 sort rank desc limit 1 3
 1) "4"
 2) "3"
 3) "2"
-
 zadd alphabet 10 a 20 c 0 b -10 e 30 d
-zrange alphabet 0 -1 withscores
- 1) "e"
- 2) "-10"
- 3) "b"
- 4) "0"
- 5) "a"
- 6) "10"
- 7) "c"
- 8) "20"
- 9) "d"
-10) "30"
-有序集合是根据member来排序,非score,当需要对字符串进行排序时,需要显式地在命令之后添加alpha修饰符
 sort alphabet alpha
 1) "a"
 2) "b"
 3) "c"
 4) "d"
 5) "e"
-
 lpush uid 1 2 3 4 0 5
 hmset user_info_1 name admin level 9999
 hmset user_info_2 name jack level 10
@@ -94,116 +115,6 @@ sort uid by not-exists-key get user_info_*->level get user_info_*->name
 10) "jack"
 11) "9999"
 12) "admin"
-
-
-scan: 遍历所有键,类似的还有sscan,hscan,zscan,他们只遍历特定类型键里面的元素值
-scan 0 match free_premissions:* count 100  
-游标从0开始,到0遍历结束; 
-不会阻塞线程; count只是个hint,返回的结果可多可少
-返回的结果可能会有重复
-遍历过程中如果有数据修改,改动后的数据能不能遍历到是不确定的
-单次返回的结果是空并不意味着遍历结束,而要看返回的游标值是否为零
-
-unlink key1 key2 ... Keyn: 异步删除1个或多个键,不存在的key忽略掉,return the number of keys that were unlinked,it is not blocking, while del is.
-redis-cli -h 10.1.138.63 -n 1 --bigkeys -i 0.01   # 分析数据库中的大key,-i参数表示扫描过程中每次扫描的时间间隔,单位是秒
-
-GEOADD key longitude latitude member [longitude latitude member ...]
-Time complexity: O(log(N)) for each item added, where N is the number of elements in the sorted set.
-there is no GEODEL command because you can use ZREM in order to remove elements. The Geo index structure is just a sorted set.
-有序集合的score对应geohash的值,geohash值的前缀相同的位数越多,代表的位置越接近,反之不成立,位置接近的geoHash值不一定相似
-对geoadd命令要做异常处理,应为当经纬度超出范围时会报错,longitudes are [-180,180]  latitudes are [-85.05112878,85.05112878]
-Latitude and Longitude bits are interleaved in order to form an unique 52 bit integer.We know that a sorted set double score can represent a 52 bit integer without losing precision.
-geoadd location 123.121 -34.12 'HK' 45.1 78.9 'Poland' 45.2 78.91 'Turkey'
-# geohashEncodeWGS84(xy[0], xy[1], 26, &hash);
-# GeoHashFix52Bits bits = geohashAlign52Bits(hash);
-
-GEOHASH key member [member ...]
-Time complexity: O(log(N)) for each member requested, where N is the number of elements in the sorted set.
-Returns an array with an 11 characters geohash representation of the position of the specified elements.
-geohash location 'HK'
-# GeoHashBits hash = {.bits = (uint64_t)score, .step = 26};
-# geohashDecodeToLongLatWGS84(hash, xy);
-# GeoHashRange r[2]=[{.min = -180,.max = 180},{.min = -90,.max = 90}];
-# GeoHashBits hash;
-# geohashEncode(&r[0],&r[1],xy[0],xy[1],26,&hash);
-# char *geoalphabet= "0123456789bcdefghjkmnpqrstuvwxyz";
-# char buf[12];
-# for (int i = 0; i < 11; i++) {
-#     int idx = (hash.bits >> (52-((i+1)*5))) & 0x00011111;
-#     buf[i] = geoalphabet[idx];
-# }
-# buf[11] = '\0';  # 此时的buf[10]一定等于'0'
-# 注意：    
-# int x=5;
-# uint64_t y=5;
-# x<<-2 => x<<30
-# y>>-3 => x>>61
-
-geodist location 'Poland' 'Turkey' km
-# 从zset中读出相应的double类型的score信息,
-# GeoHashBits hash1={.bits = (uint64_t)score1,.step = 26};
-# GeoHashBits hash2={.bits = (uint64_t)score2,.step = 26};
-# geohashDecodeToLongLatWGS84(hash1, x1);
-# geohashDecodeToLongLatWGS84(hash2, x2);
-# return geohashGetDistance(x1,x2);
-# geopos处理过程类似
-
-GEOPOS key member [member ...]
-Time complexity: O(log(N)) for each member requested, where N is the number of elements in the sorted set.
-Return the positions (longitude,latitude) of all the specified members of the geospatial index represented by the sorted set at key.
-
-GEORADIUS key longitude latitude radius m|km|ft|mi [WITHCOORD] [WITHDIST] [WITHHASH] [COUNT count] [ASC|DESC] [STORE key] [STOREDIST key]
-Time complexity: O(N+log(M)) where N is the number of elements inside the bounding box of the circular area delimited by center and radius and M is the number of items inside the index.
-The command default is to return unsorted items. Two different sorting methods can be invoked using the following two options:
-ASC: Sort returned items from the nearest to the farthest, relative to the center.
-DESC: Sort returned items from the farthest to the nearest, relative to the center.
-By default all the matching items are returned. It is possible to limit the results to the first N matching items by using the COUNT <count> option. 
-However note that internally the command needs to perform an effort proportional to the number of items matching the specified area,
-georadius location 45.1 78.88 4 km withdist count 3 asc
-
-GEORADIUSBYMEMBER key member radius m|km|ft|mi [WITHCOORD] [WITHDIST] [WITHHASH] [COUNT count] [ASC|DESC] [STORE key] [STOREDIST key]
-Time complexity: O(N+log(M)) where N is the number of elements inside the bounding box of the circular area delimited by center and radius and M is the number of items inside the index.
-This command is exactly like GEORADIUS with the sole difference that instead of taking, it takes the name of a member already existing inside the geospatial index represented by the sorted set.
-The position of the specified member is used as the center of the query.
-要做异常处理,应为当member不在有序集合中时,会报错
-georadiusbymember location 'Poland' 3 km
-```
-
-### generic
-```
-scan cursor [MATCH pattern] [COUNT count] [TYPE type]
-type key: 返回key类型 (eg:string, list, set, zset, hash and stream)
-randomkey: 返回随机key
-ttl key: 返回key剩余的过期时间秒数(不过期的key返回-1,不存在的key返回-2)
-rename key newkey: 如果newkey已存在,则newkey的原值和过期时间被覆盖,当发生这种情况时会执行隐式del操作,集群模式下新旧key必须位于同一哈希槽中
-del key [key ...]: 当key包含字符串以外的值时,该键的单独复杂度为O(M),其中M是列表、集合、排序集合或哈希中的元素数量
-unlink key [key ...]: 在不同的线程中执行O(N)操作删除指定的key以回收内存,它不会阻塞,而del会阻塞
-persist key: 把key置为永久有效
-exists key [key ...]: 判断key是否存在, 返回1/0
-expiretime key: 返回给定key到期的绝对Unix时间戳(以秒为单位)
-expireat key unix-time-seconds [NX | XX | GT | LT]
-
-expire key seconds [NX | XX | GT | LT],所有涉及更新key值的操作不会影响原本的过期时间,set命令是替换新建
-密钥过期信息存储为绝对Unix时间戳,这意味着即使Redis实例不活动,时间也在流动,为了使过期功能正常工作,计算机时间必须保持稳定
-即使正在运行的实例也会始终检查计算机时钟,如果您将key生存时间设置为1000秒,然后将计算机时间设置为未来2000秒,则该key将立即过期
-key过期机制如下
-key被动过期: 当某个客户端尝试访问它时,发现key超时
-key主动过期: 定期(每秒10次,由配置变量hz控制)在设置了过期时间的key中随机测试一些(20个)键,所有已过期的key都将被删除,如果超过1/4的key已过期,再重新开始
-内存淘汰机制: 由配置变量maxmemory-policy控制,常用策略allkeys-lru、volatile-lru等
-
-keys pattern: 查找所有符合给定模式pattern的key,生产环境慎用,可考虑使用SCAN或集合
-*:通配任意多个字符  ?:通配单个字符  []:通配括号内的某1个字符
-127.0.0.1:6379> keys *
-(empty list or set)
-127.0.0.1:6379> mset one 1 two 2 three 3 four 4
-OK
-127.0.0.1:6379> keys o*
-1) "one"
-127.0.0.1:6379> keys ???
-1) "one"
-2) "two"
-127.0.0.1:6379> keys on[dce]
-1) "one"
 ```
 
 ### connection
@@ -346,6 +257,68 @@ hgetall key : 返回key中所有得field-value
 ```
 
 ```
+GEOADD key longitude latitude member [longitude latitude member ...]
+Time complexity: O(log(N)) for each item added, where N is the number of elements in the sorted set.
+there is no GEODEL command because you can use ZREM in order to remove elements. The Geo index structure is just a sorted set.
+有序集合的score对应geohash的值,geohash值的前缀相同的位数越多,代表的位置越接近,反之不成立,位置接近的geoHash值不一定相似
+对geoadd命令要做异常处理,应为当经纬度超出范围时会报错,longitudes are [-180,180]  latitudes are [-85.05112878,85.05112878]
+Latitude and Longitude bits are interleaved in order to form an unique 52 bit integer.We know that a sorted set double score can represent a 52 bit integer without losing precision.
+geoadd location 123.121 -34.12 'HK' 45.1 78.9 'Poland' 45.2 78.91 'Turkey'
+# geohashEncodeWGS84(xy[0], xy[1], 26, &hash);
+# GeoHashFix52Bits bits = geohashAlign52Bits(hash);
+
+GEOHASH key member [member ...]
+Time complexity: O(log(N)) for each member requested, where N is the number of elements in the sorted set.
+Returns an array with an 11 characters geohash representation of the position of the specified elements.
+geohash location 'HK'
+# GeoHashBits hash = {.bits = (uint64_t)score, .step = 26};
+# geohashDecodeToLongLatWGS84(hash, xy);
+# GeoHashRange r[2]=[{.min = -180,.max = 180},{.min = -90,.max = 90}];
+# GeoHashBits hash;
+# geohashEncode(&r[0],&r[1],xy[0],xy[1],26,&hash);
+# char *geoalphabet= "0123456789bcdefghjkmnpqrstuvwxyz";
+# char buf[12];
+# for (int i = 0; i < 11; i++) {
+#     int idx = (hash.bits >> (52-((i+1)*5))) & 0x00011111;
+#     buf[i] = geoalphabet[idx];
+# }
+# buf[11] = '\0';  # 此时的buf[10]一定等于'0'
+# 注意：    
+# int x=5;
+# uint64_t y=5;
+# x<<-2 => x<<30
+# y>>-3 => x>>61
+
+geodist location 'Poland' 'Turkey' km
+# 从zset中读出相应的double类型的score信息,
+# GeoHashBits hash1={.bits = (uint64_t)score1,.step = 26};
+# GeoHashBits hash2={.bits = (uint64_t)score2,.step = 26};
+# geohashDecodeToLongLatWGS84(hash1, x1);
+# geohashDecodeToLongLatWGS84(hash2, x2);
+# return geohashGetDistance(x1,x2);
+# geopos处理过程类似
+
+GEOPOS key member [member ...]
+Time complexity: O(log(N)) for each member requested, where N is the number of elements in the sorted set.
+Return the positions (longitude,latitude) of all the specified members of the geospatial index represented by the sorted set at key.
+
+GEORADIUS key longitude latitude radius m|km|ft|mi [WITHCOORD] [WITHDIST] [WITHHASH] [COUNT count] [ASC|DESC] [STORE key] [STOREDIST key]
+Time complexity: O(N+log(M)) where N is the number of elements inside the bounding box of the circular area delimited by center and radius and M is the number of items inside the index.
+The command default is to return unsorted items. Two different sorting methods can be invoked using the following two options:
+ASC: Sort returned items from the nearest to the farthest, relative to the center.
+DESC: Sort returned items from the farthest to the nearest, relative to the center.
+By default all the matching items are returned. It is possible to limit the results to the first N matching items by using the COUNT <count> option. 
+However note that internally the command needs to perform an effort proportional to the number of items matching the specified area,
+georadius location 45.1 78.88 4 km withdist count 3 asc
+
+GEORADIUSBYMEMBER key member radius m|km|ft|mi [WITHCOORD] [WITHDIST] [WITHHASH] [COUNT count] [ASC|DESC] [STORE key] [STOREDIST key]
+Time complexity: O(N+log(M)) where N is the number of elements inside the bounding box of the circular area delimited by center and radius and M is the number of items inside the index.
+This command is exactly like GEORADIUS with the sole difference that instead of taking, it takes the name of a member already existing inside the geospatial index represented by the sorted set.
+The position of the specified member is used as the center of the query.
+要做异常处理,应为当member不在有序集合中时,会报错
+georadiusbymember location 'Poland' 3 km
+
+
 lua script
 Redis uses the same Lua interpreter to run all the commands. Also Redis guarantees that a script is executed in an atomic way:
 no other script or Redis command will be executed while a script is being executed. This semantic is similar to the one of MULTI EXEC. 
@@ -361,6 +334,7 @@ redis-cli --eval Desktop/test.lua key1 key2 , argv1 argv2 # 注意逗号两边�
 
 通用操作
 redis-py存进去的是数字类型,再取出来时都会是字符串类型
+redis-cli -h 10.1.138.63 -n 1 --bigkeys -i 0.01   # 分析数据库中的大key,-i参数表示扫描过程中每次扫描的时间间隔,单位是秒
 
 memory usage(时间复杂度：O(N) where N is the number of samples)
 The MEMORY USAGE command reports the number of bytes that a key and its value require to be stored in RAM.Longer keys and values show asymptotically linear usage.
