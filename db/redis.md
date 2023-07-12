@@ -115,70 +115,6 @@ sort uid by not-exists-key get user_info_*->level get user_info_*->name
 12) "admin"
 ```
 
-### geospatial
-```
-geoadd key longitude latitude member [longitude latitude member ...]
-Time complexity: O(log(N)) for each item added, where N is the number of elements in the sorted set.
-there is no GEODEL command because you can use ZREM in order to remove elements. The Geo index structure is just a sorted set.
-有序集合的score对应geohash的值,geohash值的前缀相同的位数越多,代表的位置越接近,反之不成立,位置接近的geoHash值不一定相似
-对geoadd命令要做异常处理,应为当经纬度超出范围时会报错,longitudes are [-180,180]  latitudes are [-85.05112878,85.05112878]
-Latitude and Longitude bits are interleaved in order to form an unique 52 bit integer.We know that a sorted set double score can represent a 52 bit integer without losing precision.
-geoadd location 123.121 -34.12 'HK' 45.1 78.9 'Poland' 45.2 78.91 'Turkey'
-# geohashEncodeWGS84(xy[0], xy[1], 26, &hash);
-# GeoHashFix52Bits bits = geohashAlign52Bits(hash);
-
-GEOHASH key member [member ...]
-Time complexity: O(log(N)) for each member requested, where N is the number of elements in the sorted set.
-Returns an array with an 11 characters geohash representation of the position of the specified elements.
-geohash location 'HK'
-# GeoHashBits hash = {.bits = (uint64_t)score, .step = 26};
-# geohashDecodeToLongLatWGS84(hash, xy);
-# GeoHashRange r[2]=[{.min = -180,.max = 180},{.min = -90,.max = 90}];
-# GeoHashBits hash;
-# geohashEncode(&r[0],&r[1],xy[0],xy[1],26,&hash);
-# char *geoalphabet= "0123456789bcdefghjkmnpqrstuvwxyz";
-# char buf[12];
-# for (int i = 0; i < 11; i++) {
-#     int idx = (hash.bits >> (52-((i+1)*5))) & 0x00011111;
-#     buf[i] = geoalphabet[idx];
-# }
-# buf[11] = '\0';  # 此时的buf[10]一定等于'0'
-# 注意：    
-# int x=5;
-# uint64_t y=5;
-# x<<-2 => x<<30
-# y>>-3 => x>>61
-
-geodist location 'Poland' 'Turkey' km
-# 从zset中读出相应的double类型的score信息,
-# GeoHashBits hash1={.bits = (uint64_t)score1,.step = 26};
-# GeoHashBits hash2={.bits = (uint64_t)score2,.step = 26};
-# geohashDecodeToLongLatWGS84(hash1, x1);
-# geohashDecodeToLongLatWGS84(hash2, x2);
-# return geohashGetDistance(x1,x2);
-# geopos处理过程类似
-
-GEOPOS key member [member ...]
-Time complexity: O(log(N)) for each member requested, where N is the number of elements in the sorted set.
-Return the positions (longitude,latitude) of all the specified members of the geospatial index represented by the sorted set at key.
-
-GEORADIUS key longitude latitude radius m|km|ft|mi [WITHCOORD] [WITHDIST] [WITHHASH] [COUNT count] [ASC|DESC] [STORE key] [STOREDIST key]
-Time complexity: O(N+log(M)) where N is the number of elements inside the bounding box of the circular area delimited by center and radius and M is the number of items inside the index.
-The command default is to return unsorted items. Two different sorting methods can be invoked using the following two options:
-ASC: Sort returned items from the nearest to the farthest, relative to the center.
-DESC: Sort returned items from the farthest to the nearest, relative to the center.
-By default all the matching items are returned. It is possible to limit the results to the first N matching items by using the COUNT <count> option. 
-However note that internally the command needs to perform an effort proportional to the number of items matching the specified area,
-georadius location 45.1 78.88 4 km withdist count 3 asc
-
-GEORADIUSBYMEMBER key member radius m|km|ft|mi [WITHCOORD] [WITHDIST] [WITHHASH] [COUNT count] [ASC|DESC] [STORE key] [STOREDIST key]
-Time complexity: O(N+log(M)) where N is the number of elements inside the bounding box of the circular area delimited by center and radius and M is the number of items inside the index.
-This command is exactly like GEORADIUS with the sole difference that instead of taking, it takes the name of a member already existing inside the geospatial index represented by the sorted set.
-The position of the specified member is used as the center of the query.
-要做异常处理,应为当member不在有序集合中时,会报错
-georadiusbymember location 'Poland' 3 km
-```
-
 ### connection
 ```
 ping #测试服务器是否可用
@@ -259,6 +195,53 @@ OK
 "q"
 ```
 
+### geospatial
+```
+geoadd key longitude latitude member [longitude latitude member ...]
+Time complexity: O(log(N)) for each item added, where N is the number of elements in the sorted set.
+there is no GEODEL command because you can use ZREM in order to remove elements. The Geo index structure is just a sorted set.
+有序集合的score对应geohash的值,geohash值的前缀相同的位数越多,代表的位置越接近,反之不成立,位置接近的geoHash值不一定相似
+对geoadd命令要做异常处理,应为当经纬度超出范围时会报错,longitudes are [-180,180]  latitudes are [-85.05112878,85.05112878]
+Latitude and Longitude bits are interleaved in order to form an unique 52 bit integer.We know that a sorted set double score can represent a 52 bit integer without losing precision.
+geoadd location 123.121 -34.12 'HK' 45.1 78.9 'Poland' 45.2 78.91 'Turkey'
+# geohashEncodeWGS84(xy[0], xy[1], 26, &hash);
+# GeoHashFix52Bits bits = geohashAlign52Bits(hash);
+
+GEOHASH key member [member ...]
+Time complexity: O(log(N)) for each member requested, where N is the number of elements in the sorted set.
+Returns an array with an 11 characters geohash representation of the position of the specified elements.
+geohash location 'HK'
+# GeoHashBits hash = {.bits = (uint64_t)score, .step = 26};
+# geohashDecodeToLongLatWGS84(hash, xy);
+# GeoHashRange r[2]=[{.min = -180,.max = 180},{.min = -90,.max = 90}];
+# GeoHashBits hash;
+# geohashEncode(&r[0],&r[1],xy[0],xy[1],26,&hash);
+# char *geoalphabet= "0123456789bcdefghjkmnpqrstuvwxyz";
+# char buf[12];
+# for (int i = 0; i < 11; i++) {
+#     int idx = (hash.bits >> (52-((i+1)*5))) & 0x00011111;
+#     buf[i] = geoalphabet[idx];
+# }
+# buf[11] = '\0';  # 此时的buf[10]一定等于'0'
+# 注意：    
+# int x=5;
+# uint64_t y=5;
+# x<<-2 => x<<30
+# y>>-3 => x>>61
+
+geodist location 'Poland' 'Turkey' km
+# 从zset中读出相应的double类型的score信息,
+# GeoHashBits hash1={.bits = (uint64_t)score1,.step = 26};
+# GeoHashBits hash2={.bits = (uint64_t)score2,.step = 26};
+# geohashDecodeToLongLatWGS84(hash1, x1);
+# geohashDecodeToLongLatWGS84(hash2, x2);
+# return geohashGetDistance(x1,x2);
+# geopos处理过程类似
+
+GEOPOS key member [member ...]
+Time complexity: O(log(N)) for each member requested, where N is the number of elements in the sorted set.
+Return the positions (longitude,latitude) of all the specified members of the geospatial index represented by the sorted set at key.
+```
 
 
 
@@ -643,7 +626,9 @@ config restart 更新info命令的信息
 debug object key #调试选项,看一个key的情况
 debug segfault #模拟段错误,让服务器崩溃
 
-
+ACL:访问控制列表,可针对任意用户和组进行权限控制
+多线程IO模型中的多线程仅用于接受,解析客户端请求,然后将解析出的请求写入到任务队列,对具体任务的处理仍是主线程执行
+redis读速度可达11w/s,写速度可达8w/s
 https://redis.io/docs/manual/patterns/distributed-locks/
 https://redis.io/docs/reference/clients/
 https://redis.io/docs/manual/keyspace/
