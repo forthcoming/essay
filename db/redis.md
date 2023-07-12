@@ -213,6 +213,32 @@ around the shape provided as the filter and M is the number of items inside the 
 默认情况下匹配项返回时未排序,使用ANY选项时,一旦找到足够的匹配项就返回,这意味着结果可能不是最接近指定点的结果,但速度会快很多
 ```
 
+### hash(字典)
+```
+hset key field value [field value ...]: 如果有field,则覆盖原field域的值
+hsetnx key field value
+hlen key: 返回key中元素的数量,时间复杂度O(1)
+hkeys key: 返回key中所有的field,时间复杂度O(N)
+hvals key: 返回key中所有的value
+hexists key field: 判断key中有没有field域,时间复杂度O(1)
+hdel key field [field ...]
+hgetall key: 返回key中所有得field-value
+hmget key field [field ...]
+hincrbyfloat key field increment
+hstrlen key field: 返回key中的field关联的值的字符串长度
+```
+
+### hyperloglog
+```shell
+pfcount key [key ...]: 当使用单个key时,时间复杂度O(1),用12k(加上键本身的几个字节)内存来计算集合中唯一元素个数,标准误差为0.81%
+当使用多个key时,在内部将存储在key处的数据结构合并到临时HyperLogLog中,返回并集,比较慢慎用
+HyperLogLog使用双重表示法来表示:稀疏表示法适用于计算少量元素的HLL,而密集表示法适用于较高基数,当需要时Redis会自动从稀疏表示切换到稠密表示
+存储结构是字符串,可以使用GET检索并使用SET恢复
+127.0.0.1:6379> pfadd hll a b c d a      
+(integer) 1       # 1 if at least 1 HyperLogLog internal register was altered. 0 otherwise.
+127.0.0.1:6379> pfcount hll
+(integer) 4
+```
 
 
 
@@ -250,26 +276,55 @@ score类型是double,按键score的大小顺序存放
 虽然double类型精度是15位小数,但并不意味着一定可以精确保存15位小数,如2.4503599627370496,参考c语言浮点数内存表示
 ```
 
-### hash(字典)
+### list
 ```
-hset key field value : 把key中filed域的值设为value,如果有field,则覆盖原field域的值
-hmset key field1 value1 [field2 value2 field3 value3 ......fieldn valuen]
-hdel key field : 删除key中field域
-hlen key : 返回key中元素的数量
-hexists key field : 判断key中有没有field域,时间复杂度O(1)
-hinrby float key field value : 把key中的field域的值增长浮点值value
-hkeys key : 返回key中所有的field,时间复杂度O(N)
-hvals key : 返回key中所有的value
-hgetall key : 返回key中所有得field-value
+llen key: 计算key元素个数
+lindex key index :返回index索引上的值
+lrem key count value :从key列表里移除前count次出现的值为value的元素(count>0从头往尾,count<0从尾往头,count=0移除所有)
+lpush key value : 把值插入到list头部,值可以是多个
+rpop key :  移除并返回存于key的最后一个元素
+lrange key start stop: 返回链表中[start ,stop]中的元素,左数从0开始,右数从-1开始
+ltrim key start stop: 使列表只存储[start,stop]范围内的数据,支持负索引
+
+127.0.0.1:6379> lpush mylist a b 1
+(integer) 3
+127.0.0.1:6379> lrange mylist 0 -1
+1) "1"
+2) "b"
+3) "a"
+127.0.0.1:6379> rpop mylist
+"a"
+
+blpop list1 list2 list3 timeout : 连接将被阻塞,直到等待超时或发现可弹出元素为止
+The timeout argument is an integer value specifying the maximum number of seconds to block,zero can be used to block indefinitely.
+当给定多个key参数时,按key的先后顺序依次检查各个列表,弹出第一个非空列表的名字和头元素
+相同的key可以被多个客户端同时阻塞,不同的客户端被放进一个队列中,按先阻塞先服务(first-BLPOP,first-served)顺序为客户端执行BLPOP命令
+
+BLPOP可用于pipline,但把它用在MULTI/EXEC块当中没有意义,因为这要求整个服务器被阻塞以保证块执行时的原子性,该行为阻止了其他客户端执行LPUSH或RPUSH命令
+因此一个被包裹在MULTI/EXEC块内的BLPOP命令,行为表现得就像LPOP key一样,对空列表返回nil,对非空列表弹出列表名和列表元素,不进行任何阻塞操作
+
+有时候一个list会在同一时刻接收到多个元素(LPUSH mylist a b c;对同一个list进行多次push操作的MULTI块执行完EXEC语句后;执行一个Lua脚本)
+所采取的行为是先执行多个push命令,然后在执行了这个命令之后再去服务被阻塞的客户端,下面命令客户端A会接收到c元素
+Client A: BLPOP foo 0
+Client B: LPUSH foo a b c
+需要注意的是一个Lua脚本或者一个MULTI/EXEC块可能会删除这个list,在这种情况下被阻塞的客户端完全不会被服务
+
+When a client is blocking for multiple keys at the same time, 
+and elements are available at the same time in multiple keys (because of a transaction or a Lua script added elements to multiple lists), 
+the client will be unblocked using the first key that received a push operation (assuming it has enough elements to serve our client, as there may be other clients as well waiting for this key). 
+下面命令客户端A会先拿到b,然后是B拿到a,C拿到d
+Client A: BLPOP fo,foo 0
+Client B: BLPOP fo,foo 0
+Client C: BLPOP fo,foo 0
+Client D: 
+multi 
+lpush foo a
+lpush fo c
+lpush fo d
+lpush foo b
+exec
 ```
 
-### hyperloglog
-```
-127.0.0.1:6379> pfadd hll a b c d a      
-(integer) 1       # 1 if at least 1 HyperLogLog internal register was altered. 0 otherwise.
-127.0.0.1:6379> pfcount hll
-(integer) 4
-```
 
 ```
 lua script
@@ -334,56 +389,6 @@ monitor
 streams back every command processed by the Redis server. It can help in understanding what is happening to the database
 如果redis是集群,该命令只会监控指定ip:port下的key,可以看到哪个ip正在执行的所有redis操作
 redis-cli -h 127.0.0.1 -p 8001 -a 'password' monitor |grep "common_service_hbt"   # redis没有用户名
-
----------------------------------------------------------------------------------------------------------------------------------------
-
-list常见命令(可以理解为链表)
-llen key: 计算key元素个数
-lindex key index :返回index索引上的值
-lrem key count value :从key列表里移除前count次出现的值为value的元素(count>0从头往尾,count<0从尾往头,count=0移除所有)
-lpush key value : 把值插入到list头部,值可以是多个
-rpop key :  移除并返回存于key的最后一个元素
-lrange key start stop: 返回链表中[start ,stop]中的元素,左数从0开始,右数从-1开始
-ltrim key start stop: 使列表只存储[start,stop]范围内的数据,支持负索引
-
-127.0.0.1:6379> lpush mylist a b 1
-(integer) 3
-127.0.0.1:6379> lrange mylist 0 -1
-1) "1"
-2) "b"
-3) "a"
-127.0.0.1:6379> rpop mylist
-"a"
-
-blpop list1 list2 list3 timeout : 连接将被阻塞,直到等待超时或发现可弹出元素为止
-The timeout argument is an integer value specifying the maximum number of seconds to block,zero can be used to block indefinitely.
-当给定多个key参数时,按key的先后顺序依次检查各个列表,弹出第一个非空列表的名字和头元素
-相同的key可以被多个客户端同时阻塞,不同的客户端被放进一个队列中,按先阻塞先服务(first-BLPOP,first-served)顺序为客户端执行BLPOP命令
-
-BLPOP可用于pipline,但把它用在MULTI/EXEC块当中没有意义,因为这要求整个服务器被阻塞以保证块执行时的原子性,该行为阻止了其他客户端执行LPUSH或RPUSH命令
-因此一个被包裹在MULTI/EXEC块内的BLPOP命令,行为表现得就像LPOP key一样,对空列表返回nil,对非空列表弹出列表名和列表元素,不进行任何阻塞操作
-
-有时候一个list会在同一时刻接收到多个元素(LPUSH mylist a b c;对同一个list进行多次push操作的MULTI块执行完EXEC语句后;执行一个Lua脚本)
-所采取的行为是先执行多个push命令,然后在执行了这个命令之后再去服务被阻塞的客户端,下面命令客户端A会接收到c元素
-Client A: BLPOP foo 0
-Client B: LPUSH foo a b c
-需要注意的是一个Lua脚本或者一个MULTI/EXEC块可能会删除这个list,在这种情况下被阻塞的客户端完全不会被服务
-
-When a client is blocking for multiple keys at the same time, 
-and elements are available at the same time in multiple keys (because of a transaction or a Lua script added elements to multiple lists), 
-the client will be unblocked using the first key that received a push operation (assuming it has enough elements to serve our client, as there may be other clients as well waiting for this key). 
-下面命令客户端A会先拿到b,然后是B拿到a,C拿到d
-Client A: BLPOP fo,foo 0
-Client B: BLPOP fo,foo 0
-Client C: BLPOP fo,foo 0
-Client D: 
-multi 
-lpush foo a
-lpush fo c
-lpush fo d
-lpush foo b
-exec
-
 
 安装redis到/usr/local/redis目录
 $ wget http://download.redis.io/releases/redis-3.2.9.tar.gz
@@ -603,6 +608,7 @@ https://redis.io/docs/manual/patterns/distributed-locks/
 https://redis.io/docs/reference/clients/
 https://redis.io/docs/manual/keyspace/
 https://blog.getspool.com/2011/11/29/fast-easy-realtime-metrics-using-redis-bitmaps
+http://antirez.com/news/75
 ```
 
 
