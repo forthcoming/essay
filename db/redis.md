@@ -197,50 +197,20 @@ OK
 
 ### geospatial
 ```
-geoadd key longitude latitude member [longitude latitude member ...]
-Time complexity: O(log(N)) for each item added, where N is the number of elements in the sorted set.
-there is no GEODEL command because you can use ZREM in order to remove elements. The Geo index structure is just a sorted set.
-有序集合的score对应geohash的值,geohash值的前缀相同的位数越多,代表的位置越接近,反之不成立,位置接近的geoHash值不一定相似
-对geoadd命令要做异常处理,应为当经纬度超出范围时会报错,longitudes are [-180,180]  latitudes are [-85.05112878,85.05112878]
-Latitude and Longitude bits are interleaved in order to form an unique 52 bit integer.We know that a sorted set double score can represent a 52 bit integer without losing precision.
-geoadd location 123.121 -34.12 'HK' 45.1 78.9 'Poland' 45.2 78.91 'Turkey'
-# geohashEncodeWGS84(xy[0], xy[1], 26, &hash);
-# GeoHashFix52Bits bits = geohashAlign52Bits(hash);
+geoadd key [NX | XX] [CH] longitude latitude member [longitude latitude member ...]
+时间复杂度: O(log(N)) for each item added, 其中N是zset中的元素数量,数据存储在有序集合,score对应geohash的值
+geohash值的前缀相同的位数越多,代表的位置越接近,反之不成立,位置接近的geoHash值不一定相似
 
-GEOHASH key member [member ...]
-Time complexity: O(log(N)) for each member requested, where N is the number of elements in the sorted set.
-Returns an array with an 11 characters geohash representation of the position of the specified elements.
-geohash location 'HK'
-# GeoHashBits hash = {.bits = (uint64_t)score, .step = 26};
-# geohashDecodeToLongLatWGS84(hash, xy);
-# GeoHashRange r[2]=[{.min = -180,.max = 180},{.min = -90,.max = 90}];
-# GeoHashBits hash;
-# geohashEncode(&r[0],&r[1],xy[0],xy[1],26,&hash);
-# char *geoalphabet= "0123456789bcdefghjkmnpqrstuvwxyz";
-# char buf[12];
-# for (int i = 0; i < 11; i++) {
-#     int idx = (hash.bits >> (52-((i+1)*5))) & 0x00011111;
-#     buf[i] = geoalphabet[idx];
-# }
-# buf[11] = '\0';  # 此时的buf[10]一定等于'0'
-# 注意：    
-# int x=5;
-# uint64_t y=5;
-# x<<-2 => x<<30
-# y>>-3 => x>>61
+geohash key [member [member ...]]: 返回一个包含指定元素位置的11个字符数组
+geodist key member1 member2 [M | KM | FT | MI]
+geopos key [member [member ...]]: 返回指定成员的经度、纬度
 
-geodist location 'Poland' 'Turkey' km
-# 从zset中读出相应的double类型的score信息,
-# GeoHashBits hash1={.bits = (uint64_t)score1,.step = 26};
-# GeoHashBits hash2={.bits = (uint64_t)score2,.step = 26};
-# geohashDecodeToLongLatWGS84(hash1, x1);
-# geohashDecodeToLongLatWGS84(hash2, x2);
-# return geohashGetDistance(x1,x2);
-# geopos处理过程类似
-
-GEOPOS key member [member ...]
-Time complexity: O(log(N)) for each member requested, where N is the number of elements in the sorted set.
-Return the positions (longitude,latitude) of all the specified members of the geospatial index represented by the sorted set at key.
+geosearch key <FROMMEMBER member | FROMLONLAT longitude latitude> 
+<BYRADIUS radius <M | KM | FT | MI> | BYBOX width height <M | KM | FT | MI>> 
+[ASC | DESC] [COUNT count [ANY]] [WITHCOORD] [WITHDIST] [WITHHASH]
+Time complexity:O(N+log(M)) where N is the number of elements in the grid-aligned bounding box area 
+around the shape provided as the filter and M is the number of items inside the shape
+默认情况下匹配项返回时未排序,使用ANY选项时,一旦找到足够的匹配项就返回,这意味着结果可能不是最接近指定点的结果,但速度会快很多
 ```
 
 
