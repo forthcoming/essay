@@ -281,10 +281,26 @@ redis> LMPOP 2 mylist mylist2 right count 2
    2) "b"
 ```
 
-
-
 ### 发布订阅
 ```
+subscribe channel [channel ...]: 客户端订阅指定频道
+psubscribe pattern [pattern ...]: 客户端订阅给定的模式,匹配规则同keys
+
+unsubscribe [channel [channel ...]]: 取消客户端对给定频道的订阅,如果没有给定频道则取消订阅所有频道
+punsubscribe [pattern [pattern ...]]: 参考unsubscribe
+
+publish channel message: 将消息发布到给定频道,时间复杂度O(N+M),N是订阅接收通道的客户端数量,M是订阅模式的任何客户端总数
+在集群中可以发布到每个节点,因此客户端可以通过连接任何一个节点来订阅任何频道,返回收到消息的客户端数量,在集群中只统计同一节点接收的客户端数量
+
+pubsub numpat: 返回所有客户端PSUBSCRIBE订阅的唯一模式的总数(不是订阅模式的客户端计数)
+pubsub channels [pattern]: 列出当前活跃频道,活跃频道是具有一个或多个订阅者(不包括订阅模式的客户端)的通道
+如果未指定模式,则列出所有通道,如果指定模式,则仅列出与指定模式匹配的通道
+pubsub numsub [channel [channel ...]]: 返回指定通道的订阅者数量(不包括订阅模式的客户端)
+```
+```python
+from redis import Redis
+
+r = Redis()
 p = r.pubsub()
 p.subscribe('my-first-channel')
 p.psubscribe('my-*')
@@ -309,14 +325,10 @@ None
 {'type': 'message', 'pattern': None, 'channel': b'my-first-channel', 'data': b'some data'}
 {'type': 'pmessage', 'pattern': b'my-*', 'channel': b'my-first-channel', 'data': b'some data'}
 None
-
-while True:
-    message = p.get_message()
-    if message:
-        # do something with the message
-    time.sleep(0.001)  # be nice to the system :)
 '''
 ```
+
+
 
 ### set(唯一性,无序性)
 ```
