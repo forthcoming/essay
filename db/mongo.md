@@ -25,7 +25,7 @@ mongodump -h IP --port 端口 -u 用户名 -p 密码 -d 数据库 -c 表 -o 文�
 -q 指明导出数据的过滤条件
 ```
 
-```
+```javascript
 show dbs;
 show profile;  // print the five most recent operations that took 1 millisecond or more.
 show collections;
