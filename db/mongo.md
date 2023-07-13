@@ -1,10 +1,14 @@
+```
 https://api.mongodb.com/python/current/faq.html
 PyMongo is thread-safe and provides built-in connection pooling for threaded applications.But it's not fork-safe.
 经验: 带有连接池的对象都是线程安全,非进程安全
+collection => table
+document => row
+mongodb默认按_id升序输出,so最先插入的数据会靠前展示
+```
 
-/***************************************************************************/
-
-mongo监控
+### mongo监控
+```
 mongostat -h 10.1.140.179:27017
 导出数据
 mongoexport -h rds.aliyuncs.com:3717 -u name -p M7webU -d Atlas -c category -o category.json --authenticationDatabase admin
@@ -19,12 +23,9 @@ mongodump -h IP --port 端口 -u 用户名 -p 密码 -d 数据库 -c 表 -o 文�
 -c 指明collection的名字
 -o 指明到要导出的文件名
 -q 指明导出数据的过滤条件
+```
 
-/**************************************************************************
-basic
-collection => table
-document => row
-***************************************************************************/
+```
 show dbs;
 show profile;  // print the five most recent operations that took 1 millisecond or more.
 show collections;
@@ -33,36 +34,42 @@ db.user.drop();
 db.dropDatabase();
 db.user.renameCollection("detail");
 db.user.findOne()._id.getTimestamp();
+```
 
-/**************************************************************************
-_id
-mongodb默认按_id升序输出,so最先插入的数据会靠前展示
-***************************************************************************/
-from pymongo import MongoClient
-from datetime import datetime
-from bson import ObjectId
+```python
 import os
+from datetime import datetime
 
-client=MongoClient('mongodb://username:password@10.73.20.11:27017,10.73.20.10:27017/admin?authSource=admin')
-db=client['Atlas']
-test=db['test']
+from bson import ObjectId
+from pymongo import MongoClient
 
-_id=str(test.find_one()['_id']) # 12字节,是一个由24个16进制数字组成的字符串
-timestemp=_id[:8]               # 时间戳
-machine_id=_id[8:14]            # machine identifier,通常是机器主机名的散列值,这样能确保不同主机生成不同的ObjectId.
-pid=_id[14:18]                  # PID,来自产生ObjectId的进程的进程标识符,为了确保在同一台机器上并发的多个进程产生的ObjectId是唯一的.
-counter=_id[18:24]              # 自动增加的计数器,确保相同进程的同一秒产生的ID也是不同的.
-print(int(pid,16)==os.getpid()) # True
+# timeoutMS: 控制驱动程序在执行操作时将等待多长时间
+# connectTimeoutMS: 如果与数据库请求建立连接的时间超过ConnectionTimeOut,就会抛ConnectionTimeOutException
+# socketTimeoutMS: 如果数据库处理数据用时过长,超过了SocketTimeOut,就会抛出SocketTimeOutExceptin,即服务器响应超时,服务器没有在规定的时间内返回给客户端数据
+client = MongoClient(
+    host='mongodb://username:password@10.73.20.11:27017,10.73.20.10:27017/admin?authSource=admin',
+    socketTimeoutMS=10000,
+    connectTimeoutMS=10000,
+    connect=False,
+)
+db = client['Atlas']
+test = db['test']
 
-start = ObjectId.from_datetime(generation_time=datetime.strptime('1992-08-24 12:34:56',"%Y-%m-%d %H:%M:%S"))
-x=test.find_one()['_id'].generation_time
-print(x,type(x))  # 2018-08-10 03:22:56+00:00 <class 'datetime.datetime'>
+_id = str(test.find_one()['_id'])  # 12字节,是一个由24个16进制数字组成的字符串
+timestemp = _id[:8]  # 时间戳
+machine_id = _id[8:14]  # machine identifier,通常是机器主机名的散列值,这样能确保不同主机生成不同的ObjectId.
+pid = _id[14:18]  # PID,来自产生ObjectId的进程的进程标识符,为了确保在同一台机器上并发的多个进程产生的ObjectId是唯一的.
+counter = _id[18:24]  # 自动增加的计数器,确保相同进程的同一秒产生的ID也是不同的.
+print(int(pid, 16) == os.getpid())  # True
 
+start = ObjectId.from_datetime(generation_time=datetime.strptime('1992-08-24 12:34:56', "%Y-%m-%d %H:%M:%S"))
+x = test.find_one()['_id'].generation_time
+print(x, type(x))  # 2018-08-10 03:22:56+00:00 <class 'datetime.datetime'>
 client.close()
+```
 
-/**************************************************************************
-CRUD
-***************************************************************************/
+### CRUD
+```javascript
 db.user.distinct(field,{depth:'A'});   // 查询depth为A的所有不重复field
 db.user.find({b:null});  // b不存在或者b=null,pymongo用None表示
 db.user.find({b:{$exists:false}});  // b不存在
@@ -104,15 +111,16 @@ db.user.updateMany({slug: 'avatar'},{$set: { item: 2 },$setOnInsert: {slug:'akat
 没找到则将set,inc,setOnInsert等所有关键词内容合并到查询条件中,然后一并插入,依赖于upsert=true
 找到则忽略掉setOnInsert,将其他关键词内容合并到查询条件中,然后一并插入
 */
+```
 
-/**************************************************************************
-index
+### index
+```javascript
 相同索引只创建一次
 sort要跟索引完全保持一致,sort多个字段就要建立复合索引,这要求字段个数,顺序完全一致,注意asc和desc必须跟索引完全一致或完全相反,否则索引会失效
 sort按某个字段-1排序时,不存在or等于null的会被放到最后
 If MongoDB cannot use an index to get documents in the requested sort order, the combined size of all documents in the sort operation, 
 plus a small overhead, must be less than 32 megabytes.
-***************************************************************************/
+
 db.collection.getIndexes();
 db.collection.dropIndexes();
 db.collection.dropIndex(field);
@@ -154,10 +162,10 @@ db.restaurants.find( { cuisine: "Italian", rating: { $gte: 8 } } );
 // 以下查询不能使用部分索引
 db.restaurants.find( { cuisine: "Italian", rating: { $lt: 8 } } );
 db.restaurants.find( { cuisine: "Italian" } );
+```
 
-/**************************************************************************
-geo
-***************************************************************************/
+### geo
+```javascript
 db.places.insertMany([
     {
         loc : { type: "Point", coordinates: [ -73.97, 40.77 ] },
@@ -186,10 +194,10 @@ db.places.find( //前提是被查询字段已经建立2dsphere索引,returns who
      }
    }
 );
+```
 
-/**************************************************************************
-cursor
-***************************************************************************/
+### cursor
+```javascript
 var name='user';
 var cursor=db[name].find({age:{$exists: true}});
 while (cursor.hasNext()) {
@@ -215,10 +223,10 @@ while not done:  # 防止游标超时
         done = True
     except Exception as e:
         print(e)
-        
-/**************************************************************************
-aggregate
-***************************************************************************/       
+```
+
+### aggregate
+```javascript
 db.user.aggregate([
     {
         $match:{error:"BLACKLIST"}
@@ -284,10 +292,10 @@ db.inventory.aggregate( [ { $unwind : "$sizes" } ] )
 { "_id" : 1, "item" : "ABC1", "sizes" : "M" }
 { "_id" : 1, "item" : "ABC1", "sizes" : "L" }
 */
+```
 
-/**************************************************************************
-example
-***************************************************************************/
+### example
+```javascript
 use Atlas;  // shell中需要
 
 var name_en=[
@@ -322,3 +330,4 @@ for(let name of name_en){
         }
     }
 }
+```
