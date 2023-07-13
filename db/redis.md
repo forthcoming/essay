@@ -153,27 +153,6 @@ client kill: 杀死某个连接 client kill addr 127.0.0.1:43501
 - redir: client id of current client tracking redirection
 - resp: client RESP protocol version. Added in Redis 7.0
 
-### string
-```
-append key value
-incr key: key值加1,并返回加1后的值,key必须是数字型字符串,不存在时初始值为0,对立操作是decr
-get key
-decrby key decrement
-incrbyfloat key increment
-setrange key offset value: 把字符串key的第offset个位置起替换成value,只覆盖value个长度
-getrange key start stop: 获取字符串中[start, stop]范围的值，左数从0开始,右数从-1开始
-mget key1 key2...: 类似的还有mset
-strlen key: 返回存储在key处的字符串值的长度
-lcs key1 key2 [LEN]: 返回最长公共子串,len意思是只返回子串长度
-set key value [NX | XX] [GET] [PX milliseconds | EXAT unix-time-seconds | KEEPTTL]
-如果key已存在,则无论其类型如何都会被覆盖,成功后该key先前生存时间将被丢弃
-[NX | XX]-- key[不存在|存在]时生效
-GET -- Return the old string stored at key
-PX milliseconds -- 设置指定的过期时间,以毫秒为单位
-EXAT timestamp-seconds -- 设置key过期的指定Unix时间,以秒为单位
-KEEPTTL -- 保留key原有的生存周期
-```
-
 ### bitmap
 ```
 bitop and|or|xor|not destkey key1 [key2 ...]: 对key1,key2..keyN位运算,结果存到destkey
@@ -281,10 +260,13 @@ redis> LMPOP 2 mylist mylist2 right count 2
    2) "b"
 ```
 
-### 发布订阅
+### 发布订阅(建议使用redis stream代替)
 ```
 subscribe channel [channel ...]: 客户端订阅指定频道
 psubscribe pattern [pattern ...]: 客户端订阅给定的模式,匹配规则同keys
+subscribe foo
+psubscribe f*
+if a message is sent to channel foo, the client will receive two messages: one of type message and one of type pmessage.
 
 unsubscribe [channel [channel ...]]: 取消客户端对给定频道的订阅,如果没有给定频道则取消订阅所有频道
 punsubscribe [pattern [pattern ...]]: 参考unsubscribe
@@ -295,6 +277,7 @@ publish channel message: 将消息发布到给定频道,时间复杂度O(N+M),N�
 pubsub numpat: 返回所有客户端PSUBSCRIBE订阅的唯一模式的总数(不是订阅模式的客户端计数)
 pubsub channels [pattern]: 列出当前活跃频道,活跃频道是具有一个或多个订阅者(不包括订阅模式的客户端)的通道
 如果未指定模式,则列出所有通道,如果指定模式,则仅列出与指定模式匹配的通道
+消息将被传递一次,如果订阅者无法处理消息(如错误或网络断开),则消息将永远丢失,不支持数据持久化
 pubsub numsub [channel [channel ...]]: 返回指定通道的订阅者数量(不包括订阅模式的客户端)
 ```
 ```python
@@ -328,7 +311,37 @@ None
 '''
 ```
 
+### scripting and functions
+```
+script flush [ASYNC | SYNC]: 清空所有脚本缓存,redis重启or关闭也会触发该命令
+script load script: 将脚本加载到脚本缓存中,但不执行,返回脚本的SHA1摘要(sha1(b'lua script').hexdigest())
+evalsha sha1 numkeys [key [key ...]] [arg [arg ...]]: 与eval相似,前提是sha1已被注册
+eval script numkeys [key [key ...]] [arg [arg ...]]: 脚本以原子方式执行,执行脚本时不会执行其他脚本或命令,类似于MULTI/EXEC
+为了确保脚本正确执行,脚本访问的所有keys都必须显式提供为输入键参数,而不应访问具有以编程方式生成的key
+eval "return redis.call('get', KEYS[1])" 1 zgt  # 执行脚本,返回脚本的值,并注册脚本的sha值到redis
+```
 
+
+### string
+```
+append key value
+incr key: key值加1,并返回加1后的值,key必须是数字型字符串,不存在时初始值为0,对立操作是decr
+get key
+decrby key decrement
+incrbyfloat key increment
+setrange key offset value: 把字符串key的第offset个位置起替换成value,只覆盖value个长度
+getrange key start stop: 获取字符串中[start, stop]范围的值，左数从0开始,右数从-1开始
+mget key1 key2...: 类似的还有mset
+strlen key: 返回存储在key处的字符串值的长度
+lcs key1 key2 [LEN]: 返回最长公共子串,len意思是只返回子串长度
+set key value [NX | XX] [GET] [PX milliseconds | EXAT unix-time-seconds | KEEPTTL]
+如果key已存在,则无论其类型如何都会被覆盖,成功后该key先前生存时间将被丢弃
+[NX | XX]-- key[不存在|存在]时生效
+GET -- Return the old string stored at key
+PX milliseconds -- 设置指定的过期时间,以毫秒为单位
+EXAT timestamp-seconds -- 设置key过期的指定Unix时间,以秒为单位
+KEEPTTL -- 保留key原有的生存周期
+```
 
 ### set(唯一性,无序性)
 ```
@@ -366,22 +379,10 @@ score类型是double,按键score的大小顺序存放
 
 
 ```
-lua script
-Redis uses the same Lua interpreter to run all the commands. Also Redis guarantees that a script is executed in an atomic way:
-no other script or Redis command will be executed while a script is being executed. This semantic is similar to the one of MULTI EXEC. 
-From the point of view of all the other clients the effects of a script are either still not visible or already completed.
-eval "return redis.call('get', KEYS[1])" 1 zgt          # 执行脚本,返回脚本的值,并注册脚本的sha值到redis
-evalsha 4e6d8fc8bb01276962cce5371fa795a7763657ae 1 zgt  # 前提是sha已被注册
-script exists 4e6d8fc8bb01276962cce5371fa795a7763657ae
-script flush                                            # Flush all scripts from the script cache,redis重启or关闭也会触发该命令
-script load "return redis.call('get', KEYS[1])"         # 注册脚本的sha值并返回sha,不执行脚本(sha1(b'lua script').hexdigest())
-redis-cli --eval Desktop/test.lua key1 key2 , argv1 argv2 # 注意逗号两边要用空格隔开
-
----------------------------------------------------------------------------------------------------------------------------------------
-
 通用操作
 redis-py存进去的是数字类型,再取出来时都会是字符串类型
 redis-cli -h 10.1.138.63 -n 1 --bigkeys -i 0.01   # 分析数据库中的大key,-i参数表示扫描过程中每次扫描的时间间隔,单位是秒
+redis-cli --eval Desktop/test.lua key1 key2 , argv1 argv2 # 注意逗号两边要用空格隔开
 
 memory usage(时间复杂度：O(N) where N is the number of samples)
 The MEMORY USAGE command reports the number of bytes that a key and its value require to be stored in RAM.Longer keys and values show asymptotically linear usage.
