@@ -444,3 +444,258 @@ send "ccktv@123\r"
 interact
 
 
+--------------------------------------------------------------------------------------------------------------------------------
+文件：（对root用户权限失效）
+r(4)：可以查看文件内容（cat more等）
+w(2)：可以修改文件内容（vi pico等），并不代表可以删除文件
+x(1)：可以执行文件
+
+目录：（对root用户权限失效。）
+r(4)：可以列出目录内容（ls,前提是有x权限）
+w(2)：可以在目录中创建删除文件（rm mkdir touch等，前提是有x权限）
+x(1)：可以进入目录（cd）
+
+cp既要有文件夹的可写权限，又要有文件的可读权限
+某文件有w权限并不代表可以被删除，得看其所在目录是否有w权限
+mv与rm只需要文件夹有可写权限即可（但前提是有x权限）
+
+*   代表多个字母或数字（与dos相同，sql用%）
+?   代表一个字母或数字（与dos相同，sql用_）
+[]  中间为字符组合
+[!] []的逆集合
+\   代表转义字符（可以转义Enter，适用于指令太长的情况）
+#   注释
+/   跳转符号,将特殊字符或通配符还原成一般符号
+;   间隔各命令按顺序依次执行（dos下用&）
+&&  当前一个指令执行成功时,执行后一个指令（与dos一致）
+||  当前一个指令执行失败时,执行后一个指令（第一个成功则不执行第二个，与dos一致）
+$   变量前需要加的变量值
+!   逻辑运算中的"非"(not)
+'   单引号,不具有变量置换功能
+"   双引号,具有变量置换功能
+`   将一个命令的输出作为另一个命令的参数
+
+在~/.bashrc文件中可以指定某些程序在用户登录时自启动及保存别名
+在/etc/bashrc文件中可以指定某些程序在所有用户登录时自启动及保存别名
+
+在~/.bash_profile文件中配置自己的环境变量
+在/etc/profile下面配置系统环境变量
+
+~/.bash_history  #记录用户的历史命令（当用户logout时才会将本次历史缓存写入其中）
+
+/etc/group        用户组文件
+/etc/passwd        用户信息文件
+/etc/shadow        用户密码文件
+/etc/gshadow        用户组密码文件
+/etc/login.defs        用户配置文件
+/etc/default/useradd    用户配置文件
+/etc/skel        新用户信息文件
+/etc/motd        登录成功后信息
+/etc/issue              登录界面的提示信息
+/etc/hosts              作用与windows的hosts文件相同
+/etc/sudoers            sudo配置文件
+/etc/sysconfig/i18n     保存系统使用的语言(LANG="zh_CN.UTF-8"或LANG="en_US.UTF-8"),只适用于init 5
+/etc/resolv.conf        临时设置DNS服务器(nameserver=8.8.8.8)
+
+vim /etc/sudoers (visudo)
+avatar 192.168.26.128=/sbin/reboot,/sbin/adduser  #注意命令要用绝对路径,不同命令之间用,分割
+
+删除/etc/shadow文件的对应用户密码则用户登录无须再输入密码
+
+cat /etc/passwd
+root:x:0:0:root:/root:/bin/bash
+用户名:密码:UID:GID:注释:用户主目录:用户所使用的shell解析器
+
+ls -l
+drwxr-xr-x   2 root         root          4096 Mar 10 22:25 1
+d：文件夹
+rwx：文件所有者对该文件（夹）的权限
+r-x：文件所在组用户对该文件（夹）的权限
+r-x：其他组用户对该文件（夹）的权限
+2：文件数
+root：拥有者
+root：文件（夹）所属的group
+4096：文件（夹）的大小，单位是bit
+Mar 10 22:25：文件（夹）创建日期或其mtime（非ctime与atime即cat chmod等不会改变时间）
+
+除了可以用useradd等命令创建用户外，也可以直接修改group shadow passwd等文件来管理用户
+
+root@ubuntu:/etc# fdisk -l
+Disk /dev/sda: 21.5 GB, 21474836480 bytes
+255 heads, 63 sectors/track, 2610 cylinders, total 41943040 sectors
+Units = sectors of 1 * 512 = 512 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+Disk identifier: 0x0001b112
+   Device Boot      Start         End      Blocks   Id  System
+/dev/sda1   *        2048    39845887    19921920   83  Linux
+/dev/sda2        39847934    41940991     1046529    5  Extended
+/dev/sda5        39847936    41940991     1046528   82  Linux swap / Solaris
+
+chmod使用者：root或自己
+usermod使用者：root
+
+file Filename #显示文件类型
+
+history -c与echo>~/.bash_history同时使用才能彻底删除历史命令记录
+
+locate Filename #快速查找文件，有可能找不到，配合updatedb命令
+locate -i Filename #忽略大小写查找文件
+umask #显示新建文件or目录缺省权限
+umask 027 #改变默认的掩码
+so:
+创建目录默认权限为755
+缺省创建的文件不能授予x权限，其权限默认为644
+sh -x shell.sh  #执行脚本并显示所有变量的值
+sh -n shell.sh  #不执行脚本，只是检查语法，并返回错误
+
+使用stat命令可以查看三时间值:如 stat filename
+
+1.  mtime(modify time):最后一次修改文件或目录的时间
+2.  ctime(chang time) :最后一次改变文件或目录属性的时间
+如:更改该文件的目录。
+touch命令除了-d和-t选项外都会改变该时间。而且chmod,chown等命令也能改变该值。
+3.  atime(access time)::最后一次访问/执行文件或目录的时间
+
+对于文件:
+当修改mtime时,ctime必须随着改变.因为文件大小等都属性；
+有人说说atime也一定会改变，要想修改文件必须先访问；其实是不对的
+不必访问文件就能修改其内容：如：#echo “This is a test !” >> /etc/issue,
+issue文件内容会变，但并没有访问文件，所以atime并没有改变.
+
+对于目录：
+访问一个目录其atime改变，mtime ，ctime不变；
+修改一个目录如在一个目录下touch一个文件，mtime与ctime会改变，atime不一定会变；
+
+文件夹：
+文件夹的 Access time，atime 是在读取文件或者执行文件时更改的
+我们只cd进入一个目录然后cd ..不会引起atime的改变，但ls一下就不同了。
+
+文件夹的 Modified time，mtime 是在文件夹中有文件的新建、删除才会改变
+如果只是改变文件内容不会引起mtime的改变，换句话说如果ls -f <directory>的结果发生改变mtime就会被刷新。
+这里可能有人要争论了：我进入dd这个文件夹vi了一个文件然后退出，
+前后ls -f <directory>的结果没有改变但是文件夹的mtime发生改变了……
+这点请主意vi命令在编辑文件时会在本文件夹下产生一 个".file.swp"临时文件，该文件随着vi的退出而被删除……
+这就导致了mtime的改变 [Auxten:p]不信你可以用nano修改文件来试验）。
+
+文件夹的 Change time，ctime 基本同文件的ctime，其体现的是inode的change time。
+
+补充一点：mount -o noatime(mount -o remount,atime / 可以在线重新挂载根目录) 可以选择不记录文件的atime的改变，
+这意味着当你创建了这个文件后这个文件的atime就定格了，除非你用touch或者touch -a强制刷新文件的atime。
+这样在可以在一定程度上提升文件系统的读写性能，特别是网站这种系统中在fstab里面加上noatime是个好主意
+
+
+改变文件或目录时间命令touch
+参数说明
+-a ：修改atime
+-m ：修改mtime
+-c ：仅修改文件的时间（三个时间一起修改），若该文件不存在则不建立新的文件
+-d ：后面可以接想修改的日期而不用目前的日期，也可以使用 –date=”日期或时间”
+-t ：后面可以接想修改是时间而不用目前的时间，格式为[YYMMDDhhmm]
+
+
+
+
+
+#-------------------------------------------------------------------
+#  使用: spider.sh [-r]开启/结束计划，无需其他任何配置。
+#  第一次使用spider.sh前请先执行chmod 777 spider.sh。
+#-------------------------------------------------------------------
+file='.task.sh'                #任务名
+pro_dir=$(cd `dirname $0`;pwd) #工程目录
+plan='0 10,15 * * *'           #计划时间
+schedule='/var/spool/cron/root'
+re_plan="${plan//\*/\*} `pwd`/${file}"  #替换将$plan下所有的*替换成\*
+
+if [ $# == 0 ];then       #[]和=两边要有空格,不带参数时执行
+    # service crond restart &>/dev/null && chkconfig --level 345 crond on
+    # [ -d "${pro_dir}../../data/" ] ||  mkdir -p "${pro_dir}../../data/"
+    echo 'source /etc/profile' > $file
+    echo "cd ${pro_dir}" >> $file
+    echo "for i in \``which scrapy` list\` ;do ">>$file
+    echo "`which scrapy` crawl \$i">>$file
+    echo 'done'>>$file
+    chmod 777 $file
+    grep "${re_plan}" $schedule &>/dev/null  ||
+    echo "${plan} `pwd`/${file}" >> $schedule
+    #屏蔽grep回显及$schedule可能不存在带来的错误
+    echo '定时任务设置成功!'
+
+elif [ $1 = '-r' ];then  #字符串用=判断
+    rm -rf $file
+    sed -i "\#${re_plan}#d" $schedule &>/dev/null  #d代表删除，默认以/作为分割符
+    echo '已取消定时任务'
+
+else
+    echo -e '\nError !\nUse "spider.sh [-r]" instead !\n'  #-e显示转意字符
+fi
+
+
+
+#-----------------------------------------------------
+#
+#  功能  : 定时自动爬取。
+#  要求 ：系统已安装Crontab且工程(oil)必须放置在pro_dir目录下。
+#  使用  : spider.sh [-r|crawl]开启/结束计划，无需其他任何配置。
+#  说明  : 该脚本独立于工程，可放置在Linux任意目录;
+#            变量pro_dir,plan可按需配置;
+#            第一次使用spider.sh前请先执行chmod 777 spider.sh。
+#  系统  : CentOS。
+#  时间  : 2015-08-06
+#  注意: Windows下编写完shell脚本,需要用dos2linux工具转换一下,应为两个平台换行符不一样
+#-----------------------------------------------------
+plan='*/10 * * * *'                                                      #计划时间，可配置
+pro_dir='/usr/local/project_scrapy/OP/oil/'      #工程目录，可配置
+schedule='/var/spool/cron/root'
+
+case $1 in
+'')                                                                                    #不带参数
+service crond restart &>/dev/null &&
+chkconfig --level 345 crond on
+[ -d "${pro_dir}../../data/" ] || mkdir -p "${pro_dir}../../data/"
+ grep "${plan//\*/\*} `pwd`/$0 crawl" $schedule &>/dev/null  ||
+ #屏蔽grep回显及schedule可能不存在的提示,sed/grep用正则,so将$plan下所有*替换成\*
+ echo "${plan} `pwd`/$0 crawl" >> $schedule
+ echo '定时任务设置成功!'
+ ;;
+ '-r')
+ sed -i "\#`pwd`/$0 crawl#d" $schedule &>/dev/null   #d代表删除，默认以/为分割符,匹配所有行
+ echo '已取消定时任务'
+ ;;
+ 'crawl')
+ source /etc/profile    #导入环境变量，默认路径是/usr/bin:/bin
+ cd $pro_dir            #* * * * * command，command可以包含空格，出现错误时会在/var/spool/mail/root生成日志
+ for i in `/usr/local/bin/scrapy list`;do
+ /usr/local/bin/scrapy crawl $i --nolog
+ done
+ ;;
+ *)
+ echo -e '\nError !\nUse "spider.sh [-r|crawl]" instead !\n'  #-e显示转意字符
+ ;;
+ esac
+
+
+DOS常见命令
+attrib——修改文件属性命令
+1．功能：修改指定文件的属性。
+2．类型：外部命令。
+3．格式：attrib[文件名][r][—r][a][—a][h][—h][—s]
+4．使用说明：
+（1）选用r参数，将指定文件设为只读属性，使得该文件只能读取，无法写入数据或删除；选用—r参数，去除只读属性；
+（2）选用a参数，将文件设置为档案属性；选用—a参数，去除档案属性；　
+（3）选用h参数，将文件调协为隐含属性；选用—h参数，去隐含属性；
+（4）选用s参数，将文件设置为系统属性；选用—s参数，去除系统属性；　
+（5）选用/s参数，对当前目录下的所有子目录及作设置。
+技巧：将文件属性设为+h +s系统就会理解为受保护的系统文件，默认情况下不予显示
+试例：将F:\1下的所有文件设为隐藏属性attrib +h F:\1\* /s
+attrib +h F:\1\* /s /d (连同1下的文件夹的属性都一起改变)
+
+shutdown -s -t 7200 表示120分钟后自动关机
+
+copy /b 1.jpg+2.rar 3.jpg  #内涵图制作
+注意：
+1、“/b”一定要有，代表二进制文件；
+2、图片和压缩文件的位置不能对调；
+3、要使用时，将文件格式后缀改为“rar”，然后解压；
+4、有这种方法还可以将txt格式文件变成jpg格式的图片，只要把命令中的“(y).rar”改为“(y).txt”即可
+5、其他格式之间的变换不能用此方法。
