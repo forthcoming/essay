@@ -38,3 +38,6 @@ Item     | Value
 Computer | $1600
 Phone    | $12
 Pipe     | $1
+
+$$x=\frac{-b\pm\sqrt{b^2-4ac}}{2a}$$     
+$x=\frac{-b\pm\sqrt{b^2-4ac}}{2a}$      
