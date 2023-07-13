@@ -240,7 +240,83 @@ HyperLogLog使用双重表示法来表示:稀疏表示法适用于计算少量�
 (integer) 4
 ```
 
+### list(双向链表)
+```
+llen key: 计算key元素个数,时间复杂度O(1)
+lindex key index: 返回index位置上的值,时间复杂度O(N),N是要遍历以到达索引处的元素的元素数,查询列表第一个或最后一个元素的时间复杂度为O(1)
+ltrim key start stop: 使列表只存储[start,stop]范围内的数据,支持负索引,时间复杂度O(N),N是操作要删除的元素数量
+lset key index element: 时间复杂度O(N),N是list长度
+lrange key start stop: 返回list中[start, stop]中的元素,左数从0开始,右数从-1开始
+lrem key count element: 从列表里移除前count次出现的值为element的元素(count>0从头往尾,count<0从尾往头,count=0移除所有)
+lmove source destination <LEFT | RIGHT> <LEFT | RIGHT>: 原子地返回并删除源中第一/最后个元素,并将该元素存到目标列表第一/最后个元素
+blmove source destination <LEFT | RIGHT> <LEFT | RIGHT> timeout: lmove阻塞版
 
+lpush key element [element ...]: 把值按顺意一个个插入到list头部,类似还有rpush
+lpop key [count]: 从list头部按顺序一个个弹出count个元素,类似还有rpop
+blpop key [key ...] timeout: 类似还有brpop
+lpop阻塞版,超时为零可无限阻塞,当没有元素可以从给定列表弹出时,会阻塞连接直到超时或发现可弹出元素
+当给定多个key参数时,按key的先后顺序依次检查各个列表,弹出第一个非空列表的名字和头元素
+相同的key可以被多个客户端同时阻塞,不同的客户端被放进一个队列中,按先阻塞先服务(first-BLPOP,first-served)顺序为客户端执行BLPOP命令
+如果list在同一时刻接收到多个元素(LPUSH,MULTI块,Lua脚本),会等元素接受完再执行blpop,下面Client B会接受c
+Client A: BLPOP foo 0
+Client B: LPUSH foo a b c
+可与管道一起使用,但这种设置仅在它是管道的最后一个命令时才有意义,在MULTI/EXEC块内使用阻塞命令没有意义,行为表现为对应的非阻塞版命令
+
+lmpop numkeys key [key ...] <LEFT | RIGHT> [COUNT count]: 从key列表中的第一个非空列表键中弹出一个或多个元素
+blmpop timeout numkeys key [key ...] <LEFT | RIGHT> [COUNT count]: lmpop阻塞版
+redis> LPUSH mylist "1" "2" "3"
+(integer) 3
+redis> LPUSH mylist2 "a" "b" "c" "d" "e"
+(integer) 5
+redis> LMPOP 2 mylist mylist2 right count 4
+1) "mylist"
+2) 1) "1"
+   2) "2"
+   3) "3"
+redis> LRANGE mylist 0 -1
+(empty array)
+redis> LMPOP 2 mylist mylist2 right count 2
+1) "mylist2"
+2) 1) "a"
+   2) "b"
+```
+
+
+
+### 发布订阅
+```
+p = r.pubsub()
+p.subscribe('my-first-channel')
+p.psubscribe('my-*')
+r.publish('my-first-channel', 'some data')
+print(p.get_message())
+print(p.get_message())
+print(p.get_message())
+print(p.get_message())
+print(p.get_message())
+r.publish('my-first-channel', 'some data')
+print(p.get_message())
+print(p.get_message())
+print(p.get_message())
+'''
+With [un]subscribe messages, this value will be the number of channels and patterns the connection is currently subscribed to.
+With [p]message messages, this value will be the actual published message.
+{'type': 'subscribe', 'pattern': None, 'channel': b'my-first-channel', 'data': 1}
+{'type': 'psubscribe', 'pattern': None, 'channel': b'my-*', 'data': 2}
+{'type': 'message', 'pattern': None, 'channel': b'my-first-channel', 'data': b'some data'}
+{'type': 'pmessage', 'pattern': b'my-*', 'channel': b'my-first-channel', 'data': b'some data'}
+None
+{'type': 'message', 'pattern': None, 'channel': b'my-first-channel', 'data': b'some data'}
+{'type': 'pmessage', 'pattern': b'my-*', 'channel': b'my-first-channel', 'data': b'some data'}
+None
+
+while True:
+    message = p.get_message()
+    if message:
+        # do something with the message
+    time.sleep(0.001)  # be nice to the system :)
+'''
+```
 
 ### set(唯一性,无序性)
 ```
@@ -274,55 +350,6 @@ zremrangebyscore key min max:按照socre来删除元素,删除 score在 [min,max
 说明: 
 score类型是double,按键score的大小顺序存放
 虽然double类型精度是15位小数,但并不意味着一定可以精确保存15位小数,如2.4503599627370496,参考c语言浮点数内存表示
-```
-
-### list
-```
-llen key: 计算key元素个数
-lindex key index :返回index索引上的值
-lrem key count value :从key列表里移除前count次出现的值为value的元素(count>0从头往尾,count<0从尾往头,count=0移除所有)
-lpush key value : 把值插入到list头部,值可以是多个
-rpop key :  移除并返回存于key的最后一个元素
-lrange key start stop: 返回链表中[start ,stop]中的元素,左数从0开始,右数从-1开始
-ltrim key start stop: 使列表只存储[start,stop]范围内的数据,支持负索引
-
-127.0.0.1:6379> lpush mylist a b 1
-(integer) 3
-127.0.0.1:6379> lrange mylist 0 -1
-1) "1"
-2) "b"
-3) "a"
-127.0.0.1:6379> rpop mylist
-"a"
-
-blpop list1 list2 list3 timeout : 连接将被阻塞,直到等待超时或发现可弹出元素为止
-The timeout argument is an integer value specifying the maximum number of seconds to block,zero can be used to block indefinitely.
-当给定多个key参数时,按key的先后顺序依次检查各个列表,弹出第一个非空列表的名字和头元素
-相同的key可以被多个客户端同时阻塞,不同的客户端被放进一个队列中,按先阻塞先服务(first-BLPOP,first-served)顺序为客户端执行BLPOP命令
-
-BLPOP可用于pipline,但把它用在MULTI/EXEC块当中没有意义,因为这要求整个服务器被阻塞以保证块执行时的原子性,该行为阻止了其他客户端执行LPUSH或RPUSH命令
-因此一个被包裹在MULTI/EXEC块内的BLPOP命令,行为表现得就像LPOP key一样,对空列表返回nil,对非空列表弹出列表名和列表元素,不进行任何阻塞操作
-
-有时候一个list会在同一时刻接收到多个元素(LPUSH mylist a b c;对同一个list进行多次push操作的MULTI块执行完EXEC语句后;执行一个Lua脚本)
-所采取的行为是先执行多个push命令,然后在执行了这个命令之后再去服务被阻塞的客户端,下面命令客户端A会接收到c元素
-Client A: BLPOP foo 0
-Client B: LPUSH foo a b c
-需要注意的是一个Lua脚本或者一个MULTI/EXEC块可能会删除这个list,在这种情况下被阻塞的客户端完全不会被服务
-
-When a client is blocking for multiple keys at the same time, 
-and elements are available at the same time in multiple keys (because of a transaction or a Lua script added elements to multiple lists), 
-the client will be unblocked using the first key that received a push operation (assuming it has enough elements to serve our client, as there may be other clients as well waiting for this key). 
-下面命令客户端A会先拿到b,然后是B拿到a,C拿到d
-Client A: BLPOP fo,foo 0
-Client B: BLPOP fo,foo 0
-Client C: BLPOP fo,foo 0
-Client D: 
-multi 
-lpush foo a
-lpush fo c
-lpush fo d
-lpush foo b
-exec
 ```
 
 
@@ -410,42 +437,6 @@ redis-check-aof: 检查aof日志的工具
 redis-check-dump: 检查rbd日志的工具
 redis-server /root/redis/redis.conf    # 指定启动redis时的配置文件
 
----------------------------------------------------------------------------------------------------------------------------------------
-
-消息订阅
-p = r.pubsub()
-p.subscribe('my-first-channel')
-p.psubscribe('my-*')
-r.publish('my-first-channel', 'some data')
-print(p.get_message())
-print(p.get_message())
-print(p.get_message())
-print(p.get_message())
-print(p.get_message())
-r.publish('my-first-channel', 'some data')
-print(p.get_message())
-print(p.get_message())
-print(p.get_message())
-'''
-With [un]subscribe messages, this value will be the number of channels and patterns the connection is currently subscribed to.
-With [p]message messages, this value will be the actual published message.
-{'type': 'subscribe', 'pattern': None, 'channel': b'my-first-channel', 'data': 1}
-{'type': 'psubscribe', 'pattern': None, 'channel': b'my-*', 'data': 2}
-{'type': 'message', 'pattern': None, 'channel': b'my-first-channel', 'data': b'some data'}
-{'type': 'pmessage', 'pattern': b'my-*', 'channel': b'my-first-channel', 'data': b'some data'}
-None
-{'type': 'message', 'pattern': None, 'channel': b'my-first-channel', 'data': b'some data'}
-{'type': 'pmessage', 'pattern': b'my-*', 'channel': b'my-first-channel', 'data': b'some data'}
-None
-
-while True:
-    message = p.get_message()
-    if message:
-        # do something with the message
-    time.sleep(0.001)  # be nice to the system :)
-'''
-
----------------------------------------------------------------------------------------------------------------------------------------
 
 事务
 redis由于是单进程执行命令,所以不存在并发事物和并发读写,也不需要读写锁,redis事务只需要保证原子性即可
