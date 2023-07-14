@@ -405,7 +405,68 @@ redis.register_function('my_hlastmodified', my_hlastmodified)
 # 其中keys=[myhash], args=[myfield "some value" another_field "another value"]
 ```
 
+### server management
+```
+ACL LIST: 显示服务器中活跃的ACL规则,每一行有一个不同的用户
+ACL CAT [category]: 如果不带参数将显示可用的ACL类别,如果给出类别将显示指定类别中所有Redis命令
+ACL DELUSER username [username ...]: 删除所有指定的ACL用户,并终止所有通过该用户认证的连接
+ACL SETUSER username [rule [rule ...]]: 修改现有用户/创建新用户规则,如果用户已存在,新规则将被合并到旧规则
+ACL GETUSER username: 返回为现有ACL用户定义的所有规则
 
+bgrewriteaof 手动触发AOF重写,Redis也会自动触发
+bgsave 后台开启子进程dump数据到RDB文件
+config get parameter [parameter ...]: 读取正在运行的服务器的配置参数,支持通配符
+CONFIG SET parameter value [parameter value ...]: 在运行时重新配置服务器,并在下一条命令执行时生效
+config rewrite: 重写服务器启动时使用的redis.conf文件,即更新CONFIG SET命令
+flushdb: 清空当前数据库的所有数据
+flushall: 清空所有数据库数据
+如果不小心运行了flushall,立即shutdown nosave(看作强制停止服务器的一个ABORT命令),然后手工编辑AOF,去掉文件中的"flushall"相关行即可
+如果flushall之后,系统恰好执行bgrewriteaof,则数据丢失
+dbsize: 当前数据库未过期key的数量
+INFO: 返回服务器统计信息
+LATENCY DOCTOR| LATENCY LATEST| LATENCY HISTORY: 统计分析命令延迟相关操作
+REPLICAOF host port: 做host port的从服务器(数据清空,复制新主内容)
+REPLICAOF no one:变成主服务器(原数据不丢失,一般用于主服失败后)
+shutdown [nosave | save]: 关闭服务器,保存数据(If persistence is enabled),修改AOF(如果设置),NOSAVE会阻止DB保存操作
+monitor: 显示redis处理的每个命令,运行单个MONITOR客户端可能会导致吞吐量降低50%以上,集群下该命令只会监控指定ip:port的redis实例
+```
+
+
+
+
+
+```
+slowlog get N 获取慢查询日志
+127.0.0.1:6379> SLOWLOG GET 1
+1) 1) (integer) 26            // slowlog唯一编号id
+   2) (integer) 1440057815    // 查询的时间戳
+   3) (integer) 47            // 查询耗时(微妙),表示本条命令查询耗时47微秒
+   4) 1) "SLOWLOG"            // 查询命令,完整命令为 SLOWLOG GET
+      2) "GET"
+slowlog len 获取慢查询日志条数
+slowlog reset 清空慢查询
+info []  可以查看主从,内存/CPU使用,持久化,每个库使用情况/配置文件位置
+debug object key #调试选项,看一个key的情况
+debug segfault #模拟段错误,让服务器崩溃
+
+memory usage(时间复杂度：O(N) where N is the number of samples)
+The MEMORY USAGE command reports the number of bytes that a key and its value require to be stored in RAM.Longer keys and values show asymptotically linear usage.
+127.0.0.1:6379> memory usage avatar
+(integer) 48
+127.0.0.1:6379> memory usage avatar1
+(integer) 49
+For nested data types, the optional SAMPLES option can be provided, where count is the number of sampled nested values. 
+By default, this option is set to 5. To sample the all of the nested values, use SAMPLES 0.
+127.0.0.1:6379> hlen hkey                       // hkey有100w个字段,每个字段value长度介于1~1024字节
+(integer) 1000000
+127.0.0.1:6379> MEMORY usage hkey               //默认SAMPLES为5
+(integer) 521588753
+127.0.0.1:6379> MEMORY usage hkey SAMPLES 1000  //指定SAMPLES为1000
+(integer) 617977753
+127.0.0.1:6379> MEMORY usage hkey SAMPLES 10000 //指定SAMPLES为10000
+(integer) 624950853
+这是使用抽样求平均的算法,要想获取key较精确的内存值,就指定更大SAMPLES个数,但过大会占用CPU时间
+```
 
 ### string
 ```
@@ -466,26 +527,21 @@ score类型是double,按键score的大小顺序存放
 ```
 通用操作
 redis-py存进去的是数字类型,再取出来时都会是字符串类型
-redis-cli -h 10.1.138.63 -n 1 --bigkeys -i 0.01   # 分析数据库中的大key,-i参数表示扫描过程中每次扫描的时间间隔,单位是秒
-redis-cli --eval Desktop/test.lua key1 key2 , argv1 argv2 # 注意逗号两边要用空格隔开
+Usage: redis-cli [OPTIONS] [cmd [arg [arg ...]]]
+--user: Used to send ACL style 'AUTH username pass'. Needs --pass.
+--pass: Password to use when connecting to the server.
+-x: 从STDIN读取最后一个参数
+-r: Execute specified command N times.
+-i: 当使用-r时,每个命令等待<interval>秒,每个周期的--scan和--stat以及每100个周期的--bigkeys、--memkeys和--hotkeys中也使用此间隔
+--memkeys: 查找消耗大量内存的key
+--bigkeys: 查找具有许多元素(复杂)的键
+--hotkeys: 寻找热键,仅当maxmemory-policy为*lfu时才有效
+--stat: Print rolling stats about server: mem, clients, ...
+--pattern: Keys pattern when using the --scan, --bigkeys or --hotkeys options (default: *).
+--count: Count option when using the --scan, --bigkeys or --hotkeys (default: 10).
+--eval Desktop/test.lua key1 key2 , argv1 argv2 # 注意逗号两边要用空格隔开
+redis-cli -h 127.0.0.1 -p 8001 -n 1 --pass 'password' monitor |grep "common_service_hbt"
 
-memory usage(时间复杂度：O(N) where N is the number of samples)
-The MEMORY USAGE command reports the number of bytes that a key and its value require to be stored in RAM.Longer keys and values show asymptotically linear usage.
-127.0.0.1:6379> memory usage avatar
-(integer) 48
-127.0.0.1:6379> memory usage avatar1
-(integer) 49
-For nested data types, the optional SAMPLES option can be provided, where count is the number of sampled nested values. 
-By default, this option is set to 5. To sample the all of the nested values, use SAMPLES 0.
-127.0.0.1:6379> hlen hkey                       // hkey有100w个字段,每个字段value长度介于1~1024字节
-(integer) 1000000
-127.0.0.1:6379> MEMORY usage hkey               //默认SAMPLES为5
-(integer) 521588753
-127.0.0.1:6379> MEMORY usage hkey SAMPLES 1000  //指定SAMPLES为1000
-(integer) 617977753
-127.0.0.1:6379> MEMORY usage hkey SAMPLES 10000 //指定SAMPLES为10000
-(integer) 624950853
-这是使用抽样求平均的算法,要想获取key较精确的内存值,就指定更大SAMPLES个数,但过大会占用CPU时间
 
 Usage: redis-benchmark [-h <host>] [-p <port>] [-c <clients>] [-n <requests>]
  -h <hostname>      Server hostname (default 127.0.0.1)
@@ -509,12 +565,6 @@ Examples:
    $ redis-benchmark -r 10000 -n 10000 eval 'return redis.call("ping")' 0
 
 ---------------------------------------------------------------------------------------------------------------------------------------
-
-monitor
-streams back every command processed by the Redis server. It can help in understanding what is happening to the database
-如果redis是集群,该命令只会监控指定ip:port下的key,可以看到哪个ip正在执行的所有redis操作
-redis-cli -h 127.0.0.1 -p 8001 -a 'password' monitor |grep "common_service_hbt"   # redis没有用户名
-
 安装redis到/usr/local/redis目录
 $ wget http://download.redis.io/releases/redis-3.2.9.tar.gz
 $ tar xzf redis-3.2.9.tar.gz
@@ -657,40 +707,6 @@ set user:username:lisi:uid 9
 我们可以根据username:lisi:uid,查出userid=9
 再查user:9:password/email ...
 
-
-服务端命令
-time  返回时间戳+微秒
-dbsize 当前数据库未过期key的数量
-bgrewriteaof 重写aof
-bgsave 后台开启子进程dump数据
-save 阻塞进程dump数据
-lastsave
-slaveof host port 做host port的从服务器(数据清空,复制新主内容)
-slaveof no one 变成主服务器(原数据不丢失,一般用于主服失败后)
-flushdb  清空当前数据库的所有数据
-flushall 清空所有数据库数据
-注: 
-如果不小心运行了flushall,立即shutdown nosave(看作强制停止服务器的一个ABORT命令),关闭服务器然后手工编辑aof文件,去掉文件中的"flushall"相关行,然后开启服务器,就可以导入回原来数据
-如果flushall之后,系统恰好bgrewriteaof了,那么aof就清空了,数据丢失
-shutdown [save/nosave] 关闭服务器,保存数据,修改AOF(如果设置)
-slowlog get N 获取慢查询日志
-127.0.0.1:6379> SLOWLOG GET 1
-1) 1) (integer) 26            // slowlog唯一编号id
-   2) (integer) 1440057815    // 查询的时间戳
-   3) (integer) 47            // 查询耗时(微妙),表示本条命令查询耗时47微秒
-   4) 1) "SLOWLOG"            // 查询命令,完整命令为 SLOWLOG GET
-      2) "GET"
-slowlog len 获取慢查询日志条数
-slowlog reset 清空慢查询
-info []  可以查看主从,内存/CPU使用,持久化,每个库使用情况/配置文件位置
-config get 选项(支持*通配)
-config set 选项 值
-config rewrite 把值写到配置文件
-config restart 更新info命令的信息
-debug object key #调试选项,看一个key的情况
-debug segfault #模拟段错误,让服务器崩溃
-
-ACL:访问控制列表,可针对任意用户和组进行权限控制
 多线程IO模型中的多线程仅用于接受,解析客户端请求,然后将解析出的请求写入到任务队列,对具体任务的处理仍是主线程执行
 redis读速度可达11w/s,写速度可达8w/s
 https://redis.io/docs/manual/patterns/distributed-locks/
@@ -698,6 +714,7 @@ https://redis.io/docs/reference/clients/
 https://redis.io/docs/manual/keyspace/
 https://blog.getspool.com/2011/11/29/fast-easy-realtime-metrics-using-redis-bitmaps
 http://antirez.com/news/75
+https://redis.io/docs/management/replication/
 ```
 
 
