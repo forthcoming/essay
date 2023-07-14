@@ -1320,8 +1320,8 @@ def float_tutorial():
     assert struct.unpack("<I", test_float)[0] == wanted_value  # 说明整数在c语言中以小端模式存储
     assert struct.unpack(">I", struct.pack(">f", 19.625))[0] == wanted_value  # 保证pack和unpack模式顺序一致即可
 
-    wanted_value = 0b01000011000000000001100111011011
-    test_float = ctypes.c_float(128.101)  # 对应二进制小数为1.00000000001100111011011001000101101*2**7
+    wanted_value = 0b11000011000000000001100111011011
+    test_float = ctypes.c_float(-128.101)  # 对应二进制小数为(-1)*1.00000000001100111011011001000101101*2**7
     assert struct.unpack("<I", test_float)[0] == wanted_value  # 说明多出的小数部分被截去
 
 
