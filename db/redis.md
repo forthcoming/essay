@@ -125,7 +125,7 @@ client info:  返回有关当前客户端连接服务器的信息和统计信息
 client list [id client-id [client-id ...]]: 返回有关所有客户端连接服务器的信息和统计信息
 client kill: 杀死某个连接 client kill addr 127.0.0.1:43501
 ```
->#### client info参数解读
+>### client info参数解读
 - id: a unique 64-bit client ID
 - addr: address/port of the client
 - laddr: address/port of local address client connected to (bind address)
@@ -280,6 +280,7 @@ pubsub channels [pattern]: 列出当前活跃频道,活跃频道是具有一个�
 消息将被传递一次,如果订阅者无法处理消息(如错误或网络断开),则消息将永远丢失,不支持数据持久化
 pubsub numsub [channel [channel ...]]: 返回指定通道的订阅者数量(不包括订阅模式的客户端)
 ```
+>### 发布订阅代码示例
 ```python
 from redis import Redis
 
@@ -319,7 +320,91 @@ evalsha sha1 numkeys [key [key ...]] [arg [arg ...]]: 与eval相似,前提是sha
 eval script numkeys [key [key ...]] [arg [arg ...]]: 脚本以原子方式执行,执行脚本时不会执行其他脚本或命令,类似于MULTI/EXEC
 为了确保脚本正确执行,脚本访问的所有keys都必须显式提供为输入键参数,而不应访问具有以编程方式生成的key
 eval "return redis.call('get', KEYS[1])" 1 zgt  # 执行脚本,返回脚本的值,并注册脚本的sha值到redis
+
+FUNCTION DELETE library-name: 删除库及其所有函数
+FUNCTION LOAD [REPLACE] function-code: 加载库,当名称已存在时会报错,REPLACE修饰符更改此行为并覆盖现有库,不同库的函数名不能相同
+函数与数据一起存储,也被持久化到AOF文件并从master复制到replicas
+FUNCTION DUMP: 返回已加载库的序列化
+FUNCTION RESTORE serialized-value [FLUSH | APPEND | REPLACE]: dump逆操作,从序列化中恢复库
+FUNCTION FLUSH [ASYNC | SYNC]: 删除所有库
+FUNCTION LIST [LIBRARYNAME library-name-pattern] [WITHCODE]: 返回有关函数和库的信息
+FUNCTION STATS: 返回正在运行的函数信息以及可用执行引擎的信息
+FCALL function numkeys [key [key ...]] [arg [arg ...]]: 原子调用函数,参数参考eval,所有key/arg作为回调函数的第一/二个参数(table类型)
 ```
+>### function代码示例
+```lua
+#!lua name=mylib
+
+local function check_keys(keys)
+  local error = nil
+  local nkeys = table.getn(keys)
+  if nkeys == 0 then
+    error = 'Hash key name not provided'
+  elseif nkeys > 1 then
+    error = 'Only one key name is allowed'
+  end
+  if error ~= nil then
+    redis.log(redis.LOG_WARNING, error);
+    return redis.error_reply(error)
+  end
+  return nil
+end
+
+local function my_hset(keys, args)
+  local error = check_keys(keys)
+  if error ~= nil then
+    return error
+  end
+
+  local hash = keys[1]
+  local time = redis.call('TIME')[1]
+  return redis.call('HSET', hash, '_last_modified_', time, unpack(args))
+end
+
+local function my_hgetall(keys, args)
+  local error = check_keys(keys)
+  if error ~= nil then
+    return error
+  end
+
+  redis.setresp(3)
+  local hash = keys[1]
+  local res = redis.call('HGETALL', hash)
+  res['map']['_last_modified_'] = nil
+  return res
+end
+
+local function my_hlastmodified(keys, args)
+  local error = check_keys(keys)
+  if error ~= nil then
+    return error
+  end
+
+  local hash = keys[1]
+  return redis.call('HGET', keys[1], '_last_modified_')
+end
+
+redis.register_function('my_hset', my_hset)
+redis.register_function('my_hgetall', my_hgetall)
+redis.register_function('my_hlastmodified', my_hlastmodified)
+
+# 将上述代码保存为mycode.lua,然后cat mylib.lua | redis-cli -x FUNCTION LOAD
+# redis> FCALL my_hset 1 myhash myfield "some value" another_field "another value"
+# (integer) 3
+# redis> FCALL my_hgetall 1 myhash
+# 1) "myfield"
+# 2) "some value"
+# 3) "another_field"
+# 4) "another value"
+# redis> FCALL my_hlastmodified 1 myhash
+# "1640772721"
+# 127.0.0.1:6379> FCALL my_hset 0 myhash nope nope
+# (error) Hash key name not provided
+# 127.0.0.1:6379> FCALL my_hgetall 2 myhash anotherone
+# (error) Only one key name is allowed
+# 其中keys=[myhash], args=[myfield "some value" another_field "another value"]
+```
+
 
 
 ### string
