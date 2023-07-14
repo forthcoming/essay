@@ -6,8 +6,8 @@ ttl key: 返回key剩余的过期时间秒数(不过期的key返回-1,不存在�
 rename key newkey: 如果newkey已存在,则newkey的原值和过期时间被覆盖,当发生这种情况时会执行隐式del操作,集群模式下新旧key必须位于同一哈希槽中
 del key [key ...]: 当key包含字符串以外的值时,该键的单独复杂度为O(M),其中M是列表、集合、排序集合或哈希中的元素数量
 unlink key [key ...]: 在不同的线程中执行O(N)操作删除指定的key以回收内存,它不会阻塞,而del会阻塞
-persist key: 把key置为永久有效
 exists key [key ...]: 判断key是否存在, 返回1/0
+persist key: 把key置为永久有效
 expiretime key: 返回给定key到期的绝对Unix时间戳(以秒为单位)
 expireat key unix-time-seconds [NX | XX | GT | LT]
 
@@ -448,21 +448,58 @@ MEMORY USAGE key [SAMPLES count]: 时间复杂度O(N),N是样本个数,报告键
 (integer) 617977753
 ```
 
+### set(唯一性,无序性)
+```
+SINTER key [key ...]: 返回所有集合的交集(公共部分),单个key等价于smembers,存储版为SINTERSTORE destination key [key ...]
+SUNION key [key ...]: 返回所有集合的并集,单个key等价于smembers,存储版为SUNIONSTORE destination key [key ...]
+SDIFF key [key ...]: 返回第一个集合和其他集合的差集,单个key等价于smembers,存储版为SDIFFSTORE destination key [key ...]
+SADD key member [member ...]: 往集合key中增加元素
+scard key: 返回集合中元素的个数
+SMISMEMBER key member [member ...]: 判断member是否在集合中
+SREM key member [member ...]: 从集合中删除指定成员,返回实际删除的元素个数
+SPOP key [count]: 从集合中删除并返回一个或多个随机成员
+SRANDMEMBER key [count]: 返回集合中随机的一个或多个不同元素,如果count<0,允许多次返回相同元素且顺序随机,当n大于集合元素总数时顺序不再随机
+SMOVE source destination member: 原子操作,把source中的member删除,并添加到destination集合中
+```
 
+### sorted set(有序集合,唯一性)
+```
+ZADD key [NX | XX] [GT | LT] score member [score member...]: 时间复杂度O(log(N)),N是排序集中的元素数量
+将指定分数的成员添加到有序集合中,使用双64位浮点数表示分数,如果添加的成员已经存在于有序集合中,则会更新成员的score
+集合按分数由小到大排序,分数相同按member字典序排序
+XX: 只更新已经存在的元素,不添加新元素
+NX:仅添加新元素,不更新已经存在的元素
+LT: 如果新分数小于当前分数,则仅更新现有元素,该标志不会阻止添加新元素
+ZINCRBY key increment member: 如果member不在有序集合,先创建score=0的member,如果key不存在,先创建一个只带有member的有序集合
+zcard key: 返回元素个数
+ZREM key member [member ...]: 删除集合中的元素
+ZREMRANGEBYRANK key start stop: 删除名次在[start,end]之间的元素
+ZREMRANGEBYSCORE key min max: 删除score在[min,max]之间的元素
+ZRANK key member [WITHSCORE]: 返回从低到高有序集中成员的排名,排名从0开始,逆序版ZREVRANK key member [WITHSCORE],复杂度O(log(N))
+ZSCORE key member: 返回元素的分数,复杂度O(1),multi版本ZMSCORE key member [member ...]
+ZCOUNT key min max: 返回[min,max]区间内元素的数量,复杂度仅为O(log(N)),因为它使用ZRANK来获取范围
+ZINTER| ZINTERSTORE| ZUNION| ZUNIONSTORE| ZDIFF| ZDIFFSTORE: 参考SET集合运算
 
+ZRANGE key start stop [BYSCORE | BYLEX] [REV] [LIMIT offset count] [WITHSCORES]
+默认情况下,命令按索引范围查询
+REV: 反转排序,如果按默认index,start<=stop,如果BYSCORE或者BYLEX,start>=stop,这个有点坑
+LIMIT: 参考SQL中的LIMIT offset, count, 负数count返回offset中的所有元素
+BYSCORE: 返回排序集中分数在[start,stop]之间的元素,可通过在分数前加上字符(指定开区间,如(1 5代表区间(1,5]
+```
 
 ### string
 ```
 append key value
-incr key: key值加1,并返回加1后的值,key必须是数字型字符串,不存在时初始值为0,对立操作是decr
-get key
 decrby key decrement
 incrbyfloat key increment
+incr key: key值加1,并返回加1后的值,key必须是数字型字符串,不存在时初始值为0,对立操作是decr
+lcs key1 key2 [LEN]: 返回最长公共子串,len意思是只返回子串长度
+strlen key: 返回字符串长度
+mget key1 key2...: 类似的还有mset
+GETEX key [EX seconds | PX milliseconds | EXAT unix-time-seconds | PERSIST]: 获取值,可选择设置新的过期时间
+GETDEL key
 setrange key offset value: 把字符串key的第offset个位置起替换成value,只覆盖value个长度
 getrange key start stop: 获取字符串中[start, stop]范围的值，左数从0开始,右数从-1开始
-mget key1 key2...: 类似的还有mset
-strlen key: 返回存储在key处的字符串值的长度
-lcs key1 key2 [LEN]: 返回最长公共子串,len意思是只返回子串长度
 set key value [NX | XX] [GET] [PX milliseconds | EXAT unix-time-seconds | KEEPTTL]
 如果key已存在,则无论其类型如何都会被覆盖,成功后该key先前生存时间将被丢弃
 [NX | XX]-- key[不存在|存在]时生效
@@ -472,103 +509,8 @@ EXAT timestamp-seconds -- 设置key过期的指定Unix时间,以秒为单位
 KEEPTTL -- 保留key原有的生存周期
 ```
 
-### set(唯一性,无序性)
+### transaction
 ```
-sadd key value1 value2:往集合key中增加元素
-srem key value1 value2: 删除集合中集为value1 value2的元素,返回实际删除的元素个数
-spop key:返回并删除集合中key中1个随机元素
-srandmember key n:返回集合key中随机的n个不相同元素,默认返回1个,当n大于集合元素总数时顺序不再随机
-smembers key:返回集中所有的元素
-sismember key value:判断value是否在 key集合中
-scard key:返回集合中元素的个数
-smove source dest value:把source中的 value删除 ,并添加到 dest集合中
-sinter  key1 key2 key3: 求出key1 key2 key3三个集合中的交集(公共部分) ,并返回
-sinterstore dest key1 key2 key3:求出key1 key2 key3 三个集合中的交集 ,并赋给dest
-suion key1 key2.. Keyn:求出key1 key2 keyn的并集并返回(类似的还有sunionstore)
-sdiff key1 key2 key3:求出key1与key2 key3的差集,即key1-key2-key3
-```
-
-### zset(有序集合)
-```
-zadd key score1 value1 score2 value2:如果添加的成员已经存在于有序集合中,则会更新成员的score并更新到正确的排序位置
-zincrby key increment member: 如果member不在有序集合,it is added with increment as its score (as if its previous score was 0.0). 如果key不存在,会先创建一个只带有member的有序集合
-zcard key: 返回元素个数
-zrem key value1 value2: 删除集合中的元素
-zrank key member: 返回member的排名(升续0名开始)
-zrevrank key memeber:查询member的排名(降续0名开始)
-zrange key start stop [withscores]:返回名次[start,stop]的元素,默认升续排列,Withscores是把score也打印出来(类似的还有zrevrange)
-zrangebyscore  key min max [withscores] limit m n: 取score在 [min,max]内的元素
-zcount key min max:返回[min,max] 区间内元素的数量
-zremrangebyrank key start end:按排名删除元素,删除名次在 [start,end]之间的
-zremrangebyscore key min max:按照socre来删除元素,删除 score在 [min,max]之间的
-说明: 
-score类型是double,按键score的大小顺序存放
-虽然double类型精度是15位小数,但并不意味着一定可以精确保存15位小数,如2.4503599627370496,参考c语言浮点数内存表示
-```
-
-
-```
-通用操作
-redis-py存进去的是数字类型,再取出来时都会是字符串类型
-Usage: redis-cli [OPTIONS] [cmd [arg [arg ...]]]
---user: Used to send ACL style 'AUTH username pass'. Needs --pass.
---pass: Password to use when connecting to the server.
--x: 从STDIN读取最后一个参数
--r: Execute specified command N times.
--i: 当使用-r时,每个命令等待<interval>秒,每个周期的--scan和--stat以及每100个周期的--bigkeys、--memkeys和--hotkeys中也使用此间隔
---memkeys: 查找消耗大量内存的key
---bigkeys: 查找具有许多元素(复杂)的键
---hotkeys: 寻找热键,仅当maxmemory-policy为*lfu时才有效
---stat: Print rolling stats about server: mem, clients, ...
---pattern: Keys pattern when using the --scan, --bigkeys or --hotkeys options (default: *).
---count: Count option when using the --scan, --bigkeys or --hotkeys (default: 10).
---eval Desktop/test.lua key1 key2 , argv1 argv2 # 注意逗号两边要用空格隔开
-redis-cli -h 127.0.0.1 -p 8001 -n 1 --pass 'password' monitor |grep "common_service_hbt"
-
-
-Usage: redis-benchmark [-h <host>] [-p <port>] [-c <clients>] [-n <requests>]
- -h <hostname>      Server hostname (default 127.0.0.1)
- -p <port>          Server port (default 6379)
- -c <clients>       Number of parallel connections (default 50)
- -n <requests>      Total number of requests (default 100000)
- -d <size>          Data size of SET/GET value in bytes (default 3)
- --dbnum <db>       SELECT the specified db number (default 0)
- -q                 Quiet. Just show query/sec values
- -P <numreq>        Pipeline <numreq> requests. Default 1 (no pipeline).
- -t <tests>         Only run the comma separated list of tests. The test names are the same as the ones produced as output.
-
-Examples:
- Use 20 parallel clients, for a total of 100k requests, against 192.168.1.1:
-   $ redis-benchmark -h 192.168.1.1 -p 6379 -n 100000 -c 20
-
- Benchmark 127.0.0.1:6379 for a few commands:
-   $ redis-benchmark -t ping,set,get -n 100000
-
- Benchmark a specific command line:
-   $ redis-benchmark -r 10000 -n 10000 eval 'return redis.call("ping")' 0
-
----------------------------------------------------------------------------------------------------------------------------------------
-安装redis到/usr/local/redis目录
-$ wget http://download.redis.io/releases/redis-3.2.9.tar.gz
-$ tar xzf redis-3.2.9.tar.gz
-$ cd redis-3.2.9
-$ make PREFIX=/opt/redis install #安装到指定目录中(没该目录则会自动创建)
-$ mv redis.conf /opt/redis
-
-ll ~/redis/bin
--rwxr-xr-x. 1 root root 2075842 Jan 31 01:10 redis-benchmark
--rwxr-xr-x. 1 root root   25173 Jan 31 01:10 redis-check-aof
--rwxr-xr-x. 1 root root   56020 Jan 31 01:10 redis-check-dump
--rwxr-xr-x. 1 root root 2205500 Jan 31 01:10 redis-cli
-lrwxrwxrwx. 1 root root      12 Jan 31 01:10 redis-sentinel -> redis-server
--rwxr-xr-x. 1 root root 4358017 Jan 31 01:10 redis-server
-
-redis-benchmark: redis性能测试工具
-redis-check-aof: 检查aof日志的工具
-redis-check-dump: 检查rbd日志的工具
-redis-server /root/redis/redis.conf    # 指定启动redis时的配置文件
-
-
 事务
 redis由于是单进程执行命令,所以不存在并发事物和并发读写,也不需要读写锁,redis事务只需要保证原子性即可
 
@@ -627,8 +569,92 @@ pipeline优点:
 lua-script优点:
     1. A Redis script(lua script) is transactional by definition and usually the script will be both simpler and faster
     2. 命令之间存在逻辑(如if,赋值等),则只能使用脚本,无法使用pipeline
+```
 
---------------------------------------------------------------------------------------------------------
+
+### redis-cli
+```
+Usage: redis-cli [OPTIONS] [cmd [arg [arg ...]]]
+--user: Used to send ACL style 'AUTH username pass'. Needs --pass.
+--pass: Password to use when connecting to the server.
+-x: 从STDIN读取最后一个参数
+-r: Execute specified command N times.
+-i: 当使用-r时,每个命令等待<interval>秒,每个周期的--scan和--stat以及每100个周期的--bigkeys、--memkeys和--hotkeys中也使用此间隔
+--memkeys: 查找消耗大量内存的key
+--bigkeys: 查找具有许多元素(复杂)的键
+--hotkeys: 寻找热键,仅当maxmemory-policy为*lfu时才有效
+--stat: Print rolling stats about server: mem, clients, ...
+--pattern: Keys pattern when using the --scan, --bigkeys or --hotkeys options (default: *).
+--count: Count option when using the --scan, --bigkeys or --hotkeys (default: 10).
+--eval Desktop/test.lua key1 key2 , argv1 argv2 # 注意逗号两边要用空格隔开
+redis-cli -h 127.0.0.1 -p 8001 -n 1 --pass 'password' monitor |grep "common_service_hbt"
+```
+
+### redis-benchmark
+```
+Usage: redis-benchmark [-h <host>] [-p <port>] [-c <clients>] [-n <requests>]
+ -h <hostname>      Server hostname (default 127.0.0.1)
+ -p <port>          Server port (default 6379)
+ -c <clients>       Number of parallel connections (default 50)
+ -n <requests>      Total number of requests (default 100000)
+ -d <size>          Data size of SET/GET value in bytes (default 3)
+ --dbnum <db>       SELECT the specified db number (default 0)
+ -q                 Quiet. Just show query/sec values
+ -t <tests>         Only run the comma separated list of tests. The test names are the same as the ones produced as output.
+ -l                 Loop. Run the tests forever
+ -I                 Idle mode. Just open N idle connections and wait.
+ -x                 Read last argument from STDIN.
+ -r <keyspacelen>   使用随机键进行SET/GET/INCR,使用随机值进行SADD,随机成员和分数进行ZADD,如果省略-r,则所有命令都会使用相同key
+ --threads <num>    Enable multi-thread mode.
+     
+Examples:
+ Run the benchmark with the default configuration against 127.0.0.1:6379:
+   $ redis-benchmark
+
+ Use 20 parallel clients, for a total of 100k requests, against 192.168.1.1:
+   $ redis-benchmark -h 192.168.1.1 -p 6379 -n 100000 -c 20
+
+ Fill 127.0.0.1:6379 with about 1 million keys only using the SET test:
+   $ redis-benchmark -t set -n 1000000 -r 100000000
+
+ Benchmark 127.0.0.1:6379 for a few commands producing CSV output:
+   $ redis-benchmark -t ping,set,get -n 100000 --csv
+
+ Benchmark a specific command line:
+   $ redis-benchmark -r 10000 -n 10000 eval 'return redis.call("ping")' 0
+
+ Fill a list with 10000 random elements:
+   $ redis-benchmark -r 10000 -n 10000 lpush mylist __rand_int__
+```
+
+
+
+
+
+### ToBeDone
+```
+redis-py存进去的是数字类型,再取出来时都会是字符串类型
+
+安装redis到/usr/local/redis目录
+$ wget http://download.redis.io/releases/redis-3.2.9.tar.gz
+$ tar xzf redis-3.2.9.tar.gz
+$ cd redis-3.2.9
+$ make PREFIX=/opt/redis install #安装到指定目录中(没该目录则会自动创建)
+$ mv redis.conf /opt/redis
+
+ll ~/redis/bin
+-rwxr-xr-x. 1 root root 2075842 Jan 31 01:10 redis-benchmark
+-rwxr-xr-x. 1 root root   25173 Jan 31 01:10 redis-check-aof
+-rwxr-xr-x. 1 root root   56020 Jan 31 01:10 redis-check-dump
+-rwxr-xr-x. 1 root root 2205500 Jan 31 01:10 redis-cli
+lrwxrwxrwx. 1 root root      12 Jan 31 01:10 redis-sentinel -> redis-server
+-rwxr-xr-x. 1 root root 4358017 Jan 31 01:10 redis-server
+
+redis-benchmark: redis性能测试工具
+redis-check-aof: 检查aof日志的工具
+redis-check-dump: 检查rbd日志的工具
+redis-server /root/redis/redis.conf    # 指定启动redis时的配置文件
+
 
 持久化(推荐两种方案同时使用)
 快照(rdb)
@@ -698,6 +724,8 @@ https://redis.io/docs/manual/keyspace/
 https://blog.getspool.com/2011/11/29/fast-easy-realtime-metrics-using-redis-bitmaps
 http://antirez.com/news/75
 https://redis.io/docs/management/replication/
+https://redis.io/docs/data-types/
+https://redis.io/docs/about/
 ```
 
 
