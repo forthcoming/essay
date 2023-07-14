@@ -1,5 +1,6 @@
 import binascii
 import copy
+import ctypes
 import dis
 import hashlib
 import inspect
@@ -1299,7 +1300,33 @@ def frame_tutorial():
     parent()
 
 
+def float_tutorial():
+    """
+    c语言中浮点数在内存分布如下:
+    float    符号位1比特    指数位8比特    尾数位23比特
+    double   符号位1比特    指数位11比特   尾数位52比特
+    整数转换成补码再写入内存,浮点数直接写入内存
+    浮点数被存储之前,先转换为a*(2**n)的二进制形式,其中1<=a<2,n是指数
+    浮点数的精度由尾数位长度决定,float精度为6~7位有效数字(2**23=8388608),double精度为15~16位有效数字(2**52=4503599627370496)
+    float取值范围(-2**128 ~ 2**128),double取值范围(-2**1024 ~ 2**1024),此处的128由255-127得到
+    例如float类型19.625 = 10011.101 = 1.0011101 * 2**4, 对应a=1.0011101, n=4
+    二进制小数部分(0011101)放入内存中的尾数位,当小数过长时,多出的位数会被直接截去
+    二进制整数部分都是1,无需在内存中体现出来,所以直接截去,只把指数4+127=131=0b10000011放入内存中的指数位,加127是应为指数可能为负
+    二进制符号位为正,所以把0放入内存符号部分
+    综上所述,float类型19.625在内存以0 10000011 00111010000000000000000
+    """
+    wanted_value = 0b01000001100111010000000000000000
+    test_float = ctypes.c_float(19.625)
+    assert struct.unpack("<I", test_float)[0] == wanted_value  # 说明整数在c语言中以小端模式存储
+    assert struct.unpack(">I", struct.pack(">f", 19.625))[0] == wanted_value  # 保证pack和unpack模式顺序一致即可
+
+    wanted_value = 0b01000011000000000001100111011011
+    test_float = ctypes.c_float(128.101)  # 对应二进制小数为1.00000000001100111011011001000101101*2**7
+    assert struct.unpack("<I", test_float)[0] == wanted_value  # 说明多出的小数部分被截去
+
+
 if __name__ == "__main__":  # import到其他脚本中不会执行以下代码,spawn方式的多进程也需要
+    float_tutorial()
     # frame_tutorial()
     # arguments_tutorial()
     # list_tutorial()
@@ -1308,7 +1335,7 @@ if __name__ == "__main__":  # import到其他脚本中不会执行以下代码,s
     # subprocess_tutorial()
     # dict_tutorial()
     # iterable_tutorial()
-    common_tutorial()
+    # common_tutorial()
     # inherit_tutorial()
     # metaclass_tutorial()
     # pickle_tutorial()
