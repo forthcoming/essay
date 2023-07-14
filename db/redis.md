@@ -1,4 +1,5 @@
 ### generic
+
 ```
 type key: 返回key类型 (eg:string, list, set, zset, hash and stream)
 randomkey: 返回随机key
@@ -116,6 +117,7 @@ sort uid by not-exists-key get user_info_*->level get user_info_*->name
 ```
 
 ### connection
+
 ```
 ping #测试服务器是否可用
 select 0|1|2...: 从0到15编号,可从配置文件修改,所有数据库保留在同一个RDB/AOF文件中,集群无法使用
@@ -125,7 +127,9 @@ client info:  返回有关当前客户端连接服务器的信息和统计信息
 client list [id client-id [client-id ...]]: 返回有关所有客户端连接服务器的信息和统计信息
 client kill: 杀死某个连接 client kill addr 127.0.0.1:43501
 ```
->### client info参数解读
+
+> ### client info参数解读
+
 - id: a unique 64-bit client ID
 - addr: address/port of the client
 - laddr: address/port of local address client connected to (bind address)
@@ -154,6 +158,7 @@ client kill: 杀死某个连接 client kill addr 127.0.0.1:43501
 - resp: client RESP protocol version. Added in Redis 7.0
 
 ### bitmap
+
 ```
 bitop and|or|xor|not destkey key1 [key2 ...]: 对key1,key2..keyN位运算,结果存到destkey
 bitpos key bit [start [end]]: 返回字符串第一个设置为1或0的位置,范围参考getrange,默认单位是字节
@@ -175,6 +180,7 @@ OK
 ```
 
 ### geospatial
+
 ```
 geoadd key [NX | XX] [CH] longitude latitude member [longitude latitude member ...]
 时间复杂度: O(log(N)) for each item added, 其中N是zset中的元素数量,数据存储在有序集合,score对应geohash的值
@@ -193,6 +199,7 @@ around the shape provided as the filter and M is the number of items inside the 
 ```
 
 ### hash(字典)
+
 ```
 hset key field value [field value ...]: 如果有field,则覆盖原field域的值
 hsetnx key field value
@@ -208,6 +215,7 @@ hstrlen key field: 返回key中的field关联的值的字符串长度
 ```
 
 ### hyperloglog
+
 ```shell
 pfcount key [key ...]: 当使用单个key时,时间复杂度O(1),用12k(加上键本身的几个字节)内存来计算集合中唯一元素个数,标准误差为0.81%
 当使用多个key时,在内部将存储在key处的数据结构合并到临时HyperLogLog中,返回并集,比较慢慎用
@@ -220,6 +228,7 @@ HyperLogLog使用双重表示法来表示:稀疏表示法适用于计算少量�
 ```
 
 ### list(链表+数组)
+
 ```
 llen key: 计算key元素个数,时间复杂度O(1)
 lindex key index: 返回index位置上的值,时间复杂度O(N),N是要遍历以到达索引处的元素的元素数,查询列表第一个或最后一个元素的时间复杂度为O(1)
@@ -261,6 +270,7 @@ redis> LMPOP 2 mylist mylist2 right count 2
 ```
 
 ### 发布订阅(建议使用redis stream代替)
+
 ```
 subscribe channel [channel ...]: 客户端订阅指定频道
 psubscribe pattern [pattern ...]: 客户端订阅给定的模式,匹配规则同keys
@@ -280,7 +290,9 @@ pubsub channels [pattern]: 列出当前活跃频道,活跃频道是具有一个�
 消息将被传递一次,如果订阅者无法处理消息(如错误或网络断开),则消息将永远丢失,不支持数据持久化
 pubsub numsub [channel [channel ...]]: 返回指定通道的订阅者数量(不包括订阅模式的客户端)
 ```
->### 发布订阅代码示例
+
+> ### 发布订阅代码示例
+
 ```python
 from redis import Redis
 
@@ -313,6 +325,7 @@ None
 ```
 
 ### scripting and functions
+
 ```
 script flush [ASYNC | SYNC]: 清空所有脚本缓存,redis重启or关闭也会触发该命令
 script load script: 将脚本加载到脚本缓存中,但不执行,返回脚本的SHA1摘要(sha1(b'lua script').hexdigest())
@@ -331,7 +344,9 @@ FUNCTION LIST [LIBRARYNAME library-name-pattern] [WITHCODE]: 返回有关函数�
 FUNCTION STATS: 返回正在运行的函数信息以及可用执行引擎的信息
 FCALL function numkeys [key [key ...]] [arg [arg ...]]: 原子调用函数,参数参考eval,所有key/arg作为回调函数的第一/二个参数(table类型)
 ```
->### function代码示例
+
+> ### function代码示例
+
 ```lua
 #!lua name=mylib
 
@@ -406,6 +421,7 @@ redis.register_function('my_hlastmodified', my_hlastmodified)
 ```
 
 ### server management
+
 ```
 REPLICAOF host port: 做host port的从服务器(数据清空,复制新主内容)
 REPLICAOF no one:变成主服务器(原数据不丢失,一般用于主服失败后)
@@ -449,6 +465,7 @@ MEMORY USAGE key [SAMPLES count]: 时间复杂度O(N),N是样本个数,报告键
 ```
 
 ### set(唯一性,无序性)
+
 ```
 SINTER key [key ...]: 返回所有集合的交集(公共部分),单个key等价于smembers,存储版为SINTERSTORE destination key [key ...]
 SUNION key [key ...]: 返回所有集合的并集,单个key等价于smembers,存储版为SUNIONSTORE destination key [key ...]
@@ -463,6 +480,7 @@ SMOVE source destination member: 原子操作,把source中的member删除,并添
 ```
 
 ### sorted set(有序集合,唯一性)
+
 ```
 ZADD key [NX | XX] [GT | LT] score member [score member...]: 时间复杂度O(log(N)),N是排序集中的元素数量
 将指定分数的成员添加到有序集合中,使用双64位浮点数表示分数,如果添加的成员已经存在于有序集合中,则会更新成员的score
@@ -488,6 +506,7 @@ BYSCORE: 返回排序集中分数在[start,stop]之间的元素,可通过在分�
 ```
 
 ### string
+
 ```
 append key value
 decrby key decrement
@@ -510,69 +529,59 @@ KEEPTTL -- 保留key原有的生存周期
 ```
 
 ### transaction
+
 ```
-事务
-redis由于是单进程执行命令,所以不存在并发事物和并发读写,也不需要读写锁,redis事务只需要保证原子性即可
+事物存在语法错误,则整个事务都不会执行; 事务存在逻辑错误,比如set a 1,lpop a则会跳过该命令,执行剩下的命令,不支持回滚
+除非当前事务执行完毕,否则服务器不会中断事务,也不会执行其他客户端的命令
+redis是单进程执行命令,所以不存在并发事物和并发读写,也不需要读写锁,事务只需要保证原子性即可 
+WATCH key [key ...]: 只能在客户端进入事务状态前执行才有效
+UNWATCH: 删除之前事务监视的key,如果调用EXEC或DISCARD,则无需手动调用UNWATCH
+DISCARD: 删除事务中所有先前排队的命令并将连接状态恢复正常,如果使用了WATCH,将取消监视所有键
+EXEC: 执行事务中所有先前排队的命令并将连接状态恢复到正常,使用WATCH时,只有在监视的键未被修改的情况下才会执行命令,事务内修改这些键不影响事务运行
+当前客户端事务执行失败,程序需要做的就是不断重试这个操作,这种形式的锁被称作乐观锁,因为大多数情况下不同的客户端会访问不同的键,通常并不需要重试
+MULTI: 标记事务块的开始,后续命令将排队等待,直到遇到EXEC后原子执行
+```
+
+> ### 事务相关代码
+
+```python
+import time
 
 import redis
+
 r = redis.Redis(host='localhost', port=6379, db=0)
 r.flushdb()
-pipe = r.pipeline(transaction=True) # The following SET commands are buffered
+# MULTI/EXEC作为Pipeline类的一部分实现,管道在执行时默认用MULTI和EXEC语句包装保证事务性,任何引发异常的命令都不会停止管道中后续命令的执行
+# 除了进行一组原子操作之外,管道对减少客户端和服务器之间来回开销很有用,如果想禁用管道的原子性质,但仍想缓冲命令,则可以关闭事务(transaction=False)
+# pipeline vs lua-script
+# pipeline优点:
+#     1. 集群中如果keys不落在同一个slot上,则只能用pipeline,无法使用脚本
+# lua-script优点:
+#     1. A Redis script(lua script) is transactional by definition and usually the script will be both simpler and faster
+#     2. 命令之间存在逻辑(如if,赋值等),则只能使用脚本,无法使用pipeline
+with r.pipeline() as pipe:  # 默认transaction=True,会在命令两端分别加multi和exec
+    while True:
+        try:
+            pipe.watch('SEQUENCE-KEY')  # watch必须出现在multi之前(同redis客户端),之后管道将进入立即执行模式,直到告诉它再次开始缓冲命令
+            current_value = int(pipe.get('SEQUENCE-KEY') or 0)  # redis-py存进去的是数字类型,再取出来时都会是字符串类型
+            current_value += 1  # 假设incr命令不存在
+            time.sleep(7)  # 模拟在其他客户端更改SEQUENCE-KEY的值,execute将会抛WatchError异常
+            pipe.multi()  # 使用MULTI将管道恢复到缓冲模式,后面的命令会以transaction=True模式运行(原子性)
+            pipe.set('SEQUENCE-KEY', current_value)
+            pipe.execute()  # finally execute the pipeline (the set command)
+            break
+        except redis.WatchError:
+            # 如果另一个客户端在执行该事务之前更改了“SEQUENCE-KEY”,则整个事务将被取消并引发WatchError,我们最好的选择就是重试
+            continue
+
+pipe = r.pipeline(transaction=True)  # The following SET commands are buffered
 pipe.set('bing', 'baz')
 pipe.set('foo', 'bar').get('bing')  # 所有缓冲到pipeline的命令返回pipeline对象本身,因此可以链式调用
 pipe.execute()  # returning a list of responses, one for each command.  [True, True, b'baz']
-
-# pipelines can also ensure the buffered commands are executed atomically(原子性地) as a group. This happens by default. 
-# If you want to disable the atomic nature of a pipeline but still want to buffer commands, you can turn off transactions.
-# The pipeline is wrapped with the MULTI and EXEC statements by default when it is executed, which can be disabled by specifying transaction=False.
-with r.pipeline(transaction=False) as pipe:  # 默认transaction=True,会在命令两端分别加multi和exec,管道对减少客户端和服务器之间来回开销很有用
-    while True:
-        try:
-            pipe.watch('OUR-SEQUENCE-KEY')  # put a WATCH on the key that holds our sequence value
-            # after WATCHing, the pipeline is put into immediate execution mode until we tell it to start buffering commands again.
-            # this allows us to get the current value of our sequence
-            current_value = pipe.get('OUR-SEQUENCE-KEY')
-            next_value = int(current_value) + 1
-            pipe.multi()   # now we can put the pipeline back into buffered mode with MULTI,此时不管初始话是否用事物,后面的命令会以transaction=True模式运行(原子性)
-            pipe.set('OUR-SEQUENCE-KEY', next_value)
-            time.sleep(10) # 可以在watch之后multi之前,此时如果OUR-SEQUENCE-KEY被其他客户端更改,execute将会抛WatchError异常
-            pipe.execute() # finally, execute the pipeline (the set command)
-            break
-       except WatchError:  # if a WatchError wasn't raised during execution, everything we just did happened atomically.
-            # another client must have changed 'OUR-SEQUENCE-KEY' between the time we started WATCHing it and the pipeline's execution.
-            # our best bet is to just retry.
-            continue
-           
-watch
-要求所有受监控的键在执行exec前都没有被修改时才会执行事务(相同客户端在事务内部修改这些键不影响事务的运行)
-只能在客户端进入事务状态之前执行才有效
-当前客户端的事务执行失败,程序需要做的就是不断重试这个操作,直到没有发生碰撞为止
-这种形式的锁被称作乐观锁,它是一种非常强大的锁机制.因为大多数情况下不同的客户端会访问不同的键,碰撞的情况一般都很少,所以通常并不需要进行重试
-
-multi
-It can never happen that a request issued by another client is served in the middle of the execution of a Redis transaction. 
-This guarantees that the commands are executed as a single isolated operation.
-Redis是单线程的服务,天生所有操作均具有原子性
-事务状态是以一个事务为单位,执行事务队列中的所有命令:除非当前事务执行完毕,否则服务器不会中断事务,也不会执行其他客户端的其他命令
-事物存在语法错误,则整个事务都不会执行
-事务存在逻辑错误,比如set a 1,lpop a则会跳过该命令,执行剩下的命令,不支持回滚
-
-exec
-开始顺序执行各条命令,之后终止watch命令
-
-discard
-中止事务运行
-
-客户端pipeline vs lua-script
-pipeline优点:
-    1. 集群中如果keys不落在同一个slot上,则只能用pipeline,无法使用脚本
-lua-script优点:
-    1. A Redis script(lua script) is transactional by definition and usually the script will be both simpler and faster
-    2. 命令之间存在逻辑(如if,赋值等),则只能使用脚本,无法使用pipeline
 ```
 
-
 ### redis-cli
+
 ```
 Usage: redis-cli [OPTIONS] [cmd [arg [arg ...]]]
 --user: Used to send ACL style 'AUTH username pass'. Needs --pass.
@@ -591,6 +600,7 @@ redis-cli -h 127.0.0.1 -p 8001 -n 1 --pass 'password' monitor |grep "common_serv
 ```
 
 ### redis-benchmark
+
 ```
 Usage: redis-benchmark [-h <host>] [-p <port>] [-c <clients>] [-n <requests>]
  -h <hostname>      Server hostname (default 127.0.0.1)
@@ -627,36 +637,26 @@ Examples:
    $ redis-benchmark -r 10000 -n 10000 lpush mylist __rand_int__
 ```
 
+### redis-server
 
-
-
-
-### ToBeDone
 ```
-redis-py存进去的是数字类型,再取出来时都会是字符串类型
+redis-server /root/redis/redis.conf    # 指定启动redis时的配置文件
+redis-server --daemonize yes   # 启动时指定相关配置参数
+```
 
-安装redis到/usr/local/redis目录
-$ wget http://download.redis.io/releases/redis-3.2.9.tar.gz
+### 安装redis到/usr/local/redis目录
+
+```shell
+$ wget http://download.redis.io/releases/redis-7.0.9.tar.gz
 $ tar xzf redis-3.2.9.tar.gz
 $ cd redis-3.2.9
 $ make PREFIX=/opt/redis install #安装到指定目录中(没该目录则会自动创建)
 $ mv redis.conf /opt/redis
+```
 
-ll ~/redis/bin
--rwxr-xr-x. 1 root root 2075842 Jan 31 01:10 redis-benchmark
--rwxr-xr-x. 1 root root   25173 Jan 31 01:10 redis-check-aof
--rwxr-xr-x. 1 root root   56020 Jan 31 01:10 redis-check-dump
--rwxr-xr-x. 1 root root 2205500 Jan 31 01:10 redis-cli
-lrwxrwxrwx. 1 root root      12 Jan 31 01:10 redis-sentinel -> redis-server
--rwxr-xr-x. 1 root root 4358017 Jan 31 01:10 redis-server
+### 持久化方案(推荐两种方案同时使用)
 
-redis-benchmark: redis性能测试工具
-redis-check-aof: 检查aof日志的工具
-redis-check-dump: 检查rbd日志的工具
-redis-server /root/redis/redis.conf    # 指定启动redis时的配置文件
-
-
-持久化(推荐两种方案同时使用)
+```
 快照(rdb)
 每隔N分钟或者N次写操作后从内存dump数据形成rdb文件,压缩放在备份目录(导入导出速度快,容易出现丢失几分钟的数据,可以通过aof弥补)
 快照配置选项
@@ -665,15 +665,16 @@ save 300 1000        # 如果300秒内有1000次写入,则产生快照(每300秒
 save 60 10000        # 如果60秒内有10000次写入,则产生快照(每60秒唤醒一次,从下往上看,这3个选项都屏蔽,则rdb禁用)
 
 日志(aof)
-# 注意在导出rdb过程中,aof如果停止同步,所有的操作缓存在内存的队列里,dump完成后统一操作
+注意在导出rdb过程中,aof如果停止同步,所有的操作缓存在内存的队列里,dump完成后统一操作
 恢复时rdb比aof快,因为其是数据的内存映射,直接载入到内存,而aof是命令,需要逐条执行
 当rdb跟aof同时开启时,则只加载aof里面的数据
 主从关系中一般主开启aof,从开启一个rdb
 当执行shutdown命令时会自动将内存中数据写进rdb(之前与aof不一致的数据会被覆盖掉)
+```
 
----------------------------------------------------------------------------------------------------------
+### key设计原则
 
-key设计原则
+```
 1: 把表名转换为key前缀,如tag
 2: 放置用于区分key的字段,对应mysql中的主键的列名,如userid
 3: 放置主键值,如2,3,4...., a , b ,c
@@ -682,9 +683,11 @@ key设计原则
 create table book (bookid int,title char(20))engine myisam charset utf8;
 insert into book values(5 , 'PHP圣经'),(6 , 'ruby实战'),(7 , 'mysql运维')(8, 'ruby服务端编程');
 create table tags (tid int,bookid int,content char(20))engine myisam charset utf8;
-insert into tags values(10 , 5 , 'PHP'),(11 , 5 , 'WEB'),(12 , 6 , 'WEB'),(13 , 6 , 'ruby'),(14 , 7 , 'database'),(15 , 8 , 'ruby'),(16 , 8 , 'server';
+insert into tags values(10 , 5 , 'PHP'),(11 , 5 , 'WEB'),(12 , 6 , 'WEB'),(13 , 6 , 'ruby'),(14 , 7 , 'database'),(15 ,
+8 , 'ruby'),(16 , 8 , 'server';
 
 # 查询既有web标签又有PHP标签的书
+
 select * from tags join tags as t on tags.bookid=t.bookid where tags.content='PHP' and t.content='WEB';
 
 换成key-value存储
@@ -700,7 +703,7 @@ sadd tag:ruby 6 8
 sadd tag:SERVER 8
 
 查:既有PHP又有WEB的书
-sinter tag:PHP tag:WEB  # 查集合的交集
+sinter tag:PHP tag:WEB # 查集合的交集
 
 查:有PHP或有WEB标签的书
 sunin tag:PHP tag:WEB
@@ -715,18 +718,8 @@ sdiff tag:ruby tag:WEB # 求差集
 set user:username:lisi:uid 9
 我们可以根据username:lisi:uid,查出userid=9
 再查user:9:password/email ...
-
-多线程IO模型中的多线程仅用于接受,解析客户端请求,然后将解析出的请求写入到任务队列,对具体任务的处理仍是主线程执行
-redis读速度可达11w/s,写速度可达8w/s
-https://redis.io/docs/manual/patterns/distributed-locks/
-https://redis.io/docs/reference/clients/
-https://redis.io/docs/manual/keyspace/
-https://blog.getspool.com/2011/11/29/fast-easy-realtime-metrics-using-redis-bitmaps
-http://antirez.com/news/75
-https://redis.io/docs/management/replication/
-https://redis.io/docs/data-types/
-https://redis.io/docs/about/
 ```
+
 
 
 

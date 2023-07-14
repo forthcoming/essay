@@ -71,24 +71,6 @@ class Redis(RedisModuleCommands, CoreCommands, SentinelCommands):
 
 
 class Pipeline(Redis):  # 一般通过调用Redis实例的pipeline方法获取Pipeline实例
-    """
-    MULTI/EXEC作为Pipeline类的一部分实现,管道在执行时默认用MULTI和EXEC语句包装保证事务性,任何引发异常的命令都不会停止管道中后续命令的执行
-    除了进行一组原子操作之外,管道对于减少客户端和服务器之间的来回开销很有用,如果想禁用管道的原子性质,但仍想缓冲命令,则可以关闭事务(transaction=False)
-    with r.pipeline() as pipe:  # 假设INCR命令不存在
-        while True:
-            try:
-                pipe.watch('SEQUENCE-KEY')  # watch必须出现在multi之前(同redis客户端),之后管道将进入立即执行模式,直到告诉它再次开始缓冲命令
-                current_value = pipe.get('SEQUENCE-KEY')
-                next_value = int(current_value) + 1
-                time.sleep(7)  # 模拟在其他客户端更改SEQUENCE-KEY的值
-                pipe.multi()  # now we can put the pipeline back into buffered mode with MULTI
-                pipe.set('SEQUENCE-KEY', next_value)
-                pipe.execute()  # finally execute the pipeline (the set command)
-                break
-           except WatchError:
-                # 如果另一个客户端在执行该事务之前更改了“SEQUENCE-KEY”,则整个事务将被取消并引发WatchError,我们最好的选择就是重试
-                continue
-    """
 
     UNWATCH_COMMANDS = {'DISCARD', 'EXEC', 'UNWATCH'}
 
