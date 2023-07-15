@@ -484,7 +484,7 @@ SMOVE source destination member: 原子操作,把source中的member删除,并添
 ```
 ZADD key [NX | XX] [GT | LT] score member [score member...]: 时间复杂度O(log(N)),N是排序集中的元素数量
 将指定分数的成员添加到有序集合中,使用双64位浮点数表示分数,如果添加的成员已经存在于有序集合中,则会更新成员的score
-集合按分数由小到大排序,分数相同按member字典序排序
+集合按分数由小到大排序,分数相同按member字典序排序,个别情况下需要按member排序这种场景
 XX: 只更新已经存在的元素,不添加新元素
 NX:仅添加新元素,不更新已经存在的元素
 LT: 如果新分数小于当前分数,则仅更新现有元素,该标志不会阻止添加新元素
@@ -499,10 +499,12 @@ ZCOUNT key min max: 返回[min,max]区间内元素的数量,复杂度仅为O(log
 ZINTER| ZINTERSTORE| ZUNION| ZUNIONSTORE| ZDIFF| ZDIFFSTORE: 参考SET集合运算
 
 ZRANGE key start stop [BYSCORE | BYLEX] [REV] [LIMIT offset count] [WITHSCORES]
-默认情况下,命令按索引范围查询
+默认情况下,命令按索引范围查询,BYSCORE、BYLEX或者BYINDEX只是改变start/stop的含义,不改变排序,REV才是改变排序为逆序
 REV: 反转排序,如果按默认index,start<=stop,如果BYSCORE或者BYLEX,start>=stop,这个有点坑
 LIMIT: 参考SQL中的LIMIT offset, count, 负数count返回offset中的所有元素
-BYSCORE: 返回排序集中分数在[start,stop]之间的元素,可通过在分数前加上字符(指定开区间,如(1 5代表区间(1,5]
+BYSCORE: 返回排序集中分数在[start,stop]之间的元素,可在分数前加上字符(指定开区间,如(1 5代表区间(1,5],非必须
+BYLEX: 字典顺序需要所有元素具有相同分数,有效的<start>和<stop>必须以(或[开头,特殊值+、-分别表示正无限字符串和负无限字符串
+ZRANGE myindex "[bit" "[bit\xff" BYLEX  # 查找有序集合中以bit开头的所有member
 ```
 
 ### string
@@ -592,13 +594,15 @@ pipe.execute()  # returning a list of responses, one for each command.  [True, T
 
 ```
 Usage: redis-cli [OPTIONS] [cmd [arg [arg ...]]]
+--latency: 连续采样延迟信息
 --user: Used to send ACL style 'AUTH username pass'. Needs --pass.
 --pass: Password to use when connecting to the server.
 -x: 从STDIN读取最后一个参数
--r: Execute specified command N times.
+-n: Database number.
+-r: Execute specified command N times.use -1 to run the same command indefinitely
 -i: 当使用-r时,每个命令等待<interval>秒,每个周期的--scan和--stat以及每100个周期的--bigkeys、--memkeys和--hotkeys中也使用此间隔
 --memkeys: 查找消耗大量内存的key
---bigkeys: 查找具有许多元素(复杂)的键
+--bigkeys: 查找具有许多元素(复杂)的键,使用SCAN命令,因此可以在繁忙的服务器上执行而不会影响操作
 --hotkeys: 寻找热键,仅当maxmemory-policy为*lfu时才有效
 --stat: Print rolling stats about server: mem, clients, ...
 --pattern: Keys pattern when using the --scan, --bigkeys or --hotkeys options (default: *).
@@ -655,9 +659,9 @@ redis-server --daemonize yes   # 启动时指定相关配置参数
 ### 安装redis到/usr/local/redis目录
 
 ```shell
-wget http://download.redis.io/releases/redis-7.0.9.tar.gz
-tar xzf redis-3.2.9.tar.gz
-cd redis-3.2.9
+wget wget https://download.redis.io/redis-stable.tar.gz
+tar xzf redis-stable.tar.gz
+cd redis-stable
 make PREFIX=/opt/redis install #安装到指定目录中(没该目录则会自动创建)
 mv redis.conf /opt/redis
 ```
