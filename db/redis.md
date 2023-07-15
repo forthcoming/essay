@@ -163,7 +163,7 @@ client kill: 杀死某个连接 client kill addr 127.0.0.1:43501
 bitop and|or|xor|not destkey key1 [key2 ...]: 对key1,key2..keyN位运算,结果存到destkey
 bitpos key bit [start [end]]: 返回字符串第一个设置为1或0的位置,范围参考getrange,默认单位是字节
 bitcount key [start end]: 统计1的个数,范围参考getrange
-getbit key offset: 获取值的二进制表示对应位上的值,offset从0编号,最大值2^32-1,so key最大为512M
+getbit key offset: 获取值的二进制表示对应位上的值,offset从0编号,最大值2^32-1,so key最大为512M(由proto-max-bulk-len配置决定)
 setbit key offset 0|1: 设置offset对应二进制位上的值,返回该位上的旧值
 当需要多次调用setbit完成初始化时,可以使用set来设置整个位图
 位图不是实际的数据类型,而是在string类型上定义的一组面向位的操作,这意味着位图可以与字符串命令一起使用
