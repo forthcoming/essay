@@ -669,7 +669,7 @@ mv redis.conf /opt/redis
 ```
 快照(rdb)
 每隔N分钟或者N次写操作后从内存dump数据形成rdb文件,压缩放在备份目录,可能出现丢失几分钟的数据
-策略参考配置文件save <seconds> <changes>, redis关闭或者手动调用bgsave命令也会往rdb文件写数据
+策略参考配置文件save <seconds> <changes>, redis关闭或者手动调用bgsave命令也会将内存数据写入rdb文件
 每当需要将数据集转储到磁盘时,Redis会分叉一个子进程,将数据集写入临时RDB文件,当写完新RDB文件后,它会替换旧的RDB文件
 RDB一旦生成就不会被修改,服务器运行时复制RDB文件是完全安全的
 
@@ -682,7 +682,6 @@ aof由基础文件和增量文件组成,新版redis基本文件是rdb格式
 恢复时rdb比aof快,因为其是数据的内存映射,直接载入到内存,而aof是命令,需要逐条执行
 在同时启用AOF和RDB持久化并且Redis重启的情况下,AOF文件将用于重建原始数据集,因为它可以保证是最完整
 主从关系中一般主开启aof,从开启一个rdb
-当执行shutdown命令时会自动将内存中数据写进rdb(之前与aof不一致的数据会被覆盖掉)
 如果运行了flushall,只要还未执行bgrewriteaof,立即shutdown nosave(看作强制停止服务器的一个ABORT命令),然后删除AOF文件中的"flushall"即可
 避免在RDB快照操作正在进行时触发AOF重写,或者在AOF重写正在进行时允许BGSAVE,这可以防止两个Redis后台进程同时执行大量磁盘I/O
 ```
