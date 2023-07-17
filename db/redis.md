@@ -1,6 +1,12 @@
 ### generic
 
 ```
+OBJECT IDLETIME key: 返回自上次访问key以来的时间(单位秒),仅当maxmemory-policy设置为LFU策略之一时该命令才可用
+OBJECT FREQ key: 返回key的对数访问频率计数器,仅当maxmemory-policy设置为LFU策略之一时该命令才可用
+OBJECT ENCODING key: 返回key对象的内部编码,字符串可编码如下,其余类型可编码结构参考配置文件
+embstr: 嵌入字符串,44个字节以内的字符串; raw: 正常的字符串; int: 64位有符号整数的字符串
+
+debug sleep 1: 模拟耗时操作,很有用
 type key: 返回key类型 (eg:string, list, set, zset, hash and stream)
 randomkey: 返回随机key
 ttl key: 返回key剩余的过期时间秒数(不过期的key返回-1,不存在的key返回-2)
