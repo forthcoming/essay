@@ -163,6 +163,49 @@ client kill: 杀死某个连接 client kill addr 127.0.0.1:43501
 - redir: client id of current client tracking redirection
 - resp: client RESP protocol version. Added in Redis 7.0
 
+### server management
+
+```
+REPLICAOF host port: 做host port的从服务器(数据清空,复制新主内容),一个master可以有多个slave,master挂掉后slave会升级为master
+默认情况下副本将忽略最大内存,这意味着key的驱逐将由主服务器处理,将DEL命令发送到副本作为主服务器端驱逐的key,此行为可确保主从保持一致
+REPLICAOF no one:变成主服务器(原数据不丢失,一般用于主服失败后)
+
+ACL LIST: 显示服务器中活跃的ACL规则,每一行有一个不同的用户
+ACL CAT [category]: 如果不带参数将显示可用的ACL类别,如果给出类别将显示指定类别中所有Redis命令
+ACL DELUSER username [username ...]: 删除所有指定的ACL用户,并终止所有通过该用户认证的连接
+ACL SETUSER username [rule [rule ...]]: 修改现有用户/创建新用户规则,如果用户已存在,新规则将被合并到旧规则
+ACL GETUSER username: 返回为现有ACL用户定义的所有规则
+
+bgrewriteaof 手动触发AOF重写,Redis也会自动触发
+bgsave 后台开启子进程dump数据到RDB文件
+shutdown [nosave | save]: 关闭服务器,保存数据(If persistence is enabled),修改AOF(如果设置),NOSAVE会阻止DB保存操作
+flushdb: 清空当前数据库的所有数据
+flushall: 清空所有数据库数据
+
+config get parameter [parameter ...]: 读取正在运行的服务器的配置参数,支持通配符
+CONFIG SET parameter value [parameter value ...]: 在运行时重新配置服务器,并在下一条命令执行时生效
+config rewrite: 重写服务器启动时使用的redis.conf文件,即更新CONFIG SET命令
+
+dbsize: 当前数据库未过期key的数量
+INFO: 返回服务器统计信息,可以查看主从,内存/CPU使用,持久化,每个库使用情况/配置文件位置
+monitor: 显示redis处理的每个命令,运行单个MONITOR客户端可能会导致吞吐量降低50%以上,集群下该命令只会监控指定ip:port的redis实例
+
+SLOWLOG GET [count]: 获取慢查询日志,慢日志记录超过指定执行时间的查询,可选的count限制返回条目数量,-1表示返回所有条目
+SLOWLOG RESET: 清空慢日志
+LATENCY DOCTOR: 报告不同的延迟相关问题,并提供可能的补救措施
+LATENCY LATEST: 报告记录的最新延迟事件
+
+MEMORY DOCTOR: 报告服务器遇到的不同内存相关问题,并建议可能的补救措施
+MEMORY USAGE key [SAMPLES count]: 时间复杂度O(N),N是样本个数,报告键及其值需要存储在RAM中的字节数
+对于嵌套数据类型,可以提供可选的SAMPLES count选项,指定采样值数量,默认是5,SAMPLES 0对所有嵌套值进行采样
+127.0.0.1:6379> hlen hkey   // hkey有100w个字段,每个字段value长度介于1~1024字节
+(integer) 1000000
+127.0.0.1:6379> MEMORY usage hkey  //默认SAMPLES为5
+(integer) 521588753
+127.0.0.1:6379> MEMORY usage hkey SAMPLES 100  //指定SAMPLES为100
+(integer) 617977753
+```
+
 ### bitmap
 
 ```
@@ -424,49 +467,6 @@ redis.register_function('my_hlastmodified', my_hlastmodified)
 # 127.0.0.1:6379> FCALL my_hgetall 2 myhash anotherone
 # (error) Only one key name is allowed
 # 其中keys=[myhash], args=[myfield "some value" another_field "another value"]
-```
-
-### server management
-
-```
-REPLICAOF host port: 做host port的从服务器(数据清空,复制新主内容),一个master可以有多个slave,master挂掉后slave会升级为master
-默认情况下副本将忽略最大内存,这意味着key的驱逐将由主服务器处理,将DEL命令发送到副本作为主服务器端驱逐的key,此行为可确保主从保持一致
-REPLICAOF no one:变成主服务器(原数据不丢失,一般用于主服失败后)
-
-ACL LIST: 显示服务器中活跃的ACL规则,每一行有一个不同的用户
-ACL CAT [category]: 如果不带参数将显示可用的ACL类别,如果给出类别将显示指定类别中所有Redis命令
-ACL DELUSER username [username ...]: 删除所有指定的ACL用户,并终止所有通过该用户认证的连接
-ACL SETUSER username [rule [rule ...]]: 修改现有用户/创建新用户规则,如果用户已存在,新规则将被合并到旧规则
-ACL GETUSER username: 返回为现有ACL用户定义的所有规则
-
-bgrewriteaof 手动触发AOF重写,Redis也会自动触发
-bgsave 后台开启子进程dump数据到RDB文件
-shutdown [nosave | save]: 关闭服务器,保存数据(If persistence is enabled),修改AOF(如果设置),NOSAVE会阻止DB保存操作
-flushdb: 清空当前数据库的所有数据
-flushall: 清空所有数据库数据
-
-config get parameter [parameter ...]: 读取正在运行的服务器的配置参数,支持通配符
-CONFIG SET parameter value [parameter value ...]: 在运行时重新配置服务器,并在下一条命令执行时生效
-config rewrite: 重写服务器启动时使用的redis.conf文件,即更新CONFIG SET命令
-
-dbsize: 当前数据库未过期key的数量
-INFO: 返回服务器统计信息,可以查看主从,内存/CPU使用,持久化,每个库使用情况/配置文件位置
-monitor: 显示redis处理的每个命令,运行单个MONITOR客户端可能会导致吞吐量降低50%以上,集群下该命令只会监控指定ip:port的redis实例
-
-SLOWLOG GET [count]: 获取慢查询日志,慢日志记录超过指定执行时间的查询,可选的count限制返回条目数量,-1表示返回所有条目
-SLOWLOG RESET: 清空慢日志
-LATENCY DOCTOR: 报告不同的延迟相关问题,并提供可能的补救措施
-LATENCY LATEST: 报告记录的最新延迟事件
-
-MEMORY DOCTOR: 报告服务器遇到的不同内存相关问题,并建议可能的补救措施
-MEMORY USAGE key [SAMPLES count]: 时间复杂度O(N),N是样本个数,报告键及其值需要存储在RAM中的字节数
-对于嵌套数据类型,可以提供可选的SAMPLES count选项,指定采样值数量,默认是5,SAMPLES 0对所有嵌套值进行采样
-127.0.0.1:6379> hlen hkey   // hkey有100w个字段,每个字段value长度介于1~1024字节
-(integer) 1000000
-127.0.0.1:6379> MEMORY usage hkey  //默认SAMPLES为5
-(integer) 521588753
-127.0.0.1:6379> MEMORY usage hkey SAMPLES 100  //指定SAMPLES为100
-(integer) 617977753
 ```
 
 ### set(唯一性,无序性)
