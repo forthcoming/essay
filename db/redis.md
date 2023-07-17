@@ -423,8 +423,8 @@ redis.register_function('my_hlastmodified', my_hlastmodified)
 ### server management
 
 ```
-REPLICAOF host port: 做host port的从服务器(数据清空,复制新主内容),默认情况下副本将忽略最大内存(除非在故障转移后或手动将其提升为主节点)
-这意味着key的驱逐将由主服务器处理,将DEL命令发送到副本作为主服务器端驱逐的key,此行为可确保主从保持一致
+REPLICAOF host port: 做host port的从服务器(数据清空,复制新主内容),一个master可以有多个slave,master挂掉后slave会升级为master
+默认情况下副本将忽略最大内存,这意味着key的驱逐将由主服务器处理,将DEL命令发送到副本作为主服务器端驱逐的key,此行为可确保主从保持一致
 REPLICAOF no one:变成主服务器(原数据不丢失,一般用于主服失败后)
 
 ACL LIST: 显示服务器中活跃的ACL规则,每一行有一个不同的用户
