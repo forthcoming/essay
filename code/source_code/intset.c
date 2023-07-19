@@ -187,7 +187,7 @@ intset *intsetAdd(intset *is, int64_t value, uint8_t *success) {
     /* Upgrade encoding if necessary. If we need to upgrade, we know that
      * this value should be either appended (if > 0) or prepended (if < 0),
      * because it lies outside the range of existing values. */
-    if (valenc > intrev32ifbe(is->encoding)) {
+    if (valenc > intrev32ifbe(is->encoding)) {  // 超出编码,需要升级
         /* This always succeeds, so we don't need to curry *success. */
         return intsetUpgradeAndAdd(is,value);
     } else {
@@ -195,12 +195,12 @@ intset *intsetAdd(intset *is, int64_t value, uint8_t *success) {
          * This call will populate "pos" with the right position to insert
          * the value when it cannot be found. */
         if (intsetSearch(is,value,&pos)) {  // 在当前intset中查找值与value一样的元素下标pos
-            if (success) *success = 0;
+            if (success) *success = 0;  // 如果找到了则无需插入
             return is;
         }
 
         is = intsetResize(is,intrev32ifbe(is->length)+1);  // 数组扩容
-        if (pos < intrev32ifbe(is->length)) intsetMoveTail(is,pos,pos+1);
+        if (pos < intrev32ifbe(is->length)) intsetMoveTail(is,pos,pos+1); // 把pos之后的所有元素整体向后移动一位
     }
 
     _intsetSet(is,pos,value);

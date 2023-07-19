@@ -19,7 +19,7 @@ struct __attribute__ ((__packed__)) sdshdr8 {
     uint8_t len; /* used */
     uint8_t alloc; /* excluding the header and null terminator */
     unsigned char flags; /* 3 lsb of type, 5 unused bits */
-    char buf[];  // flexible array member must at end of struct.不占用内存空间,sizeof将忽略它
+    char buf[];
 };
 struct __attribute__ ((__packed__)) sdshdr16 {
     uint16_t len; /* used */
@@ -37,7 +37,7 @@ struct __attribute__ ((__packed__)) sdshdr64 {
     uint64_t len; /* buf字符串的真正长度,不包括末尾的\0 */
     uint64_t alloc; /* 不包括末尾\0的字符串的最大容量,excluding the header and null terminator */
     unsigned char flags; /* 总是占用一个字节,其中的最低3个bit用来表示header的类型*/
-    char buf[];
+    char buf[];   // flexible array member must at end of struct.不占用内存空间,sizeof将忽略它
 };
 
 /*
@@ -308,9 +308,9 @@ sds sdsMakeRoomFor(sds s, size_t addlen) {  // 扩充已有sds的可用空间为
     len = sdslen(s);
     sh = (char*)s-sdsHdrSize(oldtype);
     newlen = (len+addlen);
-    if (newlen < SDS_MAX_PREALLOC)
+    if (newlen < SDS_MAX_PREALLOC) // 如果新字符串小于1M,则新空间大小为新字符串长度的2倍加1
         newlen *= 2;
-    else
+    else  // 如果新字符串大于1M,则新空间大小为新字符串长度加1M加1
         newlen += SDS_MAX_PREALLOC;
 
     type = sdsReqType(newlen);

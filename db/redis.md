@@ -3,8 +3,19 @@
 ```
 OBJECT IDLETIME key: 返回自上次访问key以来的时间(单位秒),仅当maxmemory-policy设置为LFU策略之一时该命令才可用
 OBJECT FREQ key: 返回key的对数访问频率计数器,仅当maxmemory-policy设置为LFU策略之一时该命令才可用
-OBJECT ENCODING key: 返回key对象的内部编码,字符串可编码如下,其余类型可编码结构参考配置文件
-embstr: 嵌入字符串,44个字节以内的字符串; raw: 正常的字符串; int: 64位有符号整数的字符串
+OBJECT ENCODING key: 返回key对象的内部编码
+string: 64位有符号整数为int编码,44个字节以内(object head与sds是一段连续空间,只需申请一次内存,效率更高)为embstr编码,其余为raw编码
+list: listpack编码
+set: 集合较小(参考配置文件)时为intset或者listpack编码,集合较大时为hashtable编码
+zset: 集合较小(参考配置文件)时为listpack编码,集合较大时为skiplist编码(隐含了hashtable编码,但不会显示出来)
+hash: 集合较小(参考配置文件)时为listpack编码,集合较大时为hashtable编码
+struct redisObject {  // redis中任意数据类型的key,value都会被封装为一个redisObject对象
+    unsigned type:4;  // 对象类型,包含string、list、set、zset、hash
+    unsigned encoding:4; // 编码类型,如raw、int、listpack、hashtable、embstr、skiplist、intset等
+    unsigned lru:24; // 低8位记录逻辑访问次数(LFU),高16位以分钟为单位记录最近一次访问时间(LRU)
+    int refcount;  // 对象引用计数
+    void *ptr;   // 对象存储的数据,特别的int编码时直接存到ptr即可
+};
 
 debug sleep 1: 模拟耗时操作,很有用
 type key: 返回key类型 (eg:string, list, set, zset, hash and stream)
