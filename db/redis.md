@@ -7,8 +7,8 @@ OBJECT ENCODING key: 返回key对象的内部编码
 string: 64位有符号整数为int编码,44个字节以内(object head与sds是一段连续空间,只需申请一次内存,效率更高)为embstr编码,其余为raw编码
 list: listpack编码
 set: 集合较小(参考配置文件)时为intset或者listpack编码,集合较大时为hashtable编码
-zset: 集合较小(参考配置文件)时为listpack编码,集合较大时为skiplist编码(隐含了hashtable编码,但不会显示出来)
-hash: 集合较小(参考配置文件)时为listpack编码,集合较大时为hashtable编码
+zset: 集合较小(参考配置文件)时为listpack编码,score-member存储为2个相邻的entry,集合较大时为skiplist编码(隐含了hashtable编码)
+hash: 集合较小(参考配置文件)时为listpack编码,field-value存储为2个相邻的entry,集合较大时为hashtable编码
 struct redisObject {  // redis中任意数据类型的key,value都会被封装为一个redisObject对象
     unsigned type:4;  // 对象类型,包含string、list、set、zset、hash
     unsigned encoding:4; // 编码类型,如raw、int、listpack、hashtable、embstr、skiplist、intset等
