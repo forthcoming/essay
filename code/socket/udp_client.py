@@ -6,4 +6,3 @@ for data in [b'Michael', b'Tracy', b'Sarah']:
     print(client.recv(1024))  # 从服务器接收数据仍然调用recv()方法
 
 client.close()
-# 服务器绑定UDP端口和TCP端口互不冲突,也就是说,UDP的9999端口与TCP的9999端口可以各自绑定
