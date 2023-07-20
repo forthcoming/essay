@@ -43,14 +43,14 @@ class IOMultiplexing:  # IO多路复用
         # 相当于epoll_ctl的EPOLL_CTL_ADD,让accept关联server
         self.selector.register(server_sock, selectors.EVENT_READ, self.accept)
 
-    def accept(self, server_sock, mask):  # 回调函数,用于处理新连接的客户端套接字
+    def accept(self, server_sock, events):  # 回调函数,用于处理新连接的客户端套接字
         client_sock, addr = server_sock.accept()
         print(f"Accepted connection from {addr}")
         client_sock.setblocking(False)
         client_sock.send(b'Welcome!')
         self.selector.register(client_sock, selectors.EVENT_READ, self.read)
 
-    def read(self, client_sock, mask):  # 回调函数,用于处理客户端套接字的写事件
+    def read(self, client_sock, events):  # 回调函数,用于处理客户端套接字的写事件
         data = client_sock.recv(1024)
         if data:
             print(f"Received data from {client_sock.getpeername()}")
@@ -62,10 +62,10 @@ class IOMultiplexing:  # IO多路复用
 
     def start(self):
         while True:
-            events = self.selector.select()  # 相当于epoll_wait,等待I/O事件发生
-            for key, mask in events:  # mask就是register时指定的EVENT_READ或EVENT_WRITE
-                callback = key.data
-                callback(key.fileobj, mask)  # 调用相应的回调函数处理事件
+            ready = self.selector.select()  # 相当于epoll_wait,等待已注册文件对象准备就绪或超时到期
+            for selector_key, events in ready:  # events就是register时指定的EVENT_READ或EVENT_WRITE
+                callback = selector_key.data
+                callback(selector_key.fileobj, events)  # 调用相应的回调函数处理事件
 
 
 if __name__ == "__main__":
