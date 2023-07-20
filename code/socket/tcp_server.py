@@ -17,7 +17,7 @@ def tcp_link(sock, addr):
 
 
 def main():
-    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # AF_INET指定使用IPv4协议,SOCK_STREAM指定使用面向流的TCP协议
     server.bind(('127.0.0.1', 9999))  # 监听端口,0.0.0.0表示绑定到所有的网络地址
     server.listen(5)  # 调用listen()方法开始监听端口,传入的参数指定等待连接的最大数量
     while True:  # 服务器程序通过一个永久循环来接受来自客户端的连接,accept()会等待并返回一个客户端的连接
