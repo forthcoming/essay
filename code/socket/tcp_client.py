@@ -1,15 +1,13 @@
 import socket
 
 
-def tcp_client():
-    client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client.connect(('127.0.0.1', 9999))  # 参数类型是tuple
-    print(client.recv(1024))  # 接收欢迎消息
+def start_client():
+    client_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    client_sock.connect(('127.0.0.1', 9999))  # 参数类型是tuple
+    print(client_sock.recv(1024))  # 接收欢迎消息
     for data in [b'Michael', b'Tracy', b'Sarah']:
-        client.send(data)
-        print(client.recv(1024))  # 一次最多接收指定的字节数
-    client.send(b'exit')
-    client.close()  # 关闭连接
+        client_sock.send(data)
+        print(client_sock.recv(1024))  # 一次最多接收指定的字节数
 
 
 def http_request():
@@ -34,4 +32,4 @@ def http_request():
 
 
 if __name__ == "__main__":
-    tcp_client()
+    start_client()
