@@ -9,7 +9,6 @@ import os
 import pickle
 import random
 import re
-import socket
 import struct
 import sys
 import time
@@ -23,6 +22,8 @@ from subprocess import run, PIPE
 from threading import Lock
 
 import pandas as pd
+
+import socket
 
 """
 python运算符优先级如下, 与传统c语言运算符优先级有区别
@@ -327,6 +328,12 @@ def common_tutorial():
     print("content", end="\t", flush=True)  # flush=True意思是不缓存,有内容则输出
     print(None is None)  # None用is判断,速度更快,还防止__eq__风险,不建议用==
     print(sys.getsizeof([]))  # Return the size of object in bytes.
+
+    a, b, c, d = 255, 98, 16, 1
+    ip = f"{a}.{b}.{c}.{d}"
+    ip_byte_str = socket.inet_aton(ip)
+    assert socket.inet_ntoa(ip_byte_str) == ip
+    assert struct.unpack(">I", ip_byte_str)[0] == (a << 24) + (b << 16) + (c << 8) + d
 
     x = 1
     print(eval('x+1'), x)  # 2, 1  执行字符串形式的表达式,返回执行结果
