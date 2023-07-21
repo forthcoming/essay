@@ -16,9 +16,10 @@ class BlockingIO:  # 阻塞IO
     def tcp_link(client_sock, addr):
         print('Accept new connection from {}:{}...'.format(*addr))
         client_sock.send(b'Welcome!')  # 必须是byte类型
-        while True:   # 新建一个与客户端关联的socket,再接收和发送数据
+        while True:  # 新建一个与客户端关联的socket,再接收和发送数据
             data = client_sock.recv(1024)
             if data:
+                # time.sleep(1.8)  # 测试客户端socket超时
                 client_sock.send(f'Hello, {data.decode()}'.encode())  # 如何需要发送多种类型的数据,可考虑用struct.pack
             else:
                 client_sock.close()

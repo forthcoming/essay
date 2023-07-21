@@ -2,8 +2,10 @@ import socket
 
 
 def start_client():
-    client_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    client_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # 套接字对象可以处于阻塞、非阻塞或超时模式之一,默认阻塞模式
+    client_sock.settimeout(1)
     client_sock.connect(('127.0.0.1', 9999))  # 参数类型是tuple
+    client_sock.settimeout(2)
     print(client_sock.recv(1024))  # 接收欢迎消息
     for data in [b'Michael', b'Tracy', b'Sarah']:
         client_sock.send(data)
