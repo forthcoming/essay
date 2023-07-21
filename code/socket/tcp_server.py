@@ -42,7 +42,7 @@ class IOMultiplexing:  # IO多路复用
         # 选择最佳实现, epoll|kqueue|devpoll > poll > select, macOS下为kqueue,Linux下为epoll
         self.selector = selectors.DefaultSelector()  # 相当于epoll_create
         # 相当于epoll_ctl的EPOLL_CTL_ADD,让accept关联server
-        self.selector.register(server_sock, selectors.EVENT_READ, self.accept)
+        self.selector.register(server_sock, selectors.EVENT_READ, self.accept)  # 此处的EVENT_READ和EVENT_WRITE什么区别
 
     def accept(self, server_sock):  # 回调函数,用于处理新连接的客户端套接字
         client_sock, addr = server_sock.accept()
