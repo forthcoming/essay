@@ -618,7 +618,7 @@ def arguments_tutorial():
 
     def test_default(element, num=number, /, *, arr=[], arr1=None):
         """
-        positional only argument(/): 前面的参数必须是未知参数
+        positional only argument(/): 前面的参数必须是位置参数
         keyword only argument(*): 后面的参数必须是关键字参数
         默认值在函数定义时已被确定,如果默认值是一个可变对象如列表,字典,大多类对象时,函数在随后调用中会累积参数值
         """
