@@ -795,8 +795,8 @@ def query(cmd):
 def test():
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.connect(("127.0.0.1", 6379))
-    sock.send(query("set name avatar"))
-    print(sock.recv(1024))  # b'+OK\r\n', 返回结果解析麻烦点,涉及到递归
-    sock.send(query("get name"))
-    print(sock.recv(1024))  # b'$6\r\navatar\r\n'
+    sock.send(query("mset name 涛哥 age 18"))
+    print(sock.recv(1024).decode().split())  # ['+OK'], 返回结果解析麻烦点,涉及到递归
+    sock.send(query("mget name age"))
+    print(sock.recv(1024).decode().split())  # ['*2', '$6', '涛哥', '$2', '18']
 ```
