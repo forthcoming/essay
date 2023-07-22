@@ -710,24 +710,24 @@ aof由基础文件和增量文件组成,新版redis基本文件是rdb格式
 // server.c
 int main(...){
     // ...
-	initServer();  // 初始化服务
-	aeMain(server.el);  // 开始监听事件循环
+    initServer();  // 初始化服务
+    aeMain(server.el);  // 开始监听事件循环
 }
 
 void initServer(void){
-	server.el = aeCreateEventLoop(server.maxclients+CONFIG_FDSET_INCR); // 内部调用aeApiCreate(eventLoop),类似于epoll_create
-	listenToPort(server.port,&server.ipfd); // 创建serverSocket,得到fd,监听TCP端口
-	createSocketAcceptHandler(&server.ipfd,acceptTcpHandler);  // 内部调用aeApiAddEvent(&server.ipfd),类似于epoll_ctl,将新连接请求交给acceptTcpHandler
-	aeSetBeforeSleepProc(server.el,beforeSleep);   // 执行epoll_wait前的准备工作
+    server.el = aeCreateEventLoop(server.maxclients+CONFIG_FDSET_INCR); // 内部调用aeApiCreate(eventLoop),类似于epoll_create
+    listenToPort(server.port,&server.ipfd); // 创建serverSocket,得到fd,监听TCP端口
+    createSocketAcceptHandler(&server.ipfd,acceptTcpHandler);  // 内部调用aeApiAddEvent(&server.ipfd),类似于epoll_ctl,将新连接请求交给acceptTcpHandler
+    aeSetBeforeSleepProc(server.el,beforeSleep);   // 执行epoll_wait前的准备工作
 } 
 
 void acceptTcpHandler(...){
-	fd = accept(s,sa,len);  // 接收socket连接,获取fd
-	// ...
-	connection *conn=connCreateSocket(); // 创建connection,关联fd
-	conn.fd=fd;
-	//... 
-	connSetReadHandler(conn,readQueryFromClient);  // 内部调用aeApiAddEvent(fd,READABLE),监听socket的fd读事件,并绑定读处理器readQueryFromClient
+    fd = accept(s,sa,len);  // 接收socket连接,获取fd
+    // ...
+    connection *conn=connCreateSocket(); // 创建connection,关联fd
+    conn.fd=fd;
+    //... 
+    connSetReadHandler(conn,readQueryFromClient);  // 内部调用aeApiAddEvent(fd,READABLE),监听socket的fd读事件,并绑定读处理器readQueryFromClient
 }
 
 void readQueryFromClient(connection *conn){
@@ -739,9 +739,9 @@ void readQueryFromClient(connection *conn){
 }
 
 int processCommand(client *c){
-	c->cmd=c->lastcmd=lookupCommand(c->argv[0]->ptr);  // 根据命令名称,寻找命令对应的command,例如ping命令对应pingCommand
-	c->cmd->proc(c);  // 执行command,得到响应结果
-	addReply(c,shared.pong);  // 把执行结果保存到shared.pong,例如ping,shared.pong保存"pong"的sds字符串
+    c->cmd=c->lastcmd=lookupCommand(c->argv[0]->ptr);  // 根据命令名称,寻找命令对应的command,例如ping命令对应pingCommand
+    c->cmd->proc(c);  // 执行command,得到响应结果
+    addReply(c,shared.pong);  // 把执行结果保存到shared.pong,例如ping,shared.pong保存"pong"的sds字符串
 }
 
 void addReply(client *c,robj *obj){
@@ -751,27 +751,28 @@ void addReply(client *c,robj *obj){
 }
 
 void beforeSleep(struct aeEventLoop *eventLoop){
-	listIter li;  // 定义迭代器,指向server.clients_pending_write->head
-	li->next=server.clients_pending_write->head;
-	li->direction=AL_START_HEAD;
-	while(ln=listNext(&li)){  // 遍历待写出的client
-	    // 内部调用aeApiAddEvent(fd,WRITEABLE),监听socket的fd读事件,且绑定写处理器sendReplyToClient,可以把响应写到客户端socket
-	    connSetWriteHandlerWithBarrier(c->conn,sendReplyToClient,ae_barrier);
-	}
+    listIter li;  // 定义迭代器,指向server.clients_pending_write->head
+    li->next=server.clients_pending_write->head;
+    li->direction=AL_START_HEAD;
+    while(ln=listNext(&li)){  // 遍历待写出的client
+        // 内部调用aeApiAddEvent(fd,WRITEABLE),监听socket的fd读事件,且绑定写处理器sendReplyToClient,可以把响应写到客户端socket
+        connSetWriteHandlerWithBarrier(c->conn,sendReplyToClient,ae_barrier);
+    }
 }
 
 void aeMain(aeEventLoop *eventLoop){
-	eventLoop->stop=0;
-	while(!eventLoop->stop){
-	    aeProcessEvents(eventLoop,AE_ALL_EVENTS|AE_CALL_BEFORE_SLEEP|AE_CALL_AFTER_SLEEP);
-	}
+    eventLoop->stop=0;
+    while(!eventLoop->stop){
+        aeProcessEvents(eventLoop,AE_ALL_EVENTS|AE_CALL_BEFORE_SLEEP|AE_CALL_AFTER_SLEEP);
+    }
 }
+
 int aeProcessEvents(aeEventLoop *eventLoop,int flags){
-	eventLoop->beforesleep(eventLoop);   // 调用前置处理器
-	numevents=aeApiPoll(eventLoop,tvp);  // 等待fd就绪,类似于epoll_wait
-	for(j=0;j<numevents;j++){
+    eventLoop->beforesleep(eventLoop);   // 调用前置处理器
+    numevents=aeApiPoll(eventLoop,tvp);  // 等待fd就绪,类似于epoll_wait
+    for(j=0;j<numevents;j++){
         // 遍历处理就绪的fd,调用对应的处理器
-	}
+    }
 }
 ```
 
