@@ -778,8 +778,8 @@ int aeProcessEvents(aeEventLoop *eventLoop,int flags){
 
 ![Image](source/redis网络模型.png)
 
-
 ### RESP协议
+
 ```python
 import socket
 
@@ -799,4 +799,44 @@ def test():
     sock.connect(("127.0.0.1", 6379))
     print(query(sock, "mset name 涛哥 age 18"))  # ['+OK']
     print(query(sock, "mget name age"))  # ['*2', '$6', '涛哥', '$2', '18']
+```
+
+### 常见结构体
+
+```c
+typedef struct redisDb{
+    dict *dict;   // 存放所有的key-value,也叫keyspace
+    dict *expires;  // 存放每一个key及其TTL存活时间,只包含设置了TTL的key
+    dict *blocking_keys;  // keys with clients waiting for data (BLPOP)
+    dict *ready_keys;  // blocked keys that received a PUSH
+    dict *watched_keys;  // WATCHED keys for MULTI?EXEC CAS
+    int id;    // database id, 0~15
+    long long avg_ttl;  // ttl平均值
+    unsigned long expires_cursor;  // expire检查时在dict中抽样的索引位置
+    list *defrag_later    // 等待碎片整理的key列表
+} redisDb;
+
+typedef struct client {  // 客户端结构体,部分不重要属性已被删除
+    uint64_t id;            /* Client incremental unique ID. */
+    uint64_t flags;         /* Client flags: CLIENT_* macros. */
+    connection *conn;
+    int resp;               /* RESP protocol version. Can be 2 or 3. */
+    redisDb *db;            /* Pointer to currently SELECTed DB. */
+    robj *name;             /* As set by CLIENT SETNAME. */
+    sds querybuf;           /* Buffer we use to accumulate client queries. */
+    int argc;               /* Num of arguments of current command. */
+    robj **argv;            /* Arguments of current command. */
+    int argv_len;           /* Size of argv array (may be more than argc) */
+    size_t argv_len_sum;    /* Sum of lengths of objects in argv list. */
+    struct redisCommand *cmd, *lastcmd;  /* Last command executed. */
+    list *reply;            /* List of reply objects to send to the client. */
+    time_t ctime;           /* Client creation time. */
+    long duration;          /* Current command duration. Used for measuring latency of blocking/non-blocking cmds */
+    int slot;               /* The slot the client is executing against. Set to -1 if no slot is being used */
+    multiState mstate;      /* MULTI/EXEC state */
+    list *watched_keys;     /* Keys WATCHED for MULTI/EXEC CAS */
+    dict *pubsub_channels;  /* channels a client is interested in (SUBSCRIBE) */
+    dict *pubsub_patterns;  /* patterns a client is interested in (PSUBSCRIBE) */
+    size_t buf_usable_size; /* Usable size of buffer. */
+} client;
 ```
