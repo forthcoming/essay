@@ -745,7 +745,7 @@ int processCommand(client *c){
 }
 
 void addReply(client *c,robj *obj){
-    if (_addReplyToBuffer(c,obj->str,sdslen(obj->ptr))!=C_OK)  // 尝试把结果写到c->buf客户端写缓冲区,、
+    if (_addReplyToBuffer(c,obj->str,sdslen(obj->ptr))!=C_OK)  // 尝试把结果写到c->buf客户端写缓冲区
         _addReplyProtoToList(c,obj->str,sdslen(obj->ptr));  // 如果c->buf写不下,则写到c->reply,这是个链表,容量无限大
     listAddNodeHead(server.clients_pending_write,c);  // 将客户端添加到clients_pending_write这个队列,等待被写出
 }
