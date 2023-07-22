@@ -9,13 +9,6 @@ list: listpack编码
 set: 集合较小(参考配置文件)时为intset或者listpack编码,集合较大时为hashtable编码
 zset: 集合较小(参考配置文件)时为listpack编码,score-member存储为2个相邻的entry,集合较大时为skiplist编码(隐含了hashtable编码)
 hash: 集合较小(参考配置文件)时为listpack编码,field-value存储为2个相邻的entry,集合较大时为hashtable编码
-struct redisObject {  // redis中任意数据类型的key,value都会被封装为一个redisObject对象
-    unsigned type:4;  // 对象类型,包含string、list、set、zset、hash
-    unsigned encoding:4; // 编码类型,如raw、int、listpack、hashtable、embstr、skiplist、intset等
-    unsigned lru:24; // 低8位记录逻辑访问次数(LFU),高16位以分钟为单位记录最近一次访问时间(LRU)
-    int refcount;  // 对象引用计数
-    void *ptr;   // 对象存储的数据,特别的int编码时直接存到ptr即可
-};
 
 debug sleep 1: 模拟耗时操作,很有用
 type key: 返回key类型 (eg:string, list, set, zset, hash and stream)
@@ -33,7 +26,7 @@ expire key seconds [NX | XX | GT | LT],所有涉及更新key值的操作不会�
 密钥过期信息存储为绝对Unix时间戳,这意味着即使Redis实例不活动,时间也在流动,为了使过期功能正常工作,计算机时间必须保持稳定
 即使正在运行的实例也会始终检查计算机时钟,如果您将key生存时间设置为1000秒,然后将计算机时间设置为未来2000秒,则该key将立即过期
 key过期机制如下
-key被动过期: 当某个客户端尝试访问它时,发现key超时
+key被动过期: 当某个客户端尝试访问它时,发现key过期就删除(具体实现是expireIfNeeded)
 key主动过期: 定期(每秒10次,由配置变量hz控制)在设置了过期时间的key中随机测试一些(20个)键,所有已过期的key都将被删除,如果超过1/4的key已过期,再重新开始
 内存淘汰机制: 由配置变量maxmemory-policy控制,常用策略allkeys-lru、volatile-lru等
 
@@ -739,6 +732,13 @@ void readQueryFromClient(connection *conn){
 }
 
 int processCommand(client *c){
+    if(server.maxmemory && !server.lua_timeout){  // 如果设置了maxmemory属性且并未有执行lua脚本
+        int out_of_memory = (performEvictions()==EVICT_FAIL);  // 尝试进行内存淘汰performEvictions
+        if(out_of_memory && reject_cmd_on_oom){
+            rejectCommand(c,shared.oomerr);
+            return C_OK;
+        }
+    }
     c->cmd=c->lastcmd=lookupCommand(c->argv[0]->ptr);  // 根据命令名称,寻找命令对应的command,例如ping命令对应pingCommand
     c->cmd->proc(c);  // 执行command,得到响应结果
     addReply(c,shared.pong);  // 把执行结果保存到shared.pong,例如ping,shared.pong保存"pong"的sds字符串
@@ -804,6 +804,14 @@ def test():
 ### 常见结构体
 
 ```c
+struct redisObject {  // redis中任意数据类型的key,value都会被封装为一个redisObject对象
+    unsigned type:4;  // 对象类型,包含string、list、set、zset、hash
+    unsigned encoding:4; // 编码类型,如raw、int、listpack、hashtable、embstr、skiplist、intset等
+    unsigned lru:24; // 低8位记录逻辑访问次数(LFU),高16位以分钟为单位记录最近一次访问时间(LRU)
+    int refcount;  // 对象引用计数
+    void *ptr;   // 对象存储的数据,特别的int编码时直接存到ptr即可
+};
+
 typedef struct redisDb{
     dict *dict;   // 存放所有的key-value,也叫keyspace
     dict *expires;  // 存放每一个key及其TTL存活时间,只包含设置了TTL的key
