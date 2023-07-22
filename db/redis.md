@@ -784,19 +784,19 @@ int aeProcessEvents(aeEventLoop *eventLoop,int flags){
 import socket
 
 
-def query(cmd):
+def query(sock, cmd):
+    # RESP2.0协议中"+": 单行字符串, ":": 数字, "-": 异常, "*": 数组, "$": 多行字符
     cmd_array = cmd.split()
     encoded_cmd = f"*{len(cmd_array)}\r\n"
     for arg in cmd_array:
         encoded_cmd = f"{encoded_cmd}${len(arg.encode())}\r\n{arg}\r\n"  # *3代表数组长度为3,$3代表字符串长度为3
-    return encoded_cmd.encode()
+    sock.send(encoded_cmd.encode())
+    return sock.recv(4096).decode().split()  # 返回结果解析麻烦点,涉及到递归,如何保证读完所有缓冲区数据???
 
 
 def test():
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.connect(("127.0.0.1", 6379))
-    sock.send(query("mset name 涛哥 age 18"))
-    print(sock.recv(1024).decode().split())  # ['+OK'], 返回结果解析麻烦点,涉及到递归
-    sock.send(query("mget name age"))
-    print(sock.recv(1024).decode().split())  # ['*2', '$6', '涛哥', '$2', '18']
+    print(query(sock, "mset name 涛哥 age 18"))  # ['+OK']
+    print(query(sock, "mget name age"))  # ['*2', '$6', '涛哥', '$2', '18']
 ```
