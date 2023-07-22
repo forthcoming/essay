@@ -779,4 +779,24 @@ int aeProcessEvents(aeEventLoop *eventLoop,int flags){
 ![Image](source/redis网络模型.png)
 
 
+### RESP协议
+```python
+import socket
 
+
+def query(cmd):
+    cmd_array = cmd.split()
+    encoded_cmd = f"*{len(cmd_array)}\r\n"
+    for arg in cmd_array:
+        encoded_cmd = f"{encoded_cmd}${len(arg.encode())}\r\n{arg}\r\n"  # *3代表数组长度为3,$3代表字符串长度为3
+    return encoded_cmd.encode()
+
+
+def test():
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.connect(("127.0.0.1", 6379))
+    sock.send(query("set name avatar"))
+    print(sock.recv(1024))  # b'+OK\r\n', 返回结果解析麻烦点,涉及到递归
+    sock.send(query("get name"))
+    print(sock.recv(1024))  # b'$6\r\navatar\r\n'
+```
