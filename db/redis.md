@@ -704,5 +704,78 @@ aof由基础文件和增量文件组成,新版redis基本文件是rdb格式
 避免在RDB快照操作正在进行时触发AOF重写,或者在AOF重写正在进行时允许BGSAVE,这可以防止两个Redis后台进程同时执行大量磁盘I/O
 ```
 
+### Redis网络模型
+
+```c
+// server.c
+int main(...){
+    // ...
+	initServer();  // 初始化服务
+	aeMain(server.el);  // 开始监听事件循环
+}
+
+void initServer(void){
+	server.el = aeCreateEventLoop(server.maxclients+CONFIG_FDSET_INCR); // 内部调用aeApiCreate(eventLoop),类似于epoll_create
+	listenToPort(server.port,&server.ipfd); // 创建serverSocket,得到fd,监听TCP端口
+	createSocketAcceptHandler(&server.ipfd,acceptTcpHandler);  // 内部调用aeApiAddEvent(&server.ipfd),类似于epoll_ctl,将新连接请求交给acceptTcpHandler
+	aeSetBeforeSleepProc(server.el,beforeSleep);   // 执行epoll_wait前的准备工作
+} 
+
+void acceptTcpHandler(...){
+	fd = accept(s,sa,len);  // 接收socket连接,获取fd
+	// ...
+	connection *conn=connCreateSocket(); // 创建connection,关联fd
+	conn.fd=fd;
+	//... 
+	connSetReadHandler(conn,readQueryFromClient);  // 内部调用aeApiAddEvent(fd,READABLE),监听socket的fd读事件,并绑定读处理器readQueryFromClient
+}
+
+void readQueryFromClient(connection *conn){
+    client *c=connGetPrivateData(conn);  // 获取当前客户端,客户端有缓冲区用来读和写
+    long int qblen = sdslen(c->querybuf);  // 获取缓冲区大小
+    connRead(c->conn,c->querybuf+qblen,readlen);  // 读取请求数据到c->querybuf缓冲区
+    processInputBuffer(c);  // 解析缓冲区字符串,转为redis命令参数存入c->argv数组
+    processCommand(c);  // 处理c->argv中的命令
+}
+
+int processCommand(client *c){
+	c->cmd=c->lastcmd=lookupCommand(c->argv[0]->ptr);  // 根据命令名称,寻找命令对应的command,例如ping命令对应pingCommand
+	c->cmd->proc(c);  // 执行command,得到响应结果
+	addReply(c,shared.pong);  // 把执行结果保存到shared.pong,例如ping,shared.pong保存"pong"的sds字符串
+}
+
+void addReply(client *c,robj *obj){
+    if (_addReplyToBuffer(c,obj->str,sdslen(obj->ptr))!=C_OK)  // 尝试把结果写到c->buf客户端写缓冲区,、
+        _addReplyProtoToList(c,obj->str,sdslen(obj->ptr));  // 如果c->buf写不下,则写到c->reply,这是个链表,容量无限大
+    listAddNodeHead(server.clients_pending_write,c);  // 将客户端添加到clients_pending_write这个队列,等待被写出
+}
+
+void beforeSleep(struct aeEventLoop *eventLoop){
+	listIter li;  // 定义迭代器,指向server.clients_pending_write->head
+	li->next=server.clients_pending_write->head;
+	li->direction=AL_START_HEAD;
+	while(ln=listNext(&li)){  // 遍历待写出的client
+	    // 内部调用aeApiAddEvent(fd,WRITEABLE),监听socket的fd读事件,且绑定写处理器sendReplyToClient,可以把响应写到客户端socket
+	    connSetWriteHandlerWithBarrier(c->conn,sendReplyToClient,ae_barrier);
+	}
+}
+
+void aeMain(aeEventLoop *eventLoop){
+	eventLoop->stop=0;
+	while(!eventLoop->stop){
+	    aeProcessEvents(eventLoop,AE_ALL_EVENTS|AE_CALL_BEFORE_SLEEP|AE_CALL_AFTER_SLEEP);
+	}
+}
+int aeProcessEvents(aeEventLoop *eventLoop,int flags){
+	eventLoop->beforesleep(eventLoop);   // 调用前置处理器
+	numevents=aeApiPoll(eventLoop,tvp);  // 等待fd就绪,类似于epoll_wait
+	for(j=0;j<numevents;j++){
+        // 遍历处理就绪的fd,调用对应的处理器
+	}
+}
+```
+
+![Image](source/redis网络模型.png)
+
 
 

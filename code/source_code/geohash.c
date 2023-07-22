@@ -14,6 +14,7 @@ typedef struct client {  // 客户端结构体,部分不重要属性已被删除
     int resp;               /* RESP protocol version. Can be 2 or 3. */
     redisDb *db;            /* Pointer to currently SELECTed DB. */
     robj *name;             /* As set by CLIENT SETNAME. */
+    sds querybuf;           /* Buffer we use to accumulate client queries. */
     int argc;               /* Num of arguments of current command. */
     robj **argv;            /* Arguments of current command. */
     int argv_len;           /* Size of argv array (may be more than argc) */

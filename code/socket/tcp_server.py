@@ -2,6 +2,70 @@ import selectors
 import socket
 from concurrent.futures import ThreadPoolExecutor
 
+"""
+计算机硬件主要包含CPU,网卡,内存,磁盘等,内核(系统应用)可以通过驱动操作硬件,用户应用没法直接操作硬件
+为了安全系统把寻址空间划分为内核空间和用户空间即不同区域的内存,内存地址的每一个值代表一个字节
+linux为了提高效率,会在用户空间和内核空间加入缓冲区
+写数据时,把用户缓冲区数据拷贝到内核缓冲区,然后写入设备;读数据时,从设备读取数据到内核缓冲区,然后再拷贝到用户缓冲区
+LinuxIO模型分为阻塞IO,非阻塞IO,IO多路复用,信号驱动IO,异步IO,这五种IO模型主要是针对数据等待与拷贝做的不同优化
+阻塞IO:读取数据时等待数据到来和把数据从内核空间拷贝到用户空间
+非阻塞IO:指数据还未到达网卡,或到达网卡但还没拷贝到内核缓冲区,这个阶段是非阻塞,读取数据时如果数据未就绪就立即返回,数据就绪时依然会阻塞等待数据从内核空间拷贝到用户空间
+IO多路复用:分为select,poll,epoll,kqueue等实现
+select缺点: 需要将整个fd_set从用户空间拷贝到内核空间,select结束再拷贝回用户空间,且fd_set监听的fd数量不能超过1024
+typedef long int __fd_mask;
+typedef struct{
+    __fd_mask fds_bits[__FD_SETSIZE / __NFDBITS]; // long型数组,长度为1024/32=32,共1024个比特位,每一位代表一个fd,1就绪,0为就绪
+    // ...
+} fd_set;
+int select(  // select函数用于监听多个fd集合
+    int nfds,  // 要监听的fd_set的最大fd+1
+    fd_set *readfds,  // 监听读事件的fd
+    fd_set *writefds,  // 监听写事件的fd
+    fd_set *exceptfds,   // 监听异常事件的fd
+    struct timeval *timeout // select超时时间,null永不超时,0不阻塞等待,大于0固定等待时间
+);  // 有fd准备就绪时,会把fd_set中未就绪的fd比特位置为0,返回就绪的fd个数
+
+poll:与select没有本质区别,也需要将整个pollfd从用户空间拷贝到内核空间,poll结束再拷贝回用户空间,只不过监听的fd数量理论上没有限制了 
+#define POLLIN    // 可读事件
+#define POLLOUT   // 可写事件
+#define POLLERR   // 错误事件
+#define POLLNVAL  // fd未打开事件
+struct pollfd{
+    int fd;   // 监听的fd
+    short int events;   // 监听的事件类型,读、写、异常
+    short int revents;  // 实际发生的事件类型
+}
+int poll(
+    struct pollfd *fds,  // pollfd数组,可自定义大小
+    nfds_t nfds,  // 数组元素个数
+    int timeout  // 超时时间
+)  // 有fd准备就绪时返回就绪fd数量
+
+epoll:
+struct eventpoll{
+    struct rb_root rbr; // 一颗红黑树,记录要监听的fd
+    struct list_head rdlist;  // 一个链表,记录就绪的fd
+    // ...
+}
+int epoll_create(int size);  // 在内核创建eventpoll结构体,返回对应的句柄epfd
+int epoll_ctl( // 将一个fd添加到epoll红黑树中,并设置ep_poll_callback,触发时把对应的fd加入到rdlist这个就绪列表中
+    int epfd,   // epoll实例的句柄
+    int op,   // 要执行的操作,包括ADD,MOD,DEL
+    int fd,   // 要监听的fd
+    struct epoll_event *event  // 监听的事件类型,包括读、写、异常等
+)
+LevelTriggered: 简称LT,默认模式,当fd就绪时,会重复通知多次, 直至数据处理完成
+EdgeTriggered: 简称ET,当fd就绪时,只会通知一次, 不管数据是否处理完成
+int epoll_wait(  // 检测rdlist列表是否为空,不为空则返回就绪的fd数量
+    int epfd,  // epoll实例的句柄
+    struct epoll_event *events,  // 空event数组,用于接收就绪的fd
+    int maxevents,  // events数组最大长度
+    int timeout  // 超时时间,-1永不超时,0不阻塞,大于0固定等待时间
+)
+
+异步IO:https://docs.python.org/zh-cn/3.11/library/asyncio-stream.html
+"""
+
 
 class BlockingIO:  # 阻塞IO
     def __init__(self, ip='127.0.0.1', port=9999):
@@ -27,7 +91,8 @@ class BlockingIO:  # 阻塞IO
                 break
 
     def start(self):
-        with ThreadPoolExecutor(10) as executor:  # 每个连接用线程处理,否则在处理连接过程中无法接受其他客户端连接
+        # 每个阻塞fd用线程处理,也可以只用一个线程循环遍历所有的非阻塞fd,模拟IO多路复用,但应为不断执行系统调用(空间切换)效率慢
+        with ThreadPoolExecutor(10) as executor:
             while True:
                 client_sock, addr = self.server_sock.accept()  # 等待并返回一个客户端的连接
                 executor.submit(BlockingIO.tcp_link, client_sock, addr)
