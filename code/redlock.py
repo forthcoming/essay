@@ -126,27 +126,28 @@ class Redlock:
 
 
 def do_something(idx, lock, another_lock):
-    # 如果do_something耗时大于锁生存周期ttl,会出现并发问题,总耗时变小
+    # 如果do_something耗时大于锁生存周期timeout,会出现并发问题,总耗时变小
     # 如果锁内部token未使用threading.local存储,会出现并发问题,总耗时变小
     print('Im doing something in idx {}'.format(idx))
     if idx & 1:
         lock = another_lock
     with lock:
-        time.sleep(1)
+        time.sleep(2)
         1 / 0
 
 
 if __name__ == '__main__':
+    t1 = time.monotonic()
     servers = [  # 建议基数个redis实例
         redis.Redis(host="localhost", port=6379),
         # redis.Redis(host="localhost", port=6380),
         # redis.Redis(host="localhost", port=2345),
     ]
-    room_lock = Redlock(servers, 'room', timeout=500)
-    song_lock = Redlock(servers, 'song', timeout=500)
+    room_lock = Redlock(servers, 'room', timeout=3, thread_local=False)
+    song_lock = Redlock(servers, 'song', timeout=3, thread_local=False)
     threads = [threading.Thread(target=do_something, args=(idx, room_lock, song_lock)) for idx in range(10)]
     for thread in threads:
         thread.start()
     for thread in threads:
         thread.join()
-    print('after doing something')
+    print(f'cost {time.monotonic() - t1} seconds')
