@@ -152,12 +152,12 @@ class ReadWriteRLock:  # 分布式可重入读写锁
     """
     is_register_script = False
 
-    def __init__(self, rds: Redis, name_prefix, pttl=30000, timeout=30, thread_local=True):
+    def __init__(self, rds: Redis, name_prefix, timeout=30, blocking_timeout=30, thread_local=True):
         self.rds = rds
         self.name_prefix = name_prefix
-        self.pttl = pttl  # 锁过期时间,单位ms
-        self.timeout = timeout  # 上锁最多重试时间,单位s
-        self.local = threading.local() if thread_local else type('dummy', (), {})
+        self.timeout_ms = int(1000 * timeout)  # 锁过期时间,单位ms
+        self.blocking_timeout_s = blocking_timeout  # 上锁最多重试时间,单位s
+        self.local = threading.local() if thread_local else SimpleNamespace()
         self.local.token = None
         self.register_lib()
 
@@ -169,26 +169,26 @@ class ReadWriteRLock:  # 分布式可重入读写锁
     def get_key(self, name):
         return '{}:{}'.format(self.name_prefix, name)
 
-    def get_rlock_name(self):
+    def get_read_rlock_name(self):
         if self.local.token is None:
             self.local.token = urandom(16)
         return self.local.token
 
-    def get_wlock_name(self):
+    def get_write_rlock_name(self):
         if self.local.token is None:
             self.local.token = urandom(16)
         return '{}:w'.format(self.local.token)
 
     @contextmanager
-    def get_rlock(self, name):
+    def acquire_read_rlock(self, name):
         key = self.get_key(name)
-        rlock_name = self.get_rlock_name()
-        wlock_name = self.get_wlock_name()
-        stop_at = time.time() + self.timeout
+        read_rlock_name = self.get_read_rlock_name()
+        write_rlock_name = self.get_write_rlock_name()
+        stop_at = time.time() + self.blocking_timeout_s
         cnt = 0
         try:
             while time.time() < stop_at:
-                if self.rds.fcall("acquire_read_rlock", 1, key, self.pttl, rlock_name, wlock_name):
+                if self.rds.fcall("acquire_read_rlock", 1, key, self.timeout_ms, read_rlock_name, write_rlock_name):
                     yield
                     break
                 cnt += 1
@@ -196,17 +196,17 @@ class ReadWriteRLock:  # 分布式可重入读写锁
             else:
                 raise Exception('获取读锁超时')
         finally:
-            self.rds.fcall("release_read_rlock", 1, key, self.pttl, rlock_name)  # 也可以处理mode='write'模式的写锁
+            self.rds.fcall("release_read_rlock", 1, key, self.timeout_ms, read_rlock_name)  # 也可以处理mode='write'模式的写锁
 
     @contextmanager
-    def get_wlock(self, name):
+    def acquire_write_rlock(self, name):
         key = self.get_key(name)
-        wlock_name = self.get_wlock_name()
-        stop_at = time.time() + self.timeout
+        write_rlock_name = self.get_write_rlock_name()
+        stop_at = time.time() + self.blocking_timeout_s
         cnt = 0
         try:
             while time.time() < stop_at:
-                if self.rds.fcall("acquire_write_rlock", 1, key, self.pttl, wlock_name):
+                if self.rds.fcall("acquire_write_rlock", 1, key, self.timeout_ms, write_rlock_name):
                     yield
                     break
                 cnt += 1
@@ -214,7 +214,7 @@ class ReadWriteRLock:  # 分布式可重入读写锁
             else:
                 raise Exception('获取写锁超时')
         finally:
-            self.rds.fcall("release_write_rlock", 1, key, self.pttl, wlock_name)
+            self.rds.fcall("release_write_rlock", 1, key, self.timeout_ms, write_rlock_name)
 
 
 class Redlock:
