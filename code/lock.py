@@ -6,8 +6,10 @@ from contextlib import contextmanager
 from os import urandom
 from types import SimpleNamespace
 
-import redis
+from redis import Redis
 from redis.exceptions import RedisError
+
+rc: Redis = Redis()
 
 
 class RWLock:
@@ -172,12 +174,12 @@ class RWLock:
 
     def get_rlock_name(self):
         if self.local.token is None:
-            self.local.token = os.urandom(16)
+            self.local.token = urandom(16)
         return self.local.token
 
     def get_wlock_name(self):
         if self.local.token is None:
-            self.local.token = os.urandom(16)
+            self.local.token = urandom(16)
         return '{}:w'.format(self.local.token)
 
     @contextmanager
@@ -252,7 +254,7 @@ class Redlock:
     """
     is_register_redlock_script = False
 
-    def __init__(self, instances: list[redis.Redis], name, timeout=10, blocking_timeout=20, thread_local=True):
+    def __init__(self, instances: list[Redis], name, timeout=10, blocking_timeout=20, thread_local=True):
         """
         The Redlock Algorithm(refer: https://redis.io/docs/manual/patterns/distributed-locks)
         假设有N=5个完全独立的Redis主节点(无副本),因此需要在不同的计算机上运行5个Redis实例,为了获取锁,客户端执行以下操作:
@@ -346,9 +348,9 @@ def do_something(idx, lock, another_lock):
 if __name__ == '__main__':
     t1 = time.monotonic()
     servers = [  # 建议基数个redis实例
-        redis.Redis(host="localhost", port=6379),
-        # redis.Redis(host="localhost", port=6380),
-        # redis.Redis(host="localhost", port=2345),
+        Redis(host="localhost", port=6379),
+        # Redis(host="localhost", port=6380),
+        # Redis(host="localhost", port=2345),
     ]
     room_lock = Redlock(servers, 'room', timeout=3, thread_local=False)
     song_lock = Redlock(servers, 'song', timeout=3, thread_local=False)
