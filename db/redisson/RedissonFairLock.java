@@ -1,3 +1,4 @@
+// RedissonFairLock是基于Redis的分布式可重入公平锁,它保证了当多个Redisson客户端线程同时请求加锁时,优先分配给先发出请求的线程
 public class RedissonFairLock extends RedissonLock implements RLock {
 
     private final long threadWaitTime = 5000;

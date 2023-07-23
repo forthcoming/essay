@@ -14,21 +14,10 @@ rc: Redis = Redis()
 
 class RWLock:
     """
-    Referer:
+    refer:
         https://github.com/redisson/redisson/blob/master/redisson/src/main/java/org/redisson/RedissonWriteLock.java
         https://github.com/redisson/redisson/blob/master/redisson/src/main/java/org/redisson/RedissonReadLock.java
-        https://blog.csdn.net/zhxdick/article/details/82693646
-    todo:
-    使用看门狗给锁续期
-    使用发布订阅功能发布锁释放消息
-    写锁优先
 
-    分布式可重入读写锁(mode=read,只可能有读锁,但可以包含多个线程;mode=write,可能有读锁和写锁,但只可能包含一个线程,同一时刻只会按以下一种形式存在,写锁在特定条件下会转换成读锁)
-    ###################################################
-    rw_lock = { 'mode':'read','t1':2,'t2':3,'tn':2 }
-    ----------------------------------------------------
-    rw_lock = { 'mode':'write','t1:w':2,'t1':3 }
-    ###################################################
     A线程加写锁成功
         1. 未加过读写锁
         2. A线程加过写锁
@@ -36,11 +25,23 @@ class RWLock:
         1. 未加过读写锁
         2. 加过读锁
         3. A加过写锁
+
+    分布式可重入读写锁
+    mode=read,只可能有读锁,但可以包含多个线程
+    mode=write,可能有读锁和写锁,但只可能包含一个线程且写锁比读锁先获得
+    同一时刻只会按以下一种形式存在,写锁在特定条件下会转换成读锁
+    rw_lock = { 'mode':'read','t1':2,'t2':3,'tn':2 }
+    rw_lock = { 'mode':'write','t1:w':2,'t1':3 }
+
+    todo:
+    使用看门狗给锁续期
+    使用发布订阅功能发布锁释放消息
+    写锁优先
     """
 
     # KEYS[1]: 锁在redis中的key
     # ARGV[1]: 锁超时时间
-    # ARGV[2]: 锁的名称
+    # ARGV[2]: 读锁的名称
     # ARGV[3]: 写锁的名称,它是在锁名称的后面加上write
     # 加锁流程如下:
     # 1. 获取锁的mode,如果锁的mode为false,表示之前没有设置过读写锁,此时可以获得读锁
