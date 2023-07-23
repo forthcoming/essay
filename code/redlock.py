@@ -4,22 +4,10 @@ import threading
 import time
 from hashlib import sha1
 from os import urandom
+from types import SimpleNamespace
 
 import redis
 from redis.exceptions import RedisError, NoScriptError
-
-"""
-refer: https://redis.io/docs/manual/patterns/distributed-locks/
-The Redlock Algorithm
-假设有N=5个完全独立的Redis主节点(无副本),因此需要在不同的计算机上运行5个Redis实例
-为了获取锁,客户端执行以下操作:
-1. 获取当前以毫秒为单位时间
-2. 尝试在N个实例中使用相同key-value和比总锁自动释放时间小很多的超时时间(如果某个实例不可用应该尽快尝试与下一个实例通信)来获取锁
-3. 当前时间减去步骤1中的时间戳来计算获取锁花费的时间,当且仅当客户端在大多数实例(至少3个)中获取锁,且获取锁花费时间小于锁有效期才认为获取了锁
-4. 如果获取了锁,则其有效时间为初始有效时间减去经过的时间(步骤3中的计算)
-5 如果客户端未能获取锁(要么无法锁定N/2+1个实例,要么有效期为负),它将尝试解锁所有实例(甚至是它认为无法锁定的实例)
-说明: 如果是一主一丛,主节点挂掉,但锁还未来得及同步到从节点会导致其他进程再次获取锁
-"""
 
 
 class Redlock:
@@ -35,29 +23,32 @@ class Redlock:
     """
     unlock_script_sha = sha1(bytes(unlock_script, encoding='utf8')).hexdigest()
 
-    def __init__(self, servers, name, ttl=10000, blocking_timeout=20):
+    def __init__(self, instances, name, timeout=10, blocking_timeout=20, thread_local=True):
         """
-        reference:
-            https://github.com/redis/redis-py/blob/master/redis/lock.py
-        ttl is the number of milliseconds for the validity time.如果担心加锁业务在锁过期时还未执行完,可以给该业务加一个定时任务,定时检测业务是否还存活并决定是否给锁续期
-        the token is placed in thread local storage so that a thread only sees its token, not a token set by another thread. Consider the following timeline:
+        The Redlock Algorithm(refer: https://redis.io/docs/manual/patterns/distributed-locks)
+        假设有N=5个完全独立的Redis主节点(无副本),因此需要在不同的计算机上运行5个Redis实例,为了获取锁,客户端执行以下操作:
+        1. 获取当前以毫秒为单位时间
+        2. 尝试在N个实例中使用相同key-value和比总锁自动释放时间小很多的超时时间(如果某个实例不可用应该尽快尝试与下一个实例通信)来获取锁
+        3. 当前时间减去步骤1中的时间戳来计算获取锁花费的时间,当且仅当客户端在大多数实例(至少3个)中获取锁,且获取锁花费时间小于锁有效期才认为获取了锁
+        4. 如果获取了锁,则其有效时间为初始有效时间减去经过的时间(步骤3中的计算)
+        5. 如果客户端未能获取锁(要么无法锁定N/2+1个实例,要么有效期为负),它将尝试解锁所有实例(甚至是它认为无法锁定的实例)
+        说明: 如果是一主一丛,主节点挂掉,但锁还未来得及同步到从节点会导致其他进程再次获取锁
+
+        refer: https://github.com/redis/redis-py/blob/master/redis/lock.py
         time: 0, thread-1 acquires `my-lock`, with a timeout of 5 seconds.thread-1 sets the token to "abc"
         time: 1, thread-2 blocks trying to acquire `my-lock` using the Lock instance.
         time: 5, thread-1 has not yet completed. redis expires the lock key.
         time: 5, thread-2 acquired `my-lock` now that it's available.thread-2 sets the token to "xyz"
-        time: 6, thread-1 finishes its work and calls release(). if the token is *not* stored in thread local storage,then thread-1 would see the token value as "xyz" and would be able to successfully release the thread-2's lock.
-        In some use cases it's necessary to disable thread local storage.
-        For example, if you have code where one thread acquires a lock and passes that lock instance to a worker thread to release later.
-        If thread local storage isn't disabled in this case, the worker thread won't see the token set by the thread that acquired the lock.
-        Our assumption is that these cases aren't common and as such default to using thread local storage.
+        time: 6, thread-1完成任务并调用release(),如果token未存储在threading.local中,那么thread-1会将token值视为"xyz",并且能够成功释放thread-2的锁
+        如果一个线程获得锁,然后把这个锁实例传递给另一个线程稍后释放它,这种情况不能用threading.local
         """
-        assert isinstance(ttl, int), 'ttl {} is not an integer'.format(ttl)
-        self.servers = servers
-        self.quorum = len(servers) // 2 + 1
+        self.instances = instances
+        self.quorum = (len(instances) >> 1) + 1
         self.name = name
-        self.ttl = ttl
-        self.blocking_timeout = blocking_timeout
-        self.local = threading.local()
+        self.timeout_ms = int(1000 * timeout)  # 锁的最长寿命,转换为毫秒
+        self.blocking_timeout_s = blocking_timeout  # 尝试获取锁阻塞的最长时间
+        self.local = threading.local() if thread_local else SimpleNamespace()
+        self.local.token = None
 
     def __enter__(self):
         if self.lock():
@@ -70,29 +61,29 @@ class Redlock:
 
     def lock(self):
         self.local.token = urandom(16)
-        drift = int(self.ttl * .01) + 2
+        drift = int(self.timeout_ms * .01) + 2
         start_time = time.time()
-        stop_at = start_time + self.blocking_timeout
+        stop_at = start_time + self.blocking_timeout_s
         while start_time < stop_at:
             n = 0
             try:
-                for server in self.servers:
-                    if server.set(self.name, self.local.token, nx=True, px=self.ttl):
+                for server in self.instances:
+                    if server.set(self.name, self.local.token, nx=True, px=self.timeout_ms):
                         n += 1
             except RedisError as e:
                 logging.exception(e)
             elapsed_time = int((time.time() - start_time) * 1000)
-            validity = int(self.ttl - elapsed_time - drift)
+            validity = int(self.timeout_ms - elapsed_time - drift)
             if validity > 0 and n >= self.quorum:
                 return True
             else:  # 如果锁获取失败应立马释放获取的锁定
                 self.unlock()
-                time.sleep(random.uniform(0, .4))  # 随机延迟,防止脑裂情况(split brain condition )
+                time.sleep(random.uniform(0, .4))  # 随机延迟,防止脑裂情况(split brain condition),仅适用于多节点
             start_time = time.time()
         raise Exception("lock timeout")
 
     def unlock(self):
-        for server in self.servers:
+        for server in self.instances:
             try:
                 server.evalsha(self.unlock_script_sha, 1, self.name, self.local.token)  # 原子操作
             except NoScriptError:
@@ -120,8 +111,8 @@ if __name__ == '__main__':
         redis.Redis(host="localhost", port=6379),
         redis.Redis(host="localhost", port=6380),
     ]
-    room_lock = Redlock(servers, 'room_lock', ttl=500)
-    song_lock = Redlock(servers, 'song_lock', ttl=500)
+    room_lock = Redlock(servers, 'room_lock', timeout=500)
+    song_lock = Redlock(servers, 'song_lock', timeout=500)
     threads = [threading.Thread(target=do_something, args=(idx, room_lock, song_lock)) for idx in range(10)]
     for thread in threads:
         thread.start()
