@@ -12,6 +12,7 @@ from redis.exceptions import RedisError
 
 class ReadWriteRLock:  # 分布式可重入读写锁
     """
+    互斥锁适合对共享资源的互斥访问即同时只允许一个线程访问资源; 读写锁适合读取频率较高,写入频率较低的情况,以提高并发性能
     refer:
         https://github.com/redisson/redisson/blob/master/redisson/src/main/java/org/redisson/RedissonWriteLock.java
         https://github.com/redisson/redisson/blob/master/redisson/src/main/java/org/redisson/RedissonReadLock.java
@@ -169,12 +170,12 @@ class ReadWriteRLock:  # 分布式可重入读写锁
     def get_key(self, name):
         return '{}:{}'.format(self.name_prefix, name)
 
-    def get_read_rlock_name(self):
+    def read_rlock_name(self):
         if self.local.token is None:
             self.local.token = urandom(16)
         return self.local.token
 
-    def get_write_rlock_name(self):
+    def write_rlock_name(self):
         if self.local.token is None:
             self.local.token = urandom(16)
         return '{}:w'.format(self.local.token)
@@ -182,8 +183,8 @@ class ReadWriteRLock:  # 分布式可重入读写锁
     @contextmanager
     def acquire_read_rlock(self, name):
         key = self.get_key(name)
-        read_rlock_name = self.get_read_rlock_name()
-        write_rlock_name = self.get_write_rlock_name()
+        read_rlock_name = self.read_rlock_name()
+        write_rlock_name = self.write_rlock_name()
         stop_at = time.time() + self.blocking_timeout_s
         cnt = 0
         try:
@@ -201,7 +202,7 @@ class ReadWriteRLock:  # 分布式可重入读写锁
     @contextmanager
     def acquire_write_rlock(self, name):
         key = self.get_key(name)
-        write_rlock_name = self.get_write_rlock_name()
+        write_rlock_name = self.write_rlock_name()
         stop_at = time.time() + self.blocking_timeout_s
         cnt = 0
         try:
@@ -312,28 +313,35 @@ class Redlock:
         return True
 
 
-def do_something(idx, lock, another_lock):
-    # 如果do_something耗时大于锁生存周期timeout,会出现并发问题,总耗时变小
-    # 如果锁内部token未使用threading.local存储,会出现并发问题,总耗时变小(其他线程拿不到锁时会尝试释放锁导致误删)
-    print('Im doing something in idx {}'.format(idx))
-    if idx & 1:
-        lock = another_lock
-    with lock:
-        time.sleep(2)
-
-
-if __name__ == '__main__':
-    t1 = time.monotonic()
+class TestLock:
     servers = [  # 建议基数个redis实例
         Redis(host="localhost", port=6379),
         # Redis(host="localhost", port=6380),
         # Redis(host="localhost", port=2345),
     ]
-    room_lock = Redlock(servers, 'room', timeout=3, thread_local=False)
-    song_lock = Redlock(servers, 'song', timeout=3, thread_local=False)
-    threads = [threading.Thread(target=do_something, args=(idx, room_lock, song_lock)) for idx in range(10)]
-    for thread in threads:
-        thread.start()
-    for thread in threads:
-        thread.join()
-    print(f'cost {time.monotonic() - t1} seconds')
+
+    @staticmethod
+    def do_something(idx, lock, another_lock):
+        # 如果do_something耗时大于锁生存周期timeout,会出现并发问题,总耗时变小
+        # 如果锁内部token未使用threading.local存储,会出现并发问题,总耗时变小(其他线程拿不到锁时会尝试释放锁导致误删)
+        print('Im doing something in idx {}'.format(idx))
+        if idx & 1:
+            lock = another_lock
+        with lock:
+            time.sleep(2)
+
+    def test_redlock(self):
+        t1 = time.monotonic()
+        room_lock = Redlock(self.servers, 'room', timeout=3, thread_local=False)
+        song_lock = Redlock(self.servers, 'song', timeout=3, thread_local=False)
+        threads = [threading.Thread(target=TestLock.do_something, args=(idx, room_lock, song_lock)) for idx in range(8)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+        print(f'cost {time.monotonic() - t1} seconds')
+
+
+if __name__ == '__main__':
+    test = TestLock()
+    test.test_redlock()
