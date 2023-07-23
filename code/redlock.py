@@ -86,7 +86,6 @@ class Redlock:
     def __exit__(self, exc_type, exc_value, traceback):
         self.release()
         print('exc_type: {}, exc_value: {}, traceback: {}.'.format(exc_type, exc_value, traceback))
-        return True  # 注意
 
     def get_key(self, suffix):
         if suffix:
@@ -127,13 +126,12 @@ class Redlock:
 
 def do_something(idx, lock, another_lock):
     # 如果do_something耗时大于锁生存周期timeout,会出现并发问题,总耗时变小
-    # 如果锁内部token未使用threading.local存储,会出现并发问题,总耗时变小
+    # 如果锁内部token未使用threading.local存储,会出现并发问题,总耗时变小(其他线程拿不到锁时会尝试释放锁导致误删)
     print('Im doing something in idx {}'.format(idx))
     if idx & 1:
         lock = another_lock
     with lock:
         time.sleep(2)
-        1 / 0
 
 
 if __name__ == '__main__':
