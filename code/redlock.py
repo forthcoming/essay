@@ -88,16 +88,23 @@ class Redlock:
         print('exc_type: {}, exc_value: {}, traceback: {}.'.format(exc_type, exc_value, traceback))
         return True  # 注意
 
-    def acquire(self):
+    def get_key(self, suffix):
+        if suffix:
+            return f'{self.name}:{suffix}'
+        else:
+            return self.name
+
+    def acquire(self, suffix=""):
         self.local.token = urandom(16)
         drift = int(self.timeout_ms * .01) + 2
         start_time = time.monotonic()
         stop_at = start_time + self.blocking_timeout_s
+        key = self.get_key(suffix)
         while start_time < stop_at:
             n = 0
             for server in self.instances:
                 try:
-                    if server.set(self.name, self.local.token, nx=True, px=self.timeout_ms):
+                    if server.set(key, self.local.token, nx=True, px=self.timeout_ms):
                         n += 1
                 except RedisError as e:
                     logging.exception(e)
@@ -106,14 +113,15 @@ class Redlock:
             if validity > 0 and n >= self.quorum:
                 return True
             else:  # 如果锁获取失败应立马释放获取的锁定
-                self.release()
+                self.release(suffix)
                 time.sleep(random.uniform(0, .4))  # 随机延迟,防止脑裂情况(split brain condition),仅适用于多节点
             start_time = time.monotonic()
-        raise Exception("lock timeout")
+        return False
 
-    def release(self):
+    def release(self, suffix=""):
+        key = self.get_key(suffix)
         for instance in self.instances:
-            instance.fcall('unlock', 1, self.name, self.local.token)
+            instance.fcall('unlock', 1, key, self.local.token)
         return True
 
 
