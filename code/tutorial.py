@@ -1333,7 +1333,7 @@ def float_tutorial():
 
 
 if __name__ == "__main__":  # import到其他脚本中不会执行以下代码,spawn方式的多进程也需要
-    float_tutorial()
+    # float_tutorial()
     # frame_tutorial()
     # arguments_tutorial()
     # list_tutorial()
@@ -1348,3 +1348,4 @@ if __name__ == "__main__":  # import到其他脚本中不会执行以下代码,s
     # pickle_tutorial()
     # singleton_tutorial()
     # isinstance_tutorial()
+    with_tutorial()

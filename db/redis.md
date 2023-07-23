@@ -383,9 +383,8 @@ None
 script flush [ASYNC | SYNC]: 清空所有脚本缓存,redis重启or关闭也会触发该命令
 script load script: 将脚本加载到脚本缓存中,但不执行,返回脚本的SHA1摘要(sha1(b'lua script').hexdigest())
 evalsha sha1 numkeys [key [key ...]] [arg [arg ...]]: 与eval相似,前提是sha1已被注册
-eval script numkeys [key [key ...]] [arg [arg ...]]: 脚本以原子方式执行,执行脚本时不会执行其他脚本或命令,类似于MULTI/EXEC
+eval script numkeys [key [key ...]] [arg [arg ...]]: 脚本以原子方式执行,类似于MULTI/EXEC,返回脚本的值,并注册脚本的sha值到redis
 为了确保脚本正确执行,脚本访问的所有keys都必须显式提供为输入键参数,而不应访问具有以编程方式生成的key
-eval "return redis.call('get', KEYS[1])" 1 zgt  # 执行脚本,返回脚本的值,并注册脚本的sha值到redis
 
 FUNCTION DELETE library-name: 删除库及其所有函数
 FUNCTION LOAD [REPLACE] function-code: 加载库,当名称已存在时会报错,REPLACE修饰符更改此行为并覆盖现有库,不同库的函数名不能相同
