@@ -1,9 +1,9 @@
 import logging
+import os
 import random
 import threading
 import time
 from contextlib import contextmanager
-from os import urandom
 from types import SimpleNamespace
 
 from redis import Redis
@@ -172,12 +172,12 @@ class ReadWriteRLock:  # 分布式可重入读写锁
 
     def read_rlock_name(self):
         if self.local.token is None:
-            self.local.token = urandom(16)
+            self.local.token = os.urandom(16)
         return self.local.token
 
     def write_rlock_name(self):
         if self.local.token is None:
-            self.local.token = urandom(16)
+            self.local.token = os.urandom(16)
         return '{}:w'.format(self.local.token)
 
     @contextmanager
@@ -185,10 +185,10 @@ class ReadWriteRLock:  # 分布式可重入读写锁
         key = self.get_key(name)
         read_rlock_name = self.read_rlock_name()
         write_rlock_name = self.write_rlock_name()
-        stop_at = time.time() + self.blocking_timeout_s
+        stop_at = time.monotonic() + self.blocking_timeout_s
         cnt = 0
         try:
-            while time.time() < stop_at:
+            while time.monotonic() < stop_at:
                 if self.rds.fcall("acquire_read_rlock", 1, key, self.timeout_ms, read_rlock_name, write_rlock_name):
                     yield
                     break
@@ -203,10 +203,10 @@ class ReadWriteRLock:  # 分布式可重入读写锁
     def acquire_write_rlock(self, name):
         key = self.get_key(name)
         write_rlock_name = self.write_rlock_name()
-        stop_at = time.time() + self.blocking_timeout_s
+        stop_at = time.monotonic() + self.blocking_timeout_s
         cnt = 0
         try:
-            while time.time() < stop_at:
+            while time.monotonic() < stop_at:
                 if self.rds.fcall("acquire_write_rlock", 1, key, self.timeout_ms, write_rlock_name):
                     yield
                     break
@@ -283,7 +283,7 @@ class Redlock:
             return self.name
 
     def acquire(self, suffix=""):
-        self.local.token = urandom(16)
+        self.local.token = os.urandom(16)
         drift = int(self.timeout_ms * .01) + 2
         start_time = time.monotonic()
         stop_at = start_time + self.blocking_timeout_s
