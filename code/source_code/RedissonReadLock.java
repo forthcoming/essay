@@ -55,7 +55,7 @@ public class RedissonReadLock extends RedissonLock implements RLock {
     KEYS[3]: 超时名称的前缀
     KEYS[4]: key的前缀
     ARGV[1]: 解锁消息
-    ARGV[2]: 锁的名称
+    ARGV[2]: 读锁的名称
     解锁流程如下: 
     1. 获取锁的mode,如果锁的mode为false,表示之前没有设置过读写锁,此时可以直接解锁,发送解锁消息,返回1
     2. 查看锁是否存在,如果不存在锁返回nil

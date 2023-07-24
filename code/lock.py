@@ -13,6 +13,7 @@ from redis.exceptions import RedisError
 class ReadWriteRLock:  # 分布式可重入读写锁
     """
     互斥锁适合对共享资源的互斥访问即同时只允许一个线程访问资源; 读写锁适合读取频率较高,写入频率较低的情况,以提高并发性能
+    只用写锁就会退化为互斥锁
     refer:
         https://github.com/redisson/redisson/blob/master/redisson/src/main/java/org/redisson/RedissonWriteLock.java
         https://github.com/redisson/redisson/blob/master/redisson/src/main/java/org/redisson/RedissonReadLock.java
@@ -27,50 +28,43 @@ class ReadWriteRLock:  # 分布式可重入读写锁
 
     mode=read,只可能有读锁,但可以包含多个线程
     mode=write,可能有读锁和写锁,但只可能包含一个线程且写锁比读锁先获得
-    同一时刻只会按以下一种形式存在,写锁在特定条件下会转换成读锁
+    同一时刻只会按以下一种形式存在,mode=write在释放写锁时有可能转换为mode=read
     rw_lock = { 'mode':'read','t1':2,'t2':3,'tn':2 }
     rw_lock = { 'mode':'write','t1:w':2,'t1':3 }
-
-    acquire_read_rlock: keys[1]: 锁在redis中的key, args[1]锁超时时间, args[2]读锁的名称, args[3]写锁的名称,它是在锁名称的后面加上write
-    加锁流程如下:
-    1. 获取锁的mode,如果锁的mode为false,表示之前没有设置过读写锁,此时可以获得读锁
-        1. 将锁的mode设置为read,锁名称对应的线程数设置为1,并设置锁的过期时间
-    2. 如果当前存在读锁或者持有写锁的是当前线程,都可以加读锁
-        1. 将锁名称对应的线程数增加1,并设置锁的过期时间
-    3. 否则返回false
-
-    release_read_rlock: keys[1]锁在redis中的key, args[1]锁的名称, args[2]锁的过期时间
-    解锁流程如下:
-    1. 获取锁的mode,如果锁的mode为false,表示之前没有设置过读写锁,此时可以直接解锁,返回1
-    2. 查看锁是否存在,如果不存在锁返回nil
-    3. 将锁名称对应的线程数减1,如果剩余的线程数为0,表示没有其他线程持有该锁了,删除该锁
-    4. 如果当前锁结构对应的hash表大小大于1,表示有其他线程持有锁
-    5. 否则没有其他线程持有锁,此时可以彻底释放锁,删除锁结构,返回1
-
-    acquire_write_rlock: keys[1]锁在redis中的key, args[1]锁的超时时间, args[2]锁的名称
-    加锁流程如下:
-    1. 获取锁的mode,如果锁的mode为false,表示之前没有设置过读写锁,此时可以获得写锁
-        1. 将锁的mode设置为write,将锁名称对应的线程数设置为1
-        2. 设置锁的过期时间
-    2. 如果持有写锁的线程为当前线程(hexists keys[1] args[2]隐含mode=write),此时可以继续加写锁
-        1. 将锁名称对应的线程数增加1
-        2. 更新锁的过期时间
-    3. 否则返回false
-
-    release_write_rlock: keys[1]锁在redis中的key, args[1]锁的过期时间, args[2]锁的名称
-    解锁流程如下:
-    1. 获取锁的mode,如果锁的mode为false,表示之前没有设置过读写锁,此时可以直接解锁
-    2. 如果锁的mode为read或者非本线程加的写锁,返回nil
-    3. 将锁名称对应的线程数减1,如果剩余的线程数大于0,表示还有其他线程持有该锁,重新设置锁结构的过期时间
-    4. 如果剩余的线程数为0,表示没有其他线程持有该写锁了,于是删除该锁
-       如果当前锁结构对应的hash表大小等于1,表示没有其他线程持有锁,此时可以彻底释放锁,删除锁结构
-       否则表示还存在读锁,于是将锁的mode设置为read
 
     todo:
     使用看门狗给锁续期
     写锁优先
     """
 
+    # acquire_read_rlock: keys[1]锁在redis中的key, args[1]锁过期时间, args[2]读锁的名称, args[3]写锁的名称,它是在读锁后面加上":w"
+    # 加锁流程:
+    # 1. 获取锁的mode,如果mode=false,表示之前没有设置过读写锁,此时可以获得读锁
+    #     将锁的mode设置为read,锁对应的线程数设置为1,并设置锁的过期时间
+    # 2. 如果mode=read或者持有写锁的是当前线程(隐含mode=write),都可以加读锁
+    #     将锁对应的线程数加1并更新过期时间
+    #
+    # release_read_rlock: keys[1]锁在redis中的key, args[1]读锁的名称
+    # 解锁流程:
+    # 1. 获取锁的mode,如果mode=false,表示之前没有设置过读写锁,直接返回
+    # 2. 查看锁对应的线程,如果不存在直接返回
+    # 3. 将锁对应的线程数减1,如果剩余线程数为0,删除锁对应的线程
+    #     如果当前锁结构对应的hash大小等于1,表示没有线程持有锁,可以删除锁结构
+    #
+    # acquire_write_rlock: keys[1]锁在redis中的key, args[1]锁过期时间, args[2]写锁的名称
+    # 加锁流程:
+    # 1. 获取锁的mode,如果mode=false,表示之前没有设置过读写锁,此时可以获得写锁
+    #     将锁的mode设置为write,锁对应的线程数设置为1,并设置锁的过期时间
+    # 2. 如果持有写锁的是当前线程(hexists keys[1] args[2]隐含mode=write),此时可以继续加写锁
+    #     将锁对应的线程数增加1并更新过期时间
+    #
+    # release_write_rlock: keys[1]锁在redis中的key, args[1]写锁的名称
+    # 解锁流程:
+    # 1. 获取锁的mode,如果mode=false,表示之前没有设置过读写锁,直接返回
+    # 2. 查看锁对应的线程,如果不存在直接返回
+    # 3. 将锁对应的线程数减1,如果剩余的线程数为0,删除锁对应的线程
+    #     如果当前锁结构对应的hash大小等于1,表示没有线程持有锁,可以删除锁结构
+    #     否则表示还存在读锁,将mode设为read
     read_write_rlock_script = """#!lua name=read_write_rlock       
         local function acquire_read_rlock(keys,args) 
             local mode = redis.call('hget', keys[1], 'mode')
@@ -78,10 +72,11 @@ class ReadWriteRLock:  # 分布式可重入读写锁
                 redis.call('hmset', keys[1], 'mode', 'read', args[2], 1)       
                 redis.call('pexpire', keys[1], args[1])
                 return true
-            end;
-            if mode == 'read' or redis.call('hexists', keys[1], args[3]) == 1 then  -- 如果是读锁或者本线程上过写锁
+            end
+            if (mode == 'read') or (redis.call('hexists', keys[1], args[3]) == 1) then  -- 如果是读锁或者本线程写锁
                 redis.call('hincrby', keys[1], args[2], 1)
-                redis.call('pexpire', keys[1], args[1])
+                local remain_time = redis.call('pttl', keys[1])
+                redis.call('pexpire', keys[1], math.max(remain_time, args[1]))
                 return true
             end
             return false
@@ -93,18 +88,16 @@ class ReadWriteRLock:  # 分布式可重入读写锁
                 return 1
             end
             if redis.call('hexists', keys[1], args[1]) == 0 then
-                return nil
+                return 1
             end
+            
             if redis.call('hincrby', keys[1], args[1], -1) == 0 then
                 redis.call('hdel', keys[1], args[1])
+                if redis.call('hlen', keys[1]) == 1 then
+                    redis.call('del', keys[1])
+                end  
             end
-            if redis.call('hlen', keys[1]) > 1 then
-                redis.call('pexpire', keys[1], args[2])
-                return 0
-            else
-                redis.call('del', keys[1])
-                return 1
-            end        
+            return 1      
         end
 
         local function acquire_write_rlock(keys,args)      
@@ -114,36 +107,34 @@ class ReadWriteRLock:  # 分布式可重入读写锁
                 redis.call('pexpire', keys[1], args[1])
                 return true
             end
-            if redis.call('hexists', keys[1], args[2]) == 1 then
+            if redis.call('hexists', keys[1], args[2]) == 1 then  -- 隐含mode=write
                 redis.call('hincrby', keys[1], args[2], 1)
-                redis.call('pexpire', keys[1], args[1])
+                local remain_time = redis.call('pttl', keys[1])
+                redis.call('pexpire', keys[1], remain_time + args[1])
                 return true
             end
             return false  
         end
+
 
         local function release_write_rlock(keys,args)  
             local mode = redis.call('hget', keys[1], 'mode')
             if mode == false then
                 return 1
             end
-            if redis.call('hexists', keys[1], args[2]) == 0 then
-                return nil
-            else
-                if redis.call('hincrby', keys[1], args[2], -1) > 0 then
-                    redis.call('pexpire', keys[1], args[1])
-                    return 0
+            if redis.call('hexists', keys[1], args[1]) == 0 then
+                return 1
+            end
+
+            if redis.call('hincrby', keys[1], args[1], -1) == 0 then  -- 隐含mode=write
+                redis.call('hdel', keys[1], args[1])
+                if redis.call('hlen', keys[1]) == 1 then
+                    redis.call('del', keys[1])
                 else
-                    redis.call('hdel', keys[1], args[2])
-                    if redis.call('hlen', keys[1]) == 1 then
-                        redis.call('del', keys[1])
-                    else
-                        redis.call('hset', keys[1], 'mode', 'read')  -- has unlocked read-locks,同线程会出现先释放写锁的情况?
-                        redis.call('pexpire', keys[1], args[1])
-                    end
-                    return 1
+                    redis.call('hset', keys[1], 'mode', 'read')  -- has unlocked read-locks
                 end
-            end      
+            end    
+            return 1    
         end
              
         redis.register_function('acquire_read_rlock', acquire_read_rlock) 
@@ -153,11 +144,11 @@ class ReadWriteRLock:  # 分布式可重入读写锁
     """
     is_register_script = False
 
-    def __init__(self, rds: Redis, name_prefix, timeout=30, blocking_timeout=30, thread_local=True):
+    def __init__(self, rds: Redis, name, timeout=30, blocking_timeout=30, thread_local=True):
         self.rds = rds
-        self.name_prefix = name_prefix
+        self.name = name
         self.timeout_ms = int(1000 * timeout)  # 锁过期时间,单位ms
-        self.blocking_timeout_s = blocking_timeout  # 上锁最多重试时间,单位s
+        self.blocking_timeout_s = blocking_timeout  # 尝试获取锁阻塞的最长时间,单位s
         self.local = threading.local() if thread_local else SimpleNamespace()
         self.local.token = None
         self.register_lib()
@@ -167,8 +158,11 @@ class ReadWriteRLock:  # 分布式可重入读写锁
             self.rds.function_load(self.__class__.read_write_rlock_script, True)
             self.__class__.is_register_script = True
 
-    def get_key(self, name):
-        return '{}:{}'.format(self.name_prefix, name)
+    def get_key(self, suffix):
+        if suffix:
+            return f'{self.name}:{suffix}'
+        else:
+            return self.name
 
     def read_rlock_name(self):
         if self.local.token is None:
@@ -181,8 +175,8 @@ class ReadWriteRLock:  # 分布式可重入读写锁
         return '{}:w'.format(self.local.token)
 
     @contextmanager
-    def acquire_read_rlock(self, name):
-        key = self.get_key(name)
+    def acquire_read_rlock(self, suffix):
+        key = self.get_key(suffix)
         read_rlock_name = self.read_rlock_name()
         write_rlock_name = self.write_rlock_name()
         stop_at = time.monotonic() + self.blocking_timeout_s
@@ -197,11 +191,11 @@ class ReadWriteRLock:  # 分布式可重入读写锁
             else:
                 raise Exception('获取读锁超时')
         finally:
-            self.rds.fcall("release_read_rlock", 1, key, self.timeout_ms, read_rlock_name)  # 也可以处理mode='write'模式的写锁
+            self.rds.fcall("release_read_rlock", 1, key, read_rlock_name)  # 也可以处理mode="write"模式的写锁
 
     @contextmanager
-    def acquire_write_rlock(self, name):
-        key = self.get_key(name)
+    def acquire_write_rlock(self, suffix):
+        key = self.get_key(suffix)
         write_rlock_name = self.write_rlock_name()
         stop_at = time.monotonic() + self.blocking_timeout_s
         cnt = 0
@@ -215,7 +209,7 @@ class ReadWriteRLock:  # 分布式可重入读写锁
             else:
                 raise Exception('获取写锁超时')
         finally:
-            self.rds.fcall("release_write_rlock", 1, key, self.timeout_ms, write_rlock_name)
+            self.rds.fcall("release_write_rlock", 1, key, write_rlock_name)
 
 
 class Redlock:
