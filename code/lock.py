@@ -13,6 +13,7 @@ from redis.exceptions import RedisError
 class ReadWriteRLock:  # 分布式可重入读写锁
     """
     互斥锁适合对共享资源的互斥访问即同时只允许一个线程访问资源; 读写锁适合读取频率较高,写入频率较低的情况,以提高并发性能
+    当读写锁处于读模式时,如果有另外线程试图以写模式加锁,读写锁通常会阻塞随后的读模式锁请求,这样可以避免读模式锁长期占用,而等待的写模式锁请求长期阻塞
     只用写锁就会退化为互斥锁
     refer:
         https://github.com/redisson/redisson/blob/master/redisson/src/main/java/org/redisson/RedissonWriteLock.java

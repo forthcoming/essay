@@ -11,6 +11,12 @@ def start_client():
         client_sock.send(data)
         print(client_sock.recv(1024))  # 一次最多接收指定的字节数
 
+    with client_sock.makefile('rw') as f:
+        for data in ['Michael', 'Tracy', 'Sarah']:
+            f.write(data + '\n')
+            f.flush()  # 发送数据
+            print(f.readline(), end='')  # readline遇到\n才会返回,read(n)会读完n个字节后返回
+
 
 def http_request():
     # TCP连接创建的是双向通道,双方都可以同时给对方发数据,但是谁先发谁后发,怎么协调,要根据具体的协议来决定
