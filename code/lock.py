@@ -144,13 +144,12 @@ class ReadWriteRLock:  # 分布式可重入读写锁
     """
     is_register_script = False
 
-    def __init__(self, rds: Redis, name, timeout=30, blocking_timeout=30, thread_local=True):
+    def __init__(self, rds: Redis, name, timeout=10, blocking_timeout=5, thread_local=True):
         self.rds = rds
         self.name = name
         self.timeout_ms = int(1000 * timeout)  # 锁过期时间,单位ms
         self.blocking_timeout_s = blocking_timeout  # 尝试获取锁阻塞的最长时间,单位s
         self.local = threading.local() if thread_local else SimpleNamespace()
-        self.local.token = None
         self.register_lib()
 
     def register_lib(self):
@@ -165,24 +164,26 @@ class ReadWriteRLock:  # 分布式可重入读写锁
             return self.name
 
     def read_rlock_name(self):
-        if self.local.token is None:
+        if not hasattr(self.local, 'token'):
             self.local.token = os.urandom(16)
         return self.local.token
 
     def write_rlock_name(self):
-        if self.local.token is None:
+        if not hasattr(self.local, 'token'):
             self.local.token = os.urandom(16)
         return f'{self.local.token}:w'
 
     @contextmanager
-    def acquire_read_rlock(self, suffix):
+    def acquire_read_rlock(self, suffix="", blocking_timeout_s=None):
         key = self.get_key(suffix)
         read_rlock_name = self.read_rlock_name()
         write_rlock_name = self.write_rlock_name()
-        stop_at = time.monotonic() + self.blocking_timeout_s
+        if blocking_timeout_s is None:
+            blocking_timeout_s = self.blocking_timeout_s
+        stop_at = time.monotonic() + blocking_timeout_s
         cnt = 0
         try:
-            while time.monotonic() < stop_at:
+            while time.monotonic() <= stop_at:
                 if self.rds.fcall("acquire_read_rlock", 1, key, self.timeout_ms, read_rlock_name, write_rlock_name):
                     yield
                     break
@@ -194,13 +195,15 @@ class ReadWriteRLock:  # 分布式可重入读写锁
             self.rds.fcall("release_read_rlock", 1, key, read_rlock_name)  # mode=write也可以处理
 
     @contextmanager
-    def acquire_write_rlock(self, suffix):
+    def acquire_write_rlock(self, suffix="", blocking_timeout_s=None):
         key = self.get_key(suffix)
         write_rlock_name = self.write_rlock_name()
-        stop_at = time.monotonic() + self.blocking_timeout_s
+        if blocking_timeout_s is None:
+            blocking_timeout_s = self.blocking_timeout_s
+        stop_at = time.monotonic() + blocking_timeout_s
         cnt = 0
         try:
-            while time.monotonic() < stop_at:
+            while time.monotonic() <= stop_at:
                 if self.rds.fcall("acquire_write_rlock", 1, key, self.timeout_ms, write_rlock_name):
                     yield
                     break
@@ -252,7 +255,6 @@ class Redlock:
         self.timeout_ms = int(1000 * timeout)  # 锁的最长寿命,转换为毫秒
         self.blocking_timeout_s = blocking_timeout  # 尝试获取锁阻塞的最长时间
         self.local = threading.local() if thread_local else SimpleNamespace()
-        self.local.token = None
         self.register_lib()
 
     def register_lib(self):
@@ -276,13 +278,15 @@ class Redlock:
         else:
             return self.name
 
-    def acquire(self, suffix=""):
+    def acquire(self, suffix="", blocking_timeout_s=None):
         self.local.token = os.urandom(16)
         drift = int(self.timeout_ms * .01) + 2
         start_time = time.monotonic()
-        stop_at = start_time + self.blocking_timeout_s
+        if blocking_timeout_s is None:
+            blocking_timeout_s = self.blocking_timeout_s
+        stop_at = start_time + blocking_timeout_s
         key = self.get_key(suffix)
-        while start_time < stop_at:
+        while start_time <= stop_at:
             n = 0
             for server in self.instances:
                 try:
@@ -335,7 +339,109 @@ class TestLock:
             thread.join()
         print(f'cost {time.monotonic() - t1} seconds')
 
+    @staticmethod
+    def acquire_read_rlock_work(lock, name):
+        with lock.acquire_read_rlock(blocking_timeout_s=.5):
+            print(f"{name} get read lock")
+            time.sleep(2)
+
+    @staticmethod
+    def acquire_write_rlock_work(lock, name):
+        with lock.acquire_write_rlock(blocking_timeout_s=.5):
+            print(f"{name} get write lock")
+            time.sleep(2)
+
+    @staticmethod
+    def acquire_read_write_rlock_work(lock, name):
+        with lock.acquire_write_rlock(blocking_timeout_s=.5):
+            print(f"{name} get write lock")
+            with lock.acquire_read_rlock(blocking_timeout_s=.5):
+                print(f"{name} get read lock")
+        print(f"{name} has release read and write locks")
+        with lock.acquire_read_rlock(blocking_timeout_s=.5):
+            print(f"{name} get read lock")
+            with lock.acquire_write_rlock(blocking_timeout_s=.5):
+                print(f"{name} get write lock")
+
+    @staticmethod
+    def acquire_rlock_work(lock: ReadWriteRLock, name):
+        with lock.acquire_write_rlock(blocking_timeout_s=.5):
+            print(f"{name} get write lock")
+            with lock.acquire_write_rlock(blocking_timeout_s=.5):
+                print(f"{name} get write lock")
+                with lock.acquire_read_rlock(blocking_timeout_s=.5):
+                    print(f"{name} get read lock")
+                    with lock.acquire_read_rlock(blocking_timeout_s=.5):
+                        print(f"{name} get read lock")
+                    print(f"{name} has release read lock")
+                    # 模拟释放写锁
+                    lock.rds.fcall("release_write_rlock", 1, lock.name, lock.write_rlock_name())
+                    lock.rds.fcall("release_write_rlock", 1, lock.name, lock.write_rlock_name())
+                    print(f"{name} has release all write locks")
+                    time.sleep(2)
+
+    def test_read_write_rlock(self):
+        lock = ReadWriteRLock(self.servers[0], "test")
+
+        def test_scenario_one():
+            # 线程A获取了读锁
+            # 线程B尝试获取读锁, 获取成功
+            # 线程C尝试获取写锁, 获取失败
+            threads = [
+                threading.Thread(target=self.__class__.acquire_read_rlock_work, args=(lock, 'thread_a')),
+                threading.Thread(target=self.__class__.acquire_read_rlock_work, args=(lock, 'thread_b')),
+                threading.Thread(target=self.__class__.acquire_write_rlock_work, args=(lock, 'thread_c')),
+            ]
+            for thread in threads:
+                thread.start()
+                time.sleep(.4)
+
+        def test_scenario_two():
+            # 线程A获取了写锁
+            # 线程B尝试获取读锁, 获取失败
+            # 线程C尝试获取写锁, 获取失败
+            threads = [
+                threading.Thread(target=self.__class__.acquire_write_rlock_work, args=(lock, 'thread_a')),
+                threading.Thread(target=self.__class__.acquire_read_rlock_work, args=(lock, 'thread_b')),
+                threading.Thread(target=self.__class__.acquire_write_rlock_work, args=(lock, 'thread_c')),
+            ]
+            for thread in threads:
+                thread.start()
+                time.sleep(.4)
+
+        def test_scenario_three():
+            # 线程A获取了写锁
+            # 线程A尝试获取读锁, 获取成功
+            # 线程A释放读写锁
+            # 线程A获取了读锁
+            # 线程A尝试获取写锁, 获取失败
+            thread = threading.Thread(target=self.__class__.acquire_read_write_rlock_work, args=(lock, 'thread_a'))
+            thread.start()
+
+        def test_scenario_four():
+            # 线程A获取了写锁
+            # 线程A再次尝试获取写锁, 获取成功
+            # 线程A尝试获取读锁, 获取成功
+            # 线程A再次尝试获取读锁, 获取成功
+            # 线程A释放读锁, 线程A还是持有读锁
+            # 线程A释放写锁, 线程A还是持有写锁
+            # 线程A释放写锁, 线程A不再持有写锁
+            # 线程B尝试获取读锁, 获取成功
+            threads = [
+                threading.Thread(target=self.__class__.acquire_rlock_work, args=(lock, 'thread_a')),
+                threading.Thread(target=self.__class__.acquire_read_rlock_work, args=(lock, 'thread_b')),
+            ]
+            for thread in threads:
+                thread.start()
+                time.sleep(.4)
+
+        # test_scenario_one()
+        # test_scenario_two()
+        # test_scenario_three()
+        test_scenario_four()
+
 
 if __name__ == '__main__':
     test = TestLock()
-    test.test_redlock()
+    # test.test_redlock()
+    test.test_read_write_rlock()
