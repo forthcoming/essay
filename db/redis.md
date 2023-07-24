@@ -441,19 +441,8 @@ local function my_hgetall(keys, args)
   return res
 end
 
-local function my_hlastmodified(keys, args)
-  local error = check_keys(keys)
-  if error ~= nil then
-    return error
-  end
-
-  local hash = keys[1]
-  return redis.call('HGET', keys[1], '_last_modified_')
-end
-
 redis.register_function('my_hset', my_hset)
 redis.register_function('my_hgetall', my_hgetall)
-redis.register_function('my_hlastmodified', my_hlastmodified)
 
 # 将上述代码保存为mycode.lua,然后cat mylib.lua | redis-cli -x FUNCTION LOAD
 # redis> FCALL my_hset 1 myhash myfield "some value" another_field "another value"
@@ -856,4 +845,5 @@ typedef struct client {  // 客户端结构体,部分不重要属性已被删除
 缓存雪崩: 大量key过期或者redis宕机 解决方案: 设置随机ttl+集群副本
 有数据更新解决方案: 先更新数据库,再删除缓存(更新数据库期间如果旧缓存正好过期,此时有查询过来,又正好在删除缓存后更新缓存,会有小问题但概率极低)
 key-value型数据建议保存为hash结构,如果是序列化后再保存,不便更新且占用更多内存,直接将每个key-value保存为string结构也会更占内存
+redis读速度可达11w/s,写速度可达8w/s
 ```
