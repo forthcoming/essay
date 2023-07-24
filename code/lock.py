@@ -172,7 +172,7 @@ class ReadWriteRLock:  # 分布式可重入读写锁
     def write_rlock_name(self):
         if self.local.token is None:
             self.local.token = os.urandom(16)
-        return '{}:w'.format(self.local.token)
+        return f'{self.local.token}:w'
 
     @contextmanager
     def acquire_read_rlock(self, suffix):
@@ -187,11 +187,11 @@ class ReadWriteRLock:  # 分布式可重入读写锁
                     yield
                     break
                 cnt += 1
-                time.sleep(max(random.uniform(0, .02) * cnt, .5))
+                time.sleep(max(.02 * cnt * random.random(), .05))
             else:
                 raise Exception('获取读锁超时')
         finally:
-            self.rds.fcall("release_read_rlock", 1, key, read_rlock_name)  # 也可以处理mode="write"模式的写锁
+            self.rds.fcall("release_read_rlock", 1, key, read_rlock_name)  # mode=write也可以处理
 
     @contextmanager
     def acquire_write_rlock(self, suffix):
@@ -205,7 +205,7 @@ class ReadWriteRLock:  # 分布式可重入读写锁
                     yield
                     break
                 cnt += 1
-                time.sleep(max(random.uniform(0, .02) * cnt, .5))
+                time.sleep(max(.02 * cnt * random.random(), .05))
             else:
                 raise Exception('获取写锁超时')
         finally:
