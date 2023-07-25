@@ -767,7 +767,7 @@ int aeProcessEvents(aeEventLoop *eventLoop,int flags){
 
 ![Image](source/redis网络模型.png)
 
-### RESP协议
+### RESP协议(参考: https://github.com/redis/redis-py/blob/master/redis/_parsers/resp3.py)
 
 ```python
 import socket
