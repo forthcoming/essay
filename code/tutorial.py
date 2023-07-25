@@ -320,7 +320,7 @@ def common_tutorial():
     """
 
     assert "test".encode() == b"test" and b"test".decode() == "test"
-    assert ord('a') == 97 and chr(97) == 'a' and struct.unpack(">B", b'a')[0] == 97
+    assert ord('a') == b'abc'[0] == 97 and chr(97) == 'a' and struct.unpack(">B", b'a')[0] == 97
     print(struct.pack(">I", 0b11111111000000010000001100000000))  # b'\xff\x01\x03\x00', >: big-endian, i: int
     print(struct.pack("<I", 0b11111111000000010000001100000000))  # b'\x00\x03\x01\xff'
     int('0x0102', 16)  # 258, 字符串是16进制,并将其转换成10进制
