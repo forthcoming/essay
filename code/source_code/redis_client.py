@@ -30,7 +30,7 @@ class Redis(RedisModuleCommands, CoreCommands, SentinelCommands):
         self.connection_pool = connection_pool
 
     def execute_command(self, *args, **options):  # Execute a command and return a parsed response
-        # command_name = args[0]
+        # command_name = args[0], hget,geohash等
         connection = self.connection_pool.get_connection()  # 第一次运行命令时才会尝试去建立新连接
         try:
             connection.send_command(*args)

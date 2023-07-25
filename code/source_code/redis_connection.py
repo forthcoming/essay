@@ -48,7 +48,7 @@ class Connection:
         return response
 
     def send_command(self, *args, **kwargs):
-        command = args  # 把args中的命令打包(省略打包过程)
+        command = args  # 把args中的命令打包成RESP2.0协议形式的字节串(省略打包过程)
         if not self._sock:
             self.connect()
         if kwargs.get("check_health", True):  # guard against health check recursion

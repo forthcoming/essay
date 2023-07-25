@@ -773,21 +773,45 @@ int aeProcessEvents(aeEventLoop *eventLoop,int flags){
 import socket
 
 
+def parse_response(f):
+    # RESP2.0协议中"+": 单行字符串, ":": 整数, "-": 异常, "*": 数组, "$": 多行字符
+    line = f.readline()[:-2]  # 按行读保证数据全部读取完成
+    flag, content = line[:1], line[1:].decode()
+    response = b""
+    if flag == b"-":
+        response = Exception(content)
+    elif flag == b"+":
+        response = content
+    elif flag == b":":
+        response = int(content)
+    elif flag == b"$":
+        length = int(content)
+        while length > 0:
+            response += f.readline()[:-2]
+            length -= len(response)
+        response = response.decode()
+    elif flag == b"*":
+        response = [parse_response(f) for _ in range(int(content))]
+    else:
+        raise Exception(f"Protocol Error: {content}")
+    return response
+
+
 def execute_command(sock, cmd):
-    # RESP2.0协议中"+": 单行字符串, ":": 数字, "-": 异常, "*": 数组, "$": 多行字符
     cmd_array = cmd.split()
     encoded_cmd = f"*{len(cmd_array)}\r\n"
     for arg in cmd_array:
         encoded_cmd = f"{encoded_cmd}${len(arg.encode())}\r\n{arg}\r\n"  # *3代表数组长度为3,$3代表字符串长度为3
     sock.send(encoded_cmd.encode())
-    return sock.recv(4096).decode().split()  # 返回结果解析麻烦点,涉及到递归,如何保证读完所有缓冲区数据???
+    with sock.makefile('rb') as f:
+        return parse_response(f)
 
 
 def test():
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.connect(("127.0.0.1", 6379))
     print(execute_command(sock, "mset name 涛哥 age 18"))  # ['+OK']
-    print(execute_command(sock, "mget name age"))  # ['*2', '$6', '涛哥', '$2', '18']
+    print(execute_command(sock, "mget name age"))  # ['涛哥', '18']
 ```
 
 ### 常见结构体
@@ -936,7 +960,7 @@ def hash_slot(key):
         right = key.find('}')
         if right - left >= 2:  # 确保{}之间有字符
             key = key[left + 1:right]
-    return crc16(key) & 0b11111111111111  # 16383
+    return crc16(key.encode()) & 0b11111111111111  # 16383
 ```
 
 ### 创建集群(参考 https://github.com/redis/redis/blob/unstable/utils/create-cluster/create-cluster)
