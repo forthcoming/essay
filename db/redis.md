@@ -848,3 +848,237 @@ typedef struct client {  // 客户端结构体,部分不重要属性已被删除
 key-value型数据建议保存为hash结构,如果是序列化后再保存,不便更新且占用更多内存,直接将每个key-value保存为string结构也会更占内存
 redis读速度可达11w/s,写速度可达8w/s
 ```
+
+<hr>
+<hr>
+<hr>
+
+# 集群相关
+
+### cluster generic
+
+```
+集群至少需要三个主节点,当主节点A挂掉后其从节点A1会自动升级为主节点,重启A后A会成为A1的从节点
+将哈希槽从一个节点移动到另一个节点不需要停止任何操作,因此添加/删除/节点不需要停机
+Redis集群中有16384(2的14次方)个哈希槽,每个key都会对应一个编号在0-16383之间的哈希槽,redis会根据节点数量大致均等的将哈希槽映射到不同的节点
+当一个key插入时,哈希槽通过CRC16(key) % 16384计算,仅{}中的字符串经过哈希处理,例如this{foo}key和another{foo}key保证位于同一哈希槽中
+集群支持多个key操作,只要单个命令执行(或整个事务/Lua脚本执行涉及的所有key都属于同一个哈希槽
+集群只支持db0,不支持select,mget,mset,multi,lua脚本,除非这些key落在同一个哈希槽上,keys *只会返回该节点的数据(主从数据一样)
+
+集群不保证强一致性,跟单节点分布式锁一样在某些情况下可能会丢失写入(网络分区或异步复制),分析如下:
+客户端给主节点B发送写请求
+主节点B向客户端回复OK
+主节点B将写入传播到其副本B1、B2
+B在回复客户端前不会等待B1、B2确认,因为会有很大延迟,但在B将写入发送到其副本之前崩溃了,其中一个副本(未接收到写入)会被提升为主副本而永远丢失写入
+```
+
+### 哈希槽计算
+
+```python
+crc16tab = [
+    0x0000, 0x1021, 0x2042, 0x3063, 0x4084, 0x50a5, 0x60c6, 0x70e7,
+    0x8108, 0x9129, 0xa14a, 0xb16b, 0xc18c, 0xd1ad, 0xe1ce, 0xf1ef,
+    0x1231, 0x0210, 0x3273, 0x2252, 0x52b5, 0x4294, 0x72f7, 0x62d6,
+    0x9339, 0x8318, 0xb37b, 0xa35a, 0xd3bd, 0xc39c, 0xf3ff, 0xe3de,
+    0x2462, 0x3443, 0x0420, 0x1401, 0x64e6, 0x74c7, 0x44a4, 0x5485,
+    0xa56a, 0xb54b, 0x8528, 0x9509, 0xe5ee, 0xf5cf, 0xc5ac, 0xd58d,
+    0x3653, 0x2672, 0x1611, 0x0630, 0x76d7, 0x66f6, 0x5695, 0x46b4,
+    0xb75b, 0xa77a, 0x9719, 0x8738, 0xf7df, 0xe7fe, 0xd79d, 0xc7bc,
+    0x48c4, 0x58e5, 0x6886, 0x78a7, 0x0840, 0x1861, 0x2802, 0x3823,
+    0xc9cc, 0xd9ed, 0xe98e, 0xf9af, 0x8948, 0x9969, 0xa90a, 0xb92b,
+    0x5af5, 0x4ad4, 0x7ab7, 0x6a96, 0x1a71, 0x0a50, 0x3a33, 0x2a12,
+    0xdbfd, 0xcbdc, 0xfbbf, 0xeb9e, 0x9b79, 0x8b58, 0xbb3b, 0xab1a,
+    0x6ca6, 0x7c87, 0x4ce4, 0x5cc5, 0x2c22, 0x3c03, 0x0c60, 0x1c41,
+    0xedae, 0xfd8f, 0xcdec, 0xddcd, 0xad2a, 0xbd0b, 0x8d68, 0x9d49,
+    0x7e97, 0x6eb6, 0x5ed5, 0x4ef4, 0x3e13, 0x2e32, 0x1e51, 0x0e70,
+    0xff9f, 0xefbe, 0xdfdd, 0xcffc, 0xbf1b, 0xaf3a, 0x9f59, 0x8f78,
+    0x9188, 0x81a9, 0xb1ca, 0xa1eb, 0xd10c, 0xc12d, 0xf14e, 0xe16f,
+    0x1080, 0x00a1, 0x30c2, 0x20e3, 0x5004, 0x4025, 0x7046, 0x6067,
+    0x83b9, 0x9398, 0xa3fb, 0xb3da, 0xc33d, 0xd31c, 0xe37f, 0xf35e,
+    0x02b1, 0x1290, 0x22f3, 0x32d2, 0x4235, 0x5214, 0x6277, 0x7256,
+    0xb5ea, 0xa5cb, 0x95a8, 0x8589, 0xf56e, 0xe54f, 0xd52c, 0xc50d,
+    0x34e2, 0x24c3, 0x14a0, 0x0481, 0x7466, 0x6447, 0x5424, 0x4405,
+    0xa7db, 0xb7fa, 0x8799, 0x97b8, 0xe75f, 0xf77e, 0xc71d, 0xd73c,
+    0x26d3, 0x36f2, 0x0691, 0x16b0, 0x6657, 0x7676, 0x4615, 0x5634,
+    0xd94c, 0xc96d, 0xf90e, 0xe92f, 0x99c8, 0x89e9, 0xb98a, 0xa9ab,
+    0x5844, 0x4865, 0x7806, 0x6827, 0x18c0, 0x08e1, 0x3882, 0x28a3,
+    0xcb7d, 0xdb5c, 0xeb3f, 0xfb1e, 0x8bf9, 0x9bd8, 0xabbb, 0xbb9a,
+    0x4a75, 0x5a54, 0x6a37, 0x7a16, 0x0af1, 0x1ad0, 0x2ab3, 0x3a92,
+    0xfd2e, 0xed0f, 0xdd6c, 0xcd4d, 0xbdaa, 0xad8b, 0x9de8, 0x8dc9,
+    0x7c26, 0x6c07, 0x5c64, 0x4c45, 0x3ca2, 0x2c83, 0x1ce0, 0x0cc1,
+    0xef1f, 0xff3e, 0xcf5d, 0xdf7c, 0xaf9b, 0xbfba, 0x8fd9, 0x9ff8,
+    0x6e17, 0x7e36, 0x4e55, 0x5e74, 0x2e93, 0x3eb2, 0x0ed1, 0x1ef0
+]
+
+
+def crc16_efficient_version(message):
+    crc = 0
+    for char in message:
+        crc = (crc << 8) ^ crc16tab[((crc >> 8) ^ char) & 0x00FF]
+    return crc
+
+
+def crc16(message):
+    crc = 0
+    for char in message:
+        crc ^= char << 8
+        for i in range(8):
+            if crc & 0x8000:
+                crc = (crc << 1 ^ 0x1021) & 0xffff
+            else:
+                crc <<= 1
+    return crc
+
+
+def hash_slot(key):
+    left = key.find('{')  # 首次出现的位置
+    if left >= 0:
+        right = key.find('}')
+        if right - left >= 2:  # 确保{}之间有字符
+            key = key[left + 1:right]
+    return crc16(key) & 0b11111111111111  # 16383
+```
+
+### 创建集群(参考 https://github.com/redis/redis/blob/unstable/utils/create-cluster/create-cluster)
+
+```
+1. cd 7000[7001|7002|7003|7004|7005] && redis-server redis_cluster.conf,手动启动每个节点
+2. redis-cli --cluster create 127.0.0.1:7000 127.0.0.1:7001 127.0.0.1:7002 127.0.0.1:7003 127.0.0.1:7004 127.0.0.1:7005 --cluster-replicas 1
+--cluster-replicas 1意味着每个主节点创建一个副本,不需要在每个节点的配置文件中设置(create a cluster with 3 masters and 3 slaves)
+```
+
+### 节点升级
+
+```
+升级从节点只需停止该节点并使用更新版本的Redis重新启动
+升级主节点使用CLUSTER FAILOVER(主节点的从节点之一上执行)手动触发主节点故障转移到其中一个从节点,等待主节点变成从节点,最后像升级从节点一样升级节点
+如果希望主节点成为刚刚升级的节点,请手动触发新的故障转移,以便将升级后的节点恢复为主节点
+```
+
+### reshard(哈希槽从一组节点移动到另一组节点)
+
+```
+--cluster-yes指示自动对命令提示回答“是”,从而允许其以非交互模式运行
+redis-cli --cluster reshard 127.0.0.1:7002 --cluster-from 9dd8ecfd28eae160d8c19d4184c4777f9bde49e8 --cluster-to cba9eef5cf1b30a7b7dea7f2c8543ba2fe8b5e15 --cluster-slots 10 --cluster-yes
+Ready to move 10 slots.
+  Source nodes:
+    M: 9dd8ecfd28eae160d8c19d4184c4777f9bde49e8 127.0.0.1:7004
+       slots:[0-5466],[10923-10926] (5471 slots) master
+  Destination node:
+    M: cba9eef5cf1b30a7b7dea7f2c8543ba2fe8b5e15 127.0.0.1:7001
+       slots:[5467-10922] (5456 slots) master
+       1 additional replica(s)
+  Resharding plan:
+    Moving slot 0 from 9dd8ecfd28eae160d8c19d4184c4777f9bde49e8
+    Moving slot 1 from 9dd8ecfd28eae160d8c19d4184c4777f9bde49e8
+    Moving slot 2 from 9dd8ecfd28eae160d8c19d4184c4777f9bde49e8
+    Moving slot 3 from 9dd8ecfd28eae160d8c19d4184c4777f9bde49e8
+    Moving slot 4 from 9dd8ecfd28eae160d8c19d4184c4777f9bde49e8
+    Moving slot 5 from 9dd8ecfd28eae160d8c19d4184c4777f9bde49e8
+    Moving slot 6 from 9dd8ecfd28eae160d8c19d4184c4777f9bde49e8
+    Moving slot 7 from 9dd8ecfd28eae160d8c19d4184c4777f9bde49e8
+    Moving slot 8 from 9dd8ecfd28eae160d8c19d4184c4777f9bde49e8
+    Moving slot 9 from 9dd8ecfd28eae160d8c19d4184c4777f9bde49e8
+Moving slot 0 from 127.0.0.1:7004 to 127.0.0.1:7001: 
+Moving slot 1 from 127.0.0.1:7004 to 127.0.0.1:7001: 
+Moving slot 2 from 127.0.0.1:7004 to 127.0.0.1:7001: 
+Moving slot 3 from 127.0.0.1:7004 to 127.0.0.1:7001: 
+Moving slot 4 from 127.0.0.1:7004 to 127.0.0.1:7001: 
+Moving slot 5 from 127.0.0.1:7004 to 127.0.0.1:7001: 
+Moving slot 6 from 127.0.0.1:7004 to 127.0.0.1:7001: 
+Moving slot 7 from 127.0.0.1:7004 to 127.0.0.1:7001: 
+Moving slot 8 from 127.0.0.1:7004 to 127.0.0.1:7001: 
+Moving slot 9 from 127.0.0.1:7004 to 127.0.0.1:7001: 
+
+原理:
+1. 对目标节点B发送 cluster setslot <slot-8> importing <ANodeId> 命令,让目标节点准备导入槽的数据
+2. 对源节点A发送 cluster setslot <slot-8> migrating <BNodeId> 命令,让源节点准备迁出槽的数据
+3. A执行cluster getkeysinslot <slot-8> <count> 命令,获取count个属于槽slot的键 
+4. A执行MIGRATE target_host target_port "" target_database id timeout KEYS key1 key2 ...命令,把键批量迁移到目标节点
+5. 重复执行步骤3和步骤4直到槽下所有的键值数据迁移到目标节点
+6. 在B、A节点按顺序执行CLUSTER SETSLOT <slot> NODE <BNodeId>,保证槽节点映射变更及时传播,需要遍历发送给所有节点更新被迁移的槽指向新节点
+步骤1和2的顺序很重要,当源节点配置为重定向时,我们希望目标节点准备好接受ASK重定向
+步骤6的顺序很重要,目标节点负责将更改传播到集群的其余部分,如果源节点在目标节点之前收到通知,并且目标节点在被设置为新槽所有者之前崩溃,则即使在成功故障转移之后,该槽也将没有所有者
+MIGRATE一旦收到OK,其自己的数据集中的旧key将被删除,从客户端角度来看,任何时间key都存在于A或B中
+在其他节点查询哈希槽8的数据时,会先通过MOVED重定向到A节点,如果数据不在A,客户端收到ASK后带上ASKING命令请求B
+
+MOVED重定向:
+客户端可以将查询发送到任意节点,如果哈希槽由节点提供,则处理查询,否则向客户端回复-MOVED 3999 127.0.0.1:6381
+客户端收到MOVED错误后,根据返回信息重定向到正确节点,还应该使用CLUSTER ShardS命令刷新整个客户端集群布局
+```
+
+### rebalance(平衡集群中各个节点的slot数量)
+
+```
+redis-cli --cluster rebalance 127.0.0.1:8002
+>>> Performing Cluster Check (using node 127.0.0.1:8002)
+[OK] All nodes agree about slots configuration.
+>>> Check for open slots...
+>>> Check slots coverage...
+[OK] All 16384 slots covered.
+>>> Rebalancing across 3 nodes. Total weight = 3.00
+Moving 500 slots from 127.0.0.1:8002 to 127.0.0.1:8005
+Moving 5 slots from 127.0.0.1:8002 to 127.0.0.1:8004
+```
+
+### 新增节点
+
+```
+# 添加一个新节点7006到集群作为主节点,7006相关集群配置必须有且要运行起来,如果有cluster-config-file设置的文件,需要先删除
+# 7006不会分配哈希槽,可以使用redis-cli的reshard功能将哈希槽分配给该节点
+redis-cli --cluster add-node 127.0.0.1:7006 127.0.0.1:7001 
+>>> Adding node 127.0.0.1:7006 to cluster 127.0.0.1:7001
+>>> Performing Cluster Check (using node 127.0.0.1:7001)
+>>> Check for open slots...
+>>> Check slots coverage...
+[OK] All 16384 slots covered.
+>>> Send CLUSTER MEET to node 127.0.0.1:7006 to make it join the cluster.
+[OK] New node added correctly.
+
+# 在主节点1bf1f4e2cefde5099452aec9dbc9386fea369777(7002)上添加一个新的7006从节点(可用来验证cluster-migration-barrier配置)
+redis-cli --cluster add-node 127.0.0.1:7006 127.0.0.1:7001 --cluster-slave --cluster-master-id 1bf1f4e2cefde5099452aec9dbc9386fea369777 
+>>> Adding node 127.0.0.1:7006 to cluster 127.0.0.1:7001
+>>> Performing Cluster Check (using node 127.0.0.1:7001)
+>>> Check for open slots...
+>>> Check slots coverage...
+[OK] All 16384 slots covered.
+>>> Send CLUSTER MEET to node 127.0.0.1:7006 to make it join the cluster.
+Waiting for the cluster to join
+>>> Configure node as replica of 127.0.0.1:7002.
+[OK] New node added correctly.
+```
+
+### 删除节点
+
+```
+# 第一个参数是集群中的随机节点,第二个参数是要删除的节点ID,删除主节点时必须为空,如果非空需要将其数据重新分片到其他主节点
+redis-cli --cluster del-node 127.0.0.1:7000 43c59528a792f3758c2df3b2c9fb18f86651904a
+>>> Removing node 43c59528a792f3758c2df3b2c9fb18f86651904a from cluster 127.0.0.1:7000
+>>> Sending CLUSTER FORGET messages to the cluster...
+>>> SHUTDOWN the node.
+```
+
+### cluster management
+
+```
+ASKING: 当客户端收到-ASK重定向时,ASKING命令将发送到目标节点,这通常由客户端自动完成
+CLUSTER MEET ip port: 将启用了集群支持的节点连接到工作集群中
+CLUSTER COUNTKEYSINSLOT slot: 返回指定哈希槽中键的数量
+CLUSTER SHARDS: 返回集群分片的详细信息
+CLUSTER NODES: 返回信息跟CLUSTER SHARDS差不多,按行显示
+CLUSTER INFO
+CLUSTER KEYSLOT key: 计算key被放置在哪个槽上
+CLUSTER GETKEYSINSLOT slot count: 返回count个slot槽中的键
+CLUSTER REPLICATE node-id: 连上从节点,更改其主节点为指定的主节点ID,不受cluster-migration-barrier配置影响,重启时会恢复
+CLUSTER FORGET node-id: 从节点表中删除指定ID的节点,60秒内具有相同ID的节点禁止重新添加(因为使用了gossip自动发现节点机制,留足时间从所有节点中删除该节点,防止被重新添加)
+CLUSTER FAILOVER [FORCE | TAKEOVER]: 只能在集群副本节点执行,手动强制副本启动其主实例的故障转移
+
+CLUSTER SETSLOT slot <IMPORTING node-id | MIGRATING node-id | NODE node-id | STABLE>
+STABLE: 清除哈希槽中的任何IMPORTING/MIGRATING状态
+IMPORTING source-node-id: 将一个槽设置为importing状态,槽下的keys从指定源节点导入目标节点,该命令仅能在目标节点不是指定槽的所有者时生效
+MIGRATING destination-node-id: 将一个槽设置为migrating状态,该命令的节点必须是该哈希槽的所有者,节点将会有如下操作: 
+1. 如果处理的是存在的key,命令正常执行
+2. 如果要处理的key不存在,接收命令的节点将发出一个重定向ASK,让客户端在destination-node重试该查询.在这种情况下客户端不应该将该哈希槽更新为节点映射
+3. 如果命令包含多个keys,如果都不存在处理方式同2;如果都存在,处理方式同1
+   如果只是部分存在,针对即将完成迁移至目标节点的keys按序返回TRYAGAIN错误,以便批量keys命令可以执行,客户端可以重试几次或者报错
+```
