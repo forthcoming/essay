@@ -595,7 +595,8 @@ Usage: redis-cli [OPTIONS] [cmd [arg [arg ...]]]
 --user: Used to send ACL style 'AUTH username pass'. Needs --pass.
 --pass: Password to use when connecting to the server.
 -x: 从STDIN读取最后一个参数
--n: Database number.
+-n: Database number
+-c: 连接集群
 -r: Execute specified command N times.use -1 to run the same command indefinitely
 -i: 当使用-r时,每个命令等待<interval>秒,每个周期的--scan和--stat以及每100个周期的--bigkeys、--memkeys和--hotkeys中也使用此间隔
 --memkeys: 查找消耗大量内存的key
@@ -842,7 +843,7 @@ typedef struct client {  // 客户端结构体,部分不重要属性已被删除
 ```
 缓存穿透: 访问既不在redis又不在数据库的数据 解决方案: 缓存控对象或布隆过滤器
 缓存击穿: 高并发访问且缓存重建较复杂的key过期 解决方案: 可用互斥锁,或新起定时任务手动刷新缓存(应用只查询缓存)
-缓存雪崩: 大量key过期或者redis宕机 解决方案: 设置随机ttl+集群副本
+缓存雪崩: 大量key过期或者redis宕机 解决方案: 设置随机ttl+集群副本+数据预热(预先访问接口或者程序,填充缓存)
 有数据更新解决方案: 先更新数据库,再删除缓存(更新数据库期间如果旧缓存正好过期,此时有查询过来,又正好在删除缓存后更新缓存,会有小问题但概率极低)
 key-value型数据建议保存为hash结构,如果是序列化后再保存,不便更新且占用更多内存,直接将每个key-value保存为string结构也会更占内存
 redis读速度可达11w/s,写速度可达8w/s

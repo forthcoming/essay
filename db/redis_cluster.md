@@ -1,20 +1,23 @@
+### 集群相关
+
 ```
-Redis集群中内置了16384(2的14次方)个哈希槽,当需要在Redis集群中放置一个key-value时,先对key使用crc16算法算出一个结果,然后把结果对16384求余数
-这样每个key都会对应一个编号在0-16383之间的哈希槽,redis会根据节点数量大致均等的将哈希槽映射到不同的节点(没使用一致性哈希)
-当主节点A挂掉后其从节点B会自动升级为主节点,重启A后A会成为B的从节点
-the minimal cluster that works as expected requires to contain at least three master nodes.
+集群至少需要三个主节点,当主节点A挂掉后其从节点A1会自动升级为主节点,重启A后A会成为A1的从节点
+将哈希槽从一个节点移动到另一个节点不需要停止任何操作,因此添加/删除/节点不需要停机
+Redis集群中有16384(2的14次方)个哈希槽,每个key都会对应一个编号在0-16383之间的哈希槽,redis会根据节点数量大致均等的将哈希槽映射到不同的节点
+当一个key插入时,哈希槽通过CRC16(key) % 16384计算,仅{}中的字符串经过哈希处理,例如this{foo}key和another{foo}key保证位于同一哈希槽中
+集群支持多个key操作,只要单个命令执行(或整个事务/Lua脚本执行涉及的所有key都属于同一个哈希槽
+集群只支持db0,不支持mget,mset,multi,lua脚本,除非这些key落在同一个哈希槽上,keys *只会返回该节点的数据(主从数据一样)
 
-Redis Cluster supports multiple key operations as long as all the keys involved into a single command execution (or whole transaction, or Lua script execution) all belong to the same hash slot. 
-The user can force multiple keys to be part of the same hash slot by using a concept called hash tags.
-only string in {} is hashed, so for example this{foo}key and another{foo}key are guaranteed to be in the same hash slot, and can be used together in a command with multiple keys as arguments.
-redis集群只支持db0,不支持mget,mset,multi,lua脚本,除非这些key落在同一个slot上,keys *只会返回该节点的数据(主从数据一样)
-redis-py-cluster的StrictRedisCluster对keys,mget,mset,pipeline做了处理,使用时不需要再考虑key落在不同slot问题,但对于lua脚本则必须落在同一个slot上
-其中pipeline原理是先根据for key in keys:crc16(key)%16384给keys分组,再批量执行,效率仍然比单条命令依次执行要高
-参考:https://github.com/Grokzen/redis-py-cluster/blob/unstable/rediscluster/pipeline.py#L139 , send_cluster_commands
+集群不保证强一致性,在某些情况下可能会丢失写入(网络分区或异步复制),分析如下:
+客户端给主节点B发送写请求
+主节点B向客户端回复OK
+主节点B将写入传播到其副本B1、B2
+B在回复客户端前不会等待B1、B2确认,因为会有很大延迟,但在B将写入发送到其副本之前崩溃了,其中一个副本(未接收到写入)会被提升为主副本而永远丢失写入
+```
 
-redis集群不支持事物,In redis-py-cluster, pipelining is all about trying to achieve greater network efficiency. 
-Transaction support is disabled in redis-py-cluster. Use pipelines to avoid extra network round-trips, not to ensure atomicity.
+### 哈希槽计算
 
+```python
 def crc16(message):
     crc = 0
     for char in message:
@@ -26,15 +29,129 @@ def crc16(message):
                 crc <<= 1
     return crc
 
+
 def hash_slot(key):
-    left = key.find('{')   # 首次出现的位置
-    if left>=0:
+    left = key.find('{')  # 首次出现的位置
+    if left >= 0:
         right = key.find('}')
-        if right-left>=2:  # 确保{}之间有字符
-            return crc16(key[left+1:right]) & 0b11111111111111  # 16383
+        if right - left >= 2:  # 确保{}之间有字符
+            key = key[left + 1:right]
     return crc16(key) & 0b11111111111111  # 16383
-    
-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+```
+
+### 创建集群(参考 https://github.com/redis/redis/blob/unstable/utils/create-cluster/create-cluster)
+
+```
+1. cd 7000[7001|7002|7003|7004|7005] && redis-server redis_cluster.conf,手动启动每个节点
+2. redis-cli --cluster create 127.0.0.1:7000 127.0.0.1:7001 127.0.0.1:7002 127.0.0.1:7003 127.0.0.1:7004 127.0.0.1:7005 --cluster-replicas 1
+--cluster-replicas 1意味着每个主节点创建一个副本,不需要在每个节点的配置文件中设置(create a cluster with 3 masters and 3 slaves)
+```
+
+### 节点升级
+
+```
+升级从节点只需停止该节点并使用更新版本的Redis重新启动
+升级主节点使用CLUSTER FAILOVER手动触发主节点故障转移到其中一个从节点,等待主节点变成从节点,最后像升级从节点一样升级节点
+如果希望主节点成为刚刚升级的节点,请手动触发新的故障转移,以便将升级后的节点恢复为主节点
+CLUSTER FAILOVER必须在要进行故障转移的主服务器的副本之一中执行
+```
+
+### reshard(哈希槽从一组节点移动到另一组节点)
+
+```
+--cluster-yes指示自动对命令提示回答“是”,从而允许其以非交互模式运行
+redis-cli --cluster reshard 127.0.0.1:7002 --cluster-from 9dd8ecfd28eae160d8c19d4184c4777f9bde49e8 --cluster-to cba9eef5cf1b30a7b7dea7f2c8543ba2fe8b5e15 --cluster-slots 10 --cluster-yes
+Ready to move 10 slots.
+  Source nodes:
+    M: 9dd8ecfd28eae160d8c19d4184c4777f9bde49e8 127.0.0.1:7004
+       slots:[0-5466],[10923-10926] (5471 slots) master
+  Destination node:
+    M: cba9eef5cf1b30a7b7dea7f2c8543ba2fe8b5e15 127.0.0.1:7001
+       slots:[5467-10922] (5456 slots) master
+       1 additional replica(s)
+  Resharding plan:
+    Moving slot 0 from 9dd8ecfd28eae160d8c19d4184c4777f9bde49e8
+    Moving slot 1 from 9dd8ecfd28eae160d8c19d4184c4777f9bde49e8
+    Moving slot 2 from 9dd8ecfd28eae160d8c19d4184c4777f9bde49e8
+    Moving slot 3 from 9dd8ecfd28eae160d8c19d4184c4777f9bde49e8
+    Moving slot 4 from 9dd8ecfd28eae160d8c19d4184c4777f9bde49e8
+    Moving slot 5 from 9dd8ecfd28eae160d8c19d4184c4777f9bde49e8
+    Moving slot 6 from 9dd8ecfd28eae160d8c19d4184c4777f9bde49e8
+    Moving slot 7 from 9dd8ecfd28eae160d8c19d4184c4777f9bde49e8
+    Moving slot 8 from 9dd8ecfd28eae160d8c19d4184c4777f9bde49e8
+    Moving slot 9 from 9dd8ecfd28eae160d8c19d4184c4777f9bde49e8
+Moving slot 0 from 127.0.0.1:7004 to 127.0.0.1:7001: 
+Moving slot 1 from 127.0.0.1:7004 to 127.0.0.1:7001: 
+Moving slot 2 from 127.0.0.1:7004 to 127.0.0.1:7001: 
+Moving slot 3 from 127.0.0.1:7004 to 127.0.0.1:7001: 
+Moving slot 4 from 127.0.0.1:7004 to 127.0.0.1:7001: 
+Moving slot 5 from 127.0.0.1:7004 to 127.0.0.1:7001: 
+Moving slot 6 from 127.0.0.1:7004 to 127.0.0.1:7001: 
+Moving slot 7 from 127.0.0.1:7004 to 127.0.0.1:7001: 
+Moving slot 8 from 127.0.0.1:7004 to 127.0.0.1:7001: 
+Moving slot 9 from 127.0.0.1:7004 to 127.0.0.1:7001: 
+```
+
+### rebalance(平衡集群中各个节点的slot数量)
+
+```
+redis-cli --cluster rebalance 127.0.0.1:8002
+>>> Performing Cluster Check (using node 127.0.0.1:8002)
+[OK] All nodes agree about slots configuration.
+>>> Check for open slots...
+>>> Check slots coverage...
+[OK] All 16384 slots covered.
+>>> Rebalancing across 3 nodes. Total weight = 3.00
+Moving 500 slots from 127.0.0.1:8002 to 127.0.0.1:8005
+Moving 5 slots from 127.0.0.1:8002 to 127.0.0.1:8004
+```
+
+### 新增节点
+
+```
+# 添加一个新节点7006到集群作为主节点,7006相关集群配置必须有且要运行起来,如果有cluster-config-file设置的文件,需要先删除
+# 7006不会分配哈希槽,可以使用redis-cli的reshard功能将哈希槽分配给该节点
+redis-cli --cluster add-node 127.0.0.1:7006 127.0.0.1:7001 
+>>> Adding node 127.0.0.1:7006 to cluster 127.0.0.1:7001
+>>> Performing Cluster Check (using node 127.0.0.1:7001)
+>>> Check for open slots...
+>>> Check slots coverage...
+[OK] All 16384 slots covered.
+>>> Send CLUSTER MEET to node 127.0.0.1:7006 to make it join the cluster.
+[OK] New node added correctly.
+
+# 在主节点1bf1f4e2cefde5099452aec9dbc9386fea369777(7002)上添加一个新的7006从节点(可用来验证cluster-migration-barrier配置)
+redis-cli --cluster add-node 127.0.0.1:7006 127.0.0.1:7001 --cluster-slave --cluster-master-id 1bf1f4e2cefde5099452aec9dbc9386fea369777 
+>>> Adding node 127.0.0.1:7006 to cluster 127.0.0.1:7001
+>>> Performing Cluster Check (using node 127.0.0.1:7001)
+>>> Check for open slots...
+>>> Check slots coverage...
+[OK] All 16384 slots covered.
+>>> Send CLUSTER MEET to node 127.0.0.1:7006 to make it join the cluster.
+Waiting for the cluster to join
+>>> Configure node as replica of 127.0.0.1:7002.
+[OK] New node added correctly.
+```
+
+### 删除节点
+
+```
+# 第一个参数是集群中的随机节点,第二个参数是要删除的节点ID,删除主节点时必须为空,如果非空需要将其数据重新分片到其他主节点
+redis-cli --cluster del-node 127.0.0.1:7000 43c59528a792f3758c2df3b2c9fb18f86651904a
+>>> Removing node 43c59528a792f3758c2df3b2c9fb18f86651904a from cluster 127.0.0.1:7000
+>>> Sending CLUSTER FORGET messages to the cluster...
+>>> SHUTDOWN the node.
+CLUSTER FORGET <node-id>说明:
+从节点表中删除指定ID的节点,60秒内具有相同ID的节点禁止重新添加(因为使用了gossip自动发现节点机制,留足时间从所有节点中删除该节点,防止被重新添加)
+```
+
+
+
+### tobedone
+
+```
+cluster replicate <master-node-id>: 连上从节点,更改其主节点为指定的主节点ID
+手动更改从节点不受cluster-migration-barrier配置影响,集群重启时会再次replicas migration
 
 cluster info 
 cluster slots  # returns details about which cluster slots map to which Redis instances
@@ -66,42 +183,6 @@ D ends re-added in the nodes table of A.
 As you can see in this way removing a node is fragile, we need to send CLUSTER FORGET commands to all the nodes ASAP hoping there are no gossip sections processing in the meantime.
 Because of this problem the command implements a ban-list with an expire time for each entry.
 
-cluster replicate <master-node-id>
-In Redis Cluster it is possible to reconfigure a slave to replicate with a different master
-手动更改从节点不受cluster-migration-barrier配置影响,集群重启时会再次replicas migration
-
-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-Redis Cluster supports the ability to add and remove nodes while the cluster is running.
-Adding or removing a node is abstracted into the same operation: moving a hash slot from one node to another. 
-To add a new node to the cluster an empty node is added to the cluster and some set of hash slots are moved from existing nodes to the new node.
-To remove a node from the cluster the hash slots assigned to that node are moved to other existing nodes.
-Moving a hash slot means moving all the keys that happen to hash into this hash slot.
-
-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-# Removing nodes from a cluster(slave节点可以直接删除)
-# The first argument is just a random node in the cluster, the second argument is the ID of the node you want to remove.
-# You can remove a master node in the same way as well, however in order to remove a master node it must be empty. 
-# If the master is not empty you need to reshard data away from it to all the other master nodes before.
-# An alternative to remove a master node is to perform a manual failover of it over one of its slaves and remove the node after it turned into a slave of the new master.
-# Obviously this does not help when you want to reduce the actual number of masters in your cluster, in that case, a resharding is needed.
-# u can remove a node from a cluster,However, the other nodes will still remember its node ID and address, and will attempt to connect with it.
-# For this reason, when a node is removed we want to also remove its entry from all the other nodes tables. This is accomplished by using the CLUSTER FORGET <node-id> command.
-# The command does two things:
-# It removes the node with the specified node ID from the nodes table.
-# It sets a 60 second ban which prevents a node with the same node ID from being re-added.
-# The second operation is needed because Redis Cluster uses gossip in order to auto-discover nodes, so removing the node X from node A, could result in node B gossiping about node X to A again. 
-# Because of the 60 second ban, the Redis Cluster administration tools have 60 seconds in order to remove the node from all the nodes, preventing the re-addition of the node due to auto discovery.
-redis-cli --cluster del-node 127.0.0.1:8001 43c59528a792f3758c2df3b2c9fb18f86651904a
->>> Removing node 43c59528a792f3758c2df3b2c9fb18f86651904a from cluster 127.0.0.1:8001
->>> Sending CLUSTER FORGET messages to the cluster...
->>> SHUTDOWN the node.
-
-redis-cli --cluster del-node 127.0.0.1:8006 9dd8ecfd28eae160d8c19d4184c4777f9bde49e8
->>> Removing node 9dd8ecfd28eae160d8c19d4184c4777f9bde49e8 from cluster 127.0.0.1:8006
-[ERR] Node 127.0.0.1:8005 is not empty! Reshard data away and try again.
-
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 # 从节点不分配槽位
@@ -129,128 +210,6 @@ M: cba9eef5cf1b30a7b7dea7f2c8543ba2fe8b5e15 127.0.0.1:8002
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-# 添加一个新节点8006到集群作为主节点,8006相关集群配置必须有且要运行起来,如果有cluster-config-file设置的文件,需要先删除
-redis-cli --cluster add-node 127.0.0.1:8006 127.0.0.1:8002 
->>> Adding node 127.0.0.1:8006 to cluster 127.0.0.1:8002
->>> Performing Cluster Check (using node 127.0.0.1:8002)
->>> Check for open slots...
->>> Check slots coverage...
-[OK] All 16384 slots covered.
->>> Send CLUSTER MEET to node 127.0.0.1:8006 to make it join the cluster.
-[OK] New node added correctly.
-
-# 在主节点1bf1f4e2cefde5099452aec9dbc9386fea369777(8003)上添加一个新的8006从节点(可用来验证cluster-migration-barrier配置)
-redis-cli --cluster add-node 127.0.0.1:8006 127.0.0.1:8002 --cluster-slave --cluster-master-id 1bf1f4e2cefde5099452aec9dbc9386fea369777 
->>> Adding node 127.0.0.1:8006 to cluster 127.0.0.1:8002
->>> Performing Cluster Check (using node 127.0.0.1:8002)
->>> Check for open slots...
->>> Check slots coverage...
-[OK] All 16384 slots covered.
->>> Send CLUSTER MEET to node 127.0.0.1:8006 to make it join the cluster.
-Waiting for the cluster to join
->>> Configure node as replica of 127.0.0.1:8003.
-[OK] New node added correctly.
-
-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-# 槽迁移只能在主节点进行,应为从节点未分配哈希槽
-redis-cli --cluster reshard 127.0.0.1:8002
-How many slots do you want to move (from 1 to 16384)? 10
-What is the receiving node ID? 9dd8ecfd28eae160d8c19d4184c4777f9bde49e8
-Please enter all the source node IDs.
-  Type 'all' to use all the nodes as source nodes for the hash slots.
-  Type 'done' once you entered all the source nodes IDs.
-Source node #1: all
-
-Ready to move 10 slots.
-  Source nodes:
-    M: cba9eef5cf1b30a7b7dea7f2c8543ba2fe8b5e15 127.0.0.1:8002
-       slots:[5461-10922] (5462 slots) master
-       1 additional replica(s)
-    M: f72e454d7a592aef786ce318c4b73de6a0385a9d 127.0.0.1:8004
-       slots:[10923-16383] (5461 slots) master
-       1 additional replica(s)
-  Destination node:
-    M: 9dd8ecfd28eae160d8c19d4184c4777f9bde49e8 127.0.0.1:8005
-       slots:[0-5460] (5461 slots) master
-  Resharding plan:
-    Moving slot 5461 from cba9eef5cf1b30a7b7dea7f2c8543ba2fe8b5e15
-    Moving slot 5462 from cba9eef5cf1b30a7b7dea7f2c8543ba2fe8b5e15
-    Moving slot 5463 from cba9eef5cf1b30a7b7dea7f2c8543ba2fe8b5e15
-    Moving slot 5464 from cba9eef5cf1b30a7b7dea7f2c8543ba2fe8b5e15
-    Moving slot 5465 from cba9eef5cf1b30a7b7dea7f2c8543ba2fe8b5e15
-    Moving slot 5466 from cba9eef5cf1b30a7b7dea7f2c8543ba2fe8b5e15
-    Moving slot 10923 from f72e454d7a592aef786ce318c4b73de6a0385a9d
-    Moving slot 10924 from f72e454d7a592aef786ce318c4b73de6a0385a9d
-    Moving slot 10925 from f72e454d7a592aef786ce318c4b73de6a0385a9d
-    Moving slot 10926 from f72e454d7a592aef786ce318c4b73de6a0385a9d
-Do you want to proceed with the proposed reshard plan (yes/no)? yes
-Moving slot 5461 from 127.0.0.1:8002 to 127.0.0.1:8005: 
-Moving slot 5462 from 127.0.0.1:8002 to 127.0.0.1:8005: 
-Moving slot 5463 from 127.0.0.1:8002 to 127.0.0.1:8005: 
-Moving slot 5464 from 127.0.0.1:8002 to 127.0.0.1:8005: 
-Moving slot 5465 from 127.0.0.1:8002 to 127.0.0.1:8005: 
-Moving slot 5466 from 127.0.0.1:8002 to 127.0.0.1:8005: 
-Moving slot 10923 from 127.0.0.1:8004 to 127.0.0.1:8005: 
-Moving slot 10924 from 127.0.0.1:8004 to 127.0.0.1:8005: 
-Moving slot 10925 from 127.0.0.1:8004 to 127.0.0.1:8005: 
-Moving slot 10926 from 127.0.0.1:8004 to 127.0.0.1:8005: 
-
-redis-cli --cluster reshard 127.0.0.1:8003 --cluster-from 9dd8ecfd28eae160d8c19d4184c4777f9bde49e8 --cluster-to cba9eef5cf1b30a7b7dea7f2c8543ba2fe8b5e15 --cluster-slots 10 --cluster-yes
-Ready to move 10 slots.
-  Source nodes:
-    M: 9dd8ecfd28eae160d8c19d4184c4777f9bde49e8 127.0.0.1:8005
-       slots:[0-5466],[10923-10926] (5471 slots) master
-  Destination node:
-    M: cba9eef5cf1b30a7b7dea7f2c8543ba2fe8b5e15 127.0.0.1:8002
-       slots:[5467-10922] (5456 slots) master
-       1 additional replica(s)
-  Resharding plan:
-    Moving slot 0 from 9dd8ecfd28eae160d8c19d4184c4777f9bde49e8
-    Moving slot 1 from 9dd8ecfd28eae160d8c19d4184c4777f9bde49e8
-    Moving slot 2 from 9dd8ecfd28eae160d8c19d4184c4777f9bde49e8
-    Moving slot 3 from 9dd8ecfd28eae160d8c19d4184c4777f9bde49e8
-    Moving slot 4 from 9dd8ecfd28eae160d8c19d4184c4777f9bde49e8
-    Moving slot 5 from 9dd8ecfd28eae160d8c19d4184c4777f9bde49e8
-    Moving slot 6 from 9dd8ecfd28eae160d8c19d4184c4777f9bde49e8
-    Moving slot 7 from 9dd8ecfd28eae160d8c19d4184c4777f9bde49e8
-    Moving slot 8 from 9dd8ecfd28eae160d8c19d4184c4777f9bde49e8
-    Moving slot 9 from 9dd8ecfd28eae160d8c19d4184c4777f9bde49e8
-Moving slot 0 from 127.0.0.1:8005 to 127.0.0.1:8002: 
-Moving slot 1 from 127.0.0.1:8005 to 127.0.0.1:8002: 
-Moving slot 2 from 127.0.0.1:8005 to 127.0.0.1:8002: 
-Moving slot 3 from 127.0.0.1:8005 to 127.0.0.1:8002: 
-Moving slot 4 from 127.0.0.1:8005 to 127.0.0.1:8002: 
-Moving slot 5 from 127.0.0.1:8005 to 127.0.0.1:8002: 
-Moving slot 6 from 127.0.0.1:8005 to 127.0.0.1:8002: 
-Moving slot 7 from 127.0.0.1:8005 to 127.0.0.1:8002: 
-Moving slot 8 from 127.0.0.1:8005 to 127.0.0.1:8002: 
-Moving slot 9 from 127.0.0.1:8005 to 127.0.0.1:8002: 
-
-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-# 平衡集群中各个节点的slot数量
-redis-cli --cluster rebalance 127.0.0.1:8002
->>> Performing Cluster Check (using node 127.0.0.1:8002)
-[OK] All nodes agree about slots configuration.
->>> Check for open slots...
->>> Check slots coverage...
-[OK] All 16384 slots covered.
->>> Rebalancing across 3 nodes. Total weight = 3.00
-Moving 500 slots from 127.0.0.1:8002 to 127.0.0.1:8005
-Moving 5 slots from 127.0.0.1:8002 to 127.0.0.1:8004
-
-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-创建集群(客户端连接集群redis-cli需要带上-c,redis-cli -c -p port): 
-1. redis-server 8001[8002|8003|8004|8005|8006|].conf,手动开启每个节点
-2. redis-cli --cluster create 127.0.0.1:8001 127.0.0.1:8002 127.0.0.1:8003 127.0.0.1:8004 127.0.0.1:8005 127.0.0.1:8006 --cluster-replicas 1
-The option --cluster-replicas 1 means that we want a slave for every master created.(create a cluster with 3 masters and 3 slaves)
-The other arguments are the list of addresses of the instances I want to use to create the new cluster.
-集群中的主从是在创建集时分配,并不需要在每个节点的配置文件中设置
-
-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
 epoch(epoch is used in order to give incremental versioning to events)
 
 The currentEpoch is a 64 bit unsigned number.At node creation every Redis Cluster node, both slaves and master nodes, set the currentEpoch to 0.
@@ -270,25 +229,6 @@ Slave nodes also advertise the configEpoch field in ping and pong packets, but i
 This allows other instances to detect when a slave has an old configuration that needs to be updated (master nodes will not grant votes to slaves with an old configuration).
 Every time the configEpoch changes for some known node, it is permanently stored in the nodes.conf file by all the nodes that receive this information. The same also happens for the currentEpoch value. 
 These two variables are guaranteed to be saved and fsync-ed to disk when updated before a node continues its operations.
-
-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-Redis Cluster is not able to guarantee strong consistency. 
-In practical terms this means that under certain conditions it is possible that Redis Cluster will lose writes that were acknowledged by the system to the client.
-The first reason why Redis Cluster can lose writes is because it uses asynchronous replication. This means that during writes the following happens:
-Your client writes to the master B.
-The master B replies OK to your client.
-The master B propagates the write to its slaves B1, B2 and B3.
-As you can see, B does not wait for an acknowledgement from B1, B2, B3 before replying to the client, since this would be a prohibitive latency penalty for Redis, 
-so if your client writes something, B acknowledges the write, but crashes before being able to send the write to its slaves, one of the slaves (that did not receive the write) can be promoted to master, losing the write forever.
-
-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-Upgrading slave nodes is easy since you just need to stop the node and restart it with an updated version of Redis. 
-Upgrading masters is a bit more complex, and the suggested procedure is:
-Use CLUSTER FAILOVER to trigger a manual failover of the master to one of its slaves.Wait for the master to turn into a slave.Finally upgrade the node as you do for slaves.
-If you want the master to be the node you just upgraded, trigger a new manual failover in order to turn back the upgraded node into a master.
-Following this procedure you should upgrade one node after the other until all the nodes are upgraded.
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -349,22 +289,13 @@ cluster setslot 1742 migrating 9dd8ecfd28eae160d8c19d4184c4777f9bde49e8
 (error) ASK 1742 127.0.0.1:8005
 cluster setslot 1742 node cba9eef5cf1b30a7b7dea7f2c8543ba2fe8b5e15
 
-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-in practical terms, what do you get with Redis Cluster?
-The ability to automatically split your dataset among multiple nodes.
-The ability to continue operations when a subset of the nodes are experiencing failures or are unable to communicate with the rest of the cluster.
-
 什么时候整个集群不可用(cluster_state:fail)?
 如果集群任意master挂掉,且当前master没有slave.集群进入fail状态,也可以理解成集群的slot映射[0-16383]不完整时进入fail状态
 如果集群超过半数以上master挂掉,无论是否有slave,集群进入fail状态
 
-The redis-cli cluster support is very basic so it always uses the fact that Redis Cluster nodes are able to redirect a client to the right node.
-A serious client is able to do better than that, and cache the map between hash slots and nodes addresses, to directly use the right connection to the right node.
-The map is refreshed only when something changed in the cluster configuration, for example after a failover or after the system administrator changed the cluster layout by adding or removing nodes.
-Clients usually need to fetch a complete list of slots and mapped node addresses in two different situations:
-At startup in order to populate the initial slots configuration.
-When a MOVED redirection is received.
-
-数据预热: 预先访问接口或者程序,填充缓存,防止单位时间内大量请求访问数据库
+RedisCluster对keys,mget,mset,pipeline做了处理,使用时不需要再考虑key落在不同slot问题,但对于lua脚本则必须落在同一个slot上
+其中pipeline原理是先根据for key in keys:crc16(key)%16384给keys分组,再批量执行,效率仍然比单条命令依次执行要高
+参考:https://github.com/Grokzen/redis-py-cluster/blob/unstable/rediscluster/pipeline.py#L139 , send_cluster_commands
+redis集群不支持事物,In redis-py, pipelining is all about trying to achieve greater network efficiency. 
+Transaction support is disabled in redis-py-cluster. Use pipelines to avoid extra network round-trips, not to ensure atomicity.
 ```
