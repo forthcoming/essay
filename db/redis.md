@@ -957,7 +957,7 @@ def crc16(message):
 def hash_slot(key):
     left = key.find('{')  # 首次出现的位置
     if left >= 0:
-        right = key.find('}')
+        right = key.find('}', left + 1)
         if right - left >= 2:  # 确保{}之间有字符
             key = key[left + 1:right]
     return crc16(key.encode()) & 0b11111111111111  # 16383
