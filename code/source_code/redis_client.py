@@ -11,10 +11,10 @@ from redis_connection import ConnectionPool
 
 class Redis(RedisModuleCommands, CoreCommands, SentinelCommands):
     """
-    以游标值为0开始迭代,调用SCAN直到返回的游标再次为0称为完整迭代,Redis客户端实例可以在线程之间安全地共享,线程之间传递PubSub或Pipeline对象是不安全
+    Redis客户端实例可以在线程之间安全地共享,线程之间传递PubSub或Pipeline对象是不安全
     SELECT命令允许您切换连接当前使用的数据库,这会导致不同数据库连接返回到同一个连接池,因此不会在客户端实例上实现SELECT命令
     如果您在同一应用程序中使用多个Redis数据库,则应该为每个数据库创建一个单独的客户端实例
-    redis命令都是调用的Commands类的函数,再通过execute_command调用子类Redis函数
+    redis命令都是调用的XxxCommands类的函数,再通过execute_command调用子类Redis函数
     """
 
     def __init__(self, host='localhost', port=6379, db=0, password=None, connection_pool=None, max_connections=None):
@@ -72,7 +72,7 @@ class Redis(RedisModuleCommands, CoreCommands, SentinelCommands):
 
 class Pipeline(Redis):  # 一般通过调用Redis实例的pipeline方法获取Pipeline实例
 
-    UNWATCH_COMMANDS = {'DISCARD', 'EXEC', 'UNWATCH'}
+    UNWATCH_COMMANDS = {'DISCARD', 'EXEC', 'UNWATCH'}  # 取消watch命令列表
 
     def __init__(self, connection_pool, transaction, shard_hint):
         self.connection_pool = connection_pool
@@ -92,7 +92,7 @@ class Pipeline(Redis):  # 一般通过调用Redis实例的pipeline方法获取Pi
         self.reset()
 
     def reset(self):
-        self.command_stack = []
+        self.command_stack = []  # 缓存pipeline命令
         self.scripts = set()
         # make sure to reset the connection state in the event that we were watching something
         if self.watching and self.connection:
@@ -103,13 +103,13 @@ class Pipeline(Redis):  # 一般通过调用Redis实例的pipeline方法获取Pi
             except ConnectionError:
                 self.connection.disconnect()  # disconnect will also remove any previous WATCHes
         self.watching = False  # clean up the other instance attributes
-        self.explicit_transaction = False
+        self.explicit_transaction = False  # 作用跟self.transaction类似,前者用于调用watch后再开启事务
         # we can safely return the connection to the pool here since we're sure we're no longer WATCHing anything
         if self.connection:
             self.connection_pool.release(self.connection)
             self.connection = None
 
-    def multi(self):  # 发出WATCH命令后启动管道的事务块,使用“execute”结束事务块
+    def multi(self):  # 手动开启事务
         if self.explicit_transaction:
             raise RedisError('Cannot issue nested calls to MULTI')
         if self.command_stack:
@@ -117,6 +117,7 @@ class Pipeline(Redis):  # 一般通过调用Redis实例的pipeline方法获取Pi
         self.explicit_transaction = True
 
     def execute_command(self, *args, **kwargs):
+        # (已经watch或者正在watch)且未执行multi开启事务时,命令会被立即执行
         if (self.watching or args[0] == 'WATCH') and not self.explicit_transaction:
             return self.immediate_execute_command(*args)
         return self.pipeline_execute_command(*args, **kwargs)
@@ -144,7 +145,6 @@ class Pipeline(Redis):  # 一般通过调用Redis实例的pipeline方法获取Pi
 
     def pipeline_execute_command(self, *args, **options):
         # 暂存命令返回当前Pipeline对象,以便可以将命令链接在一起,如pipe = pipeline.set('foo', 'bar').incr('baz')
-        # 运行pipe.execute()将执行管道中所有命令
         self.command_stack.append((args, options))
         return self
 
@@ -195,14 +195,14 @@ class Pipeline(Redis):  # 一般通过调用Redis实例的pipeline方法获取Pi
                 if not exist:
                     s.sha = immediate("SCRIPT LOAD", s.script)
 
-    def execute(self):  # Execute all the commands in the current pipeline
+    def execute(self):  # 执行管道中所有命令
         stack = self.command_stack
         if not stack and not self.watching:
             return []
         if self.scripts:
             self.load_scripts()
         if self.transaction or self.explicit_transaction:
-            execute = self._execute_transaction
+            execute = self._execute_transaction  # 在命令两遍加上multi,exec
         else:
             execute = self._execute_pipeline
         conn = self.connection
@@ -213,12 +213,12 @@ class Pipeline(Redis):  # 一般通过调用Redis实例的pipeline方法获取Pi
         try:
             return execute(conn, stack)
         finally:
-            self.reset()
+            self.reset()  # 释放连接到连接池
 
     def discard(self):  # Flushes all previously queued commands See: https://redis.io/commands/DISCARD
         self.execute_command("DISCARD")
 
-    def watch(self, *names):
+    def watch(self, *names):  # 意味着后续需要调用multi手动开启事务,无论创建实例时是否指定transaction=True
         if self.explicit_transaction:
             raise RedisError('Cannot issue a WATCH after a MULTI')
         return self.execute_command('WATCH', *names)

@@ -798,6 +798,7 @@ def parse_response(f):
 
 
 def execute_command(sock, cmd):
+    # pipeline即把形如b'*3\r\n$4\r\nMGET\r\n$1\r\na\r\n$1\r\nb\r\n*2\r\n$4\r\nMGET\r\n$1\r\nc\r\n'一次性发送给服务端
     cmd_array = cmd.split()
     encoded_cmd = f"*{len(cmd_array)}\r\n"
     for arg in cmd_array:
@@ -882,12 +883,28 @@ redis读速度可达11w/s,写速度可达8w/s
 ### cluster generic
 
 ```
+集群可以高并发读写和海量数据存取,副本集可以提高单节点稳定性,也即是集群稳定性
 集群至少需要三个主节点,当主节点A挂掉后其从节点A1会自动升级为主节点,重启A后A会成为A1的从节点
 将哈希槽从一个节点移动到另一个节点不需要停止任何操作,因此添加/删除/节点不需要停机
 Redis集群中有16384(2的14次方)个哈希槽,每个key都会对应一个编号在0-16383之间的哈希槽,redis会根据节点数量大致均等的将哈希槽映射到不同的节点
 当一个key插入时,哈希槽通过CRC16(key) % 16384计算,仅{}中的字符串经过哈希处理,例如this{foo}key和another{foo}key保证位于同一哈希槽中
 集群支持多个key操作,只要单个命令执行(或整个事务/Lua脚本执行涉及的所有key都属于同一个哈希槽
 集群只支持db0,不支持select,mget,mset,multi,lua脚本,除非这些key落在同一个哈希槽上,keys *只会返回该节点的数据(主从数据一样)
+
+RedisCluster工作流程:
+1. 随意给定一个集群中的ip:port,RedisCluster先连上服务器,发送cluster slots命令获取集群信息
+2. nodes_manager = NodesManager()
+       nodes_cache = {"ip:port": ClusterNode(),...} # 包含了集群的所有主从节点,每个ClusterNode实例都包含一个Redis实例
+       slots_cache = {
+       0: [Master-ClusterNode, Slave-ClusterNode1,Slave-ClusterNode2,...]  # key是槽,value是服务槽的节点
+          ...
+       }
+       default_node # 随机的一个主节点
+3. 执行命令时,先根据key计算哈希槽n,再通过slots_cache[n][0]获取key所在主节点,再去执行
+4. 当服务器返回-MOVED异常时,调用_update_moved_slots更新slots_cache(需要加锁)
+说明: 
+执行pipeline内命令时,会按步骤3对key按节点分组,再分批执行(不用像mget要求同一个槽),分组仅仅为了提升IO效率,非必需
+If the pipeline should follow `ASK` & `MOVED` responses automatically, set `allow_redirections` = True
 
 集群不保证强一致性,跟单节点分布式锁一样在某些情况下可能会丢失写入(网络分区或异步复制),分析如下:
 客户端给主节点B发送写请求
