@@ -6,19 +6,11 @@ from datetime import datetime
 from functools import wraps
 
 from flask import request
-from redis.cluster import RedisCluster, ClusterNode
+from redis.cluster import RedisCluster
 
 from tutorial import get_ip
 
-startup_nodes = [
-    ClusterNode(host="localhost", port=8001),
-    ClusterNode(host="localhost", port=8002),
-    ClusterNode(host="localhost", port=8003),
-    ClusterNode(host="localhost", port=8004),
-    ClusterNode(host="localhost", port=8005),
-    ClusterNode(host="localhost", port=8006),
-]
-rc: RedisCluster = RedisCluster(startup_nodes=startup_nodes)
+rc: RedisCluster = RedisCluster(host="localhost", port=7000)
 
 
 class RedisCache:  # 接口缓存
@@ -53,7 +45,6 @@ class RedisCache:  # 接口缓存
 
     @staticmethod
     def dump_object(value):
-        # Dumps an object into a string for redis.By default it serializes integers as regular string and pickle dumps everything else.
         if type(value) is int:
             return str(value).encode('ascii')
         return b'!' + pickle.dumps(value)
