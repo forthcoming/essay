@@ -888,8 +888,7 @@ redis读速度可达11w/s,写速度可达8w/s
 将哈希槽从一个节点移动到另一个节点不需要停止任何操作,因此添加/删除/节点不需要停机
 Redis集群中有16384(2的14次方)个哈希槽,每个key都会对应一个编号在0-16383之间的哈希槽,redis会根据节点数量大致均等的将哈希槽映射到不同的节点
 当一个key插入时,哈希槽通过CRC16(key) % 16384计算,仅{}中的字符串经过哈希处理,例如this{foo}key和another{foo}key保证位于同一哈希槽中
-集群支持多个key操作,只要单个命令执行(或整个事务/Lua脚本执行涉及的所有key都属于同一个哈希槽
-集群只支持db0,不支持select,mget,mset,multi,lua脚本,除非这些key落在同一个哈希槽上,keys *只会返回该节点的数据(主从数据一样)
+集群不支持select,只有db0,原子操作以槽为单位,只有同一个槽上的key才能执行mget,mset,multi,lua脚本,keys *只返回本节点的数据
 
 RedisCluster工作流程:
 1. 随意给定一个集群中的ip:port,RedisCluster先连上服务器,发送cluster slots命令获取集群信息
