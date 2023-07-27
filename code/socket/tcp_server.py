@@ -90,12 +90,18 @@ class BlockingIO:  # 阻塞IO
     @staticmethod
     def tcp_link(client_sock, addr):
         print('Accept new connection from {}:{}...'.format(*addr))
-        client_sock.send(b'Welcome!')  # 必须是byte类型
+        client_sock.sendall(b'Welcome!')  # 必须是byte类型
         while True:  # 新建一个与客户端关联的socket,再接收和发送数据
+            """
+            浏览器可以通过http://127.0.0.1:9999/hello方式访问服务器,接收到的数据大致如下(与RESP2.0一样以\r\n作为一行结束标志)
+            b'''GET /hello HTTP/1.1\r\nHost: localhost:9999\r\nConnection: keep-alive\r\nCache-Control: max-age=0\r\n
+            Upgrade-Insecure-Requests: 1\r\nUser-Agent: Mozilla/5.0\r\nAccept: text/html\r\n
+            Accept-Encoding: gzip, deflate, br\r\nAccept-Language: zh-CN,zh;q=0.9\r\n\r\n'''
+            """
             data = client_sock.recv(1024)
             if data:
                 # time.sleep(1.8)  # 测试客户端socket超时
-                client_sock.send(f'Hello, {data.decode()}'.encode())  # 如何需要发送多种类型的数据,可考虑用struct.pack
+                client_sock.sendall(f'Hello, {data.decode()}'.encode())  # 如何需要发送多种类型的数据,可考虑用struct.pack
             else:
                 client_sock.close()
                 print('Connection from {}:{} closed.'.format(*addr))
@@ -124,14 +130,14 @@ class IOMultiplexing:  # IO多路复用
         client_sock, addr = server_sock.accept()
         print(f"Accepted connection from {addr}")
         client_sock.setblocking(False)
-        client_sock.send(b'Welcome!')
+        client_sock.sendall(b'Welcome!')
         self.selector.register(client_sock, selectors.EVENT_READ, self.read)
 
     def read(self, client_sock):  # 回调函数,用于处理客户端套接字的写事件
         data = client_sock.recv(1024)
         if data:
             print(f"Received data from {client_sock.getpeername()}")
-            client_sock.send(f'Hello, {data.decode()}'.encode())  # 回显数据给客户端
+            client_sock.sendall(f'Hello, {data.decode()}'.encode())  # 回显数据给客户端
         else:  # client断开连接时会执行
             print("connection closed")
             self.selector.unregister(client_sock)  # 取消selector上的注册,相当于epoll_ctl的EPOLL_CTL_DEL

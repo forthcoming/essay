@@ -8,7 +8,7 @@ def start_client():
     client_sock.settimeout(2)
     print(client_sock.recv(1024))  # 接收欢迎消息
     for data in [b'Michael', b'Tracy', b'Sarah']:
-        client_sock.send(data)
+        client_sock.sendall(data)  # send不保证一次发送所有数据,需要用户判断并不断尝试
         print(client_sock.recv(1024))  # 一次最多接收指定的字节数
 
     with client_sock.makefile('rw') as f:
@@ -23,7 +23,7 @@ def http_request():
     # 例如HTTP协议规定客户端必须先发请求给服务器,服务器收到后才发数据给客户端
     client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     client.connect(('www.sina.com.cn', 80))
-    client.send(b'GET / HTTP/1.1\r\nHost: www.sina.com.cn\r\nConnection: close\r\n\r\n')
+    client.sendall(b'GET / HTTP/1.1\r\nHost: www.sina.com.cn\r\nConnection: close\r\n\r\n')
     buffer = []
     while True:  # 接收数据
         d = client.recv(512)
@@ -40,4 +40,5 @@ def http_request():
 
 
 if __name__ == "__main__":
-    start_client()
+    # start_client()
+    http_request()
