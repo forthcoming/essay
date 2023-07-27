@@ -88,7 +88,7 @@ class BlockingIO:  # 阻塞IO
         self.server_sock.close()
 
     @staticmethod
-    def tcp_link(client_sock, addr):
+    def tcp_link(client_sock, addr):  # 这是个长连接,服务端一般可以通过接收的数据某个字段判断
         print('Accept new connection from {}:{}...'.format(*addr))
         client_sock.sendall(b'Welcome!')  # 必须是byte类型
         while True:  # 新建一个与客户端关联的socket,再接收和发送数据
