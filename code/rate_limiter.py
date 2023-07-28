@@ -16,7 +16,7 @@ class TokenBucket:
     
         local function set_rate(keys,args)   -- 中途修改
             local valueName = keys[2]  -- {name}:value 记录当前令牌桶中的令牌数
-            local permitsName = keys[3]  -- {name}:permits 是一个zset
+            local permitsName = keys[3]  -- {name}:permits 是一个zset,member无实际意义,仅为了有序保存访问的时间戳score
             redis.call('hset', keys[1], 'rate', args[1], 'interval', args[2])
             redis.call('del', valueName, permitsName)
         end
@@ -59,9 +59,9 @@ class TokenBucket:
                     res = nil
                 end
             else
-                redis.call('set', valueName, rate)
+                redis.call('set', valueName, rate - args[1])
+                -- args[2]: 毫秒为单位的时间戳,args[3]: thread_local下的8位随机字符串,struct.pack类似于python的f字符串
                 redis.call('zadd', permitsName, args[2], struct.pack('Bc0I', string.len(args[3]), args[3], args[1]))
-                redis.call('decrby', valueName, args[1])
                 res = nil
             end
 
