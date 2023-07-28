@@ -255,7 +255,7 @@ around the shape provided as the filter and M is the number of items inside the 
 
 ```
 hset key field value [field value ...]: 如果有field,则覆盖原field域的值
-hsetnx key field value
+hsetnx key field value: field不存在时有效
 hlen key: 返回key中元素的数量,时间复杂度O(1)
 hkeys key: 返回key中所有的field,时间复杂度O(N)
 hvals key: 返回key中所有的value

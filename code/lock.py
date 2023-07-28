@@ -145,7 +145,7 @@ class ReadWriteRLock:  # 分布式可重入读写锁
     """
     is_register_script = False
 
-    def __init__(self, rds: Redis, name, timeout=10, blocking_timeout=5, thread_local=True):
+    def __init__(self, rds, name, timeout=10, blocking_timeout=5, thread_local=True):
         self.rds = rds
         self.name = name
         self.timeout_ms = int(1000 * timeout)  # 锁过期时间,单位ms
@@ -249,7 +249,7 @@ class Redlock:
     """
     is_register_script = False
 
-    def __init__(self, instances, name, timeout=10, blocking_timeout=20, thread_local=True):
+    def __init__(self, instances: list[Redis], name, timeout=10, blocking_timeout=20, thread_local=True):
         self.instances = instances
         self.quorum = (len(instances) >> 1) + 1
         self.name = name
