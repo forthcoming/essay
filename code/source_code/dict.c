@@ -364,8 +364,7 @@ static dictEntry *dictNext(dictIterator *iter) {
 /* Expand the hash table if needed */
 static int _dictExpandIfNeeded(dict *d) // 每次新增entry都会触发哈希表扩容检测
 {
-    /* Incremental rehashing already in progress. Return. */
-    if (dictIsRehashing(d)) return DICT_OK;
+    if (dictIsRehashing(d)) return DICT_OK;  // 如果正在rehash直接返回OK
 
     /* If the hash table is empty expand it to the initial size. */
     if (DICTHT_SIZE(d->ht_size_exp[0]) == 0) return dictExpand(d, DICT_HT_INITIAL_SIZE); // 初始化默认大小为4

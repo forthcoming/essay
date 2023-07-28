@@ -1,8 +1,15 @@
+import nsq
+import requests
+
 """
-消息队列用来快速消费队列中的消息,比如日志处理场景,我们需要把不同服务器上的日志合并到一起,这时就需要用到消息队列
+消息队列
+1. 异步处理耗时任务如发邮件,短信等,类似于任务队列
+2. 应用解耦
+3. 流量削峰如秒杀活动会因为流量过大导致应用挂掉,一般需要在应用前端加入消息队列,用户的先写入消息队列
+4. 日志收集比如把不同服务器上的日志合并到一起,这时就需要用到消息队列
 任务队列(celery)是用来异步执行一个耗时任务,比如用户在购买的一件物品后,通常需要计算用户的积分以及等级,并把它们保存到数据库,这时就需要用到任务队列
 利用消息队列的生长者和消费者的概念,也可以实现任务队列的功能,但是还需要进行额外的开发
-任务队列新增了许多任务相关的定制,如重试,任务状态,结果返回,任务执行频率等等,但没有发布订阅的概念
+任务队列是一种特殊的消息队列,新增了许多任务相关的定制,如重试,任务状态,结果返回,任务执行频率等等,但没有发布订阅的概念
 
 A single nsqd can have many topics and each topic can have many channels,a channel can, and generally does, have multiple clients connected.
 To summarize, messages are multicast from topic -> channel (every channel receives a copy of all messages for that topic).
@@ -38,11 +45,9 @@ Takes a stdin stream and splits on newlines (default) for re-publishing to desti
 to_nsq并不是一个channel,他只是往指定的topic上发送消息
 """
 
-import requests
-
 r = requests.get(url='http://127.0.0.1:4151/info')
-print(
-    r.text)  # {"version":"1.1.0","broadcast_address":"127.0.0.1","hostname":"201810-08571","http_port":4151,"tcp_port":4150,"start_time":1565926763}
+# {"version":"1.1.0","broadcast_address":"127.0.0.1","hostname":"201810-08571","http_port":4151,"tcp_port":4150,"start_time":1565926763}
+print(r.text)
 
 '''
 format - (optional) `text` or `json` (default = `text`)
@@ -98,13 +103,13 @@ requests.post('http://127.0.0.1:4151/channel/pause?topic=name&channel=name')
 # Resume message flow to consumers of an existing, paused, channel
 requests.post('http://127.0.0.1:4151/channel/unpause?topic=name&channel=name')
 
-############################################################################################################################
+########################################################################################################################
 
 
 # Returns a list of producers for a topic
 r = requests.get('http://127.0.0.1:4161/lookup?topic=test')
-print(
-    r.text)  # {"channels":["name","nsq_to_file"],"producers":[{"remote_address":"127.0.0.1:54246","hostname":"macbook.local","broadcast_address":"127.0.0.1","tcp_port":4150,"http_port":4151,"version":"1.1.0"}]}
+# {"channels":["name","nsq_to_file"],"producers":[{"remote_address":"127.0.0.1:54246","hostname":"macbook.local","broadcast_address":"127.0.0.1","tcp_port":4150,"http_port":4151,"version":"1.1.0"}]}
+print(r.text)
 
 # Returns a list of all known channels of a topic
 r = requests.get('http://127.0.0.1:4161/channels?topic=test')
@@ -116,12 +121,11 @@ print(r.text)  # {"topics":["T2","test"]}
 
 # Returns a list of all known nsqd
 r = requests.get('http://127.0.0.1:4161/nodes')
-print(
-    r.text)  # {"producers":[{"remote_address":"127.0.0.1:54246","hostname":"macbook.local","broadcast_address":"127.0.0.1","tcp_port":4150,"http_port":4151,"version":"1.1.0","tombstones":[false,false],"topics":["test","T2"]}]}
+# {"producers":[{"remote_address":"127.0.0.1:54246","hostname":"macbook.local","broadcast_address":"127.0.0.1","tcp_port":4150,"http_port":4151,"version":"1.1.0","tombstones":[false,false],"topics":["test","T2"]}]}
+print(r.text)
 
-############################################################################################################################
+########################################################################################################################
 
-import nsq
 
 buf = []
 
