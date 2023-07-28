@@ -5,41 +5,29 @@ from redis.cluster import RedisCluster
 
 
 class TokenBucket:
+    # TODO: 待完善(目前只有核心代码,去掉type相关逻辑,由于涉及到多个缓存,所以变量名需要用hash tag,以便集群下正常运行)
     # 令牌桶算法: 规定固定容量的桶,token以固定速度往桶内填充,当桶满时token不会被继续放入,每来一个请求把token从桶中移除,如果桶中没有token不能请求
     # 参考: https://github.com/redisson/redisson/blob/master/redisson/src/main/java/org/redisson/RedissonRateLimiter.java
     token_bucket = """#!lua name=token_bucket   
-        local function try_set_rate(keys,args)   
+        local function try_set_rate(keys,args)   -- 初始化
             redis.call('hsetnx', keys[1], 'rate', args[1])
-            redis.call('hsetnx', keys[1], 'interval', args[2])
-            return redis.call('hsetnx', keys[1], 'type', args[3])
+            return redis.call('hsetnx', keys[1], 'interval', args[2])
         end
     
-        local function set_rate(keys,args)   
-            local valueName = keys[2]
-            local permitsName = keys[4]
-            if args[3] == '1' then
-                valueName = keys[3]
-                permitsName = keys[5]
-            end
-            redis.call('hset', keys[1], 'rate', args[1])
-            redis.call('hset', keys[1], 'interval', args[2])
-            redis.call('hset', keys[1], 'type', args[3])
+        local function set_rate(keys,args)   -- 中途修改
+            local valueName = keys[2]  -- {name}:value 记录当前令牌桶中的令牌数
+            local permitsName = keys[3]  -- {name}:permits 是一个zset
+            redis.call('hset', keys[1], 'rate', args[1], 'interval', args[2])
             redis.call('del', valueName, permitsName)
         end
 
         local function try_acquire(keys,args)   
             local rate = redis.call('hget', keys[1], 'rate')
             local interval = redis.call('hget', keys[1], 'interval')
-            local type = redis.call('hget', keys[1], 'type')
-            assert(rate ~= false and interval ~= false and type ~= false, 'RateLimiter is not initialized')
+            assert(rate ~= false and interval ~= false, 'RateLimiter is not initialized')
             
             local valueName = keys[2]
-            local permitsName = keys[4]
-            if type == '1' then
-                valueName = keys[3]
-                permitsName = keys[5]
-            end
-
+            local permitsName = keys[3]
             assert(tonumber(rate) >= tonumber(args[1]), 'Requested permits amount could not exceed defined rate')
 
             local currentValue = redis.call('get', valueName)
@@ -83,27 +71,22 @@ class TokenBucket:
                 redis.call('pexpire', permitsName, ttl)
             end
             return res
-        end        
+        end     
 
         local function available_permits(keys,args)   
-            local rate = redis.call('hget', KEYS[1], 'rate')
-            local interval = redis.call('hget', KEYS[1], 'interval')
-            local type = redis.call('hget', KEYS[1], 'type')
-            assert(rate ~= false and interval ~= false and type ~= false, 'RateLimiter is not initialized')
+            local rate = redis.call('hget', keys[1], 'rate')
+            local interval = redis.call('hget', keys[1], 'interval')
+            assert(rate ~= false and interval ~= false, 'RateLimiter is not initialized')
 
-            local valueName = KEYS[2]
-            local permitsName = KEYS[4]
-            if type == '1' then
-                valueName = KEYS[3]
-                permitsName = KEYS[5]
-            end
+            local valueName = keys[2]
+            local permitsName = keys[3]
 
             local currentValue = redis.call('get', valueName)
             if currentValue == false then
                 redis.call('set', valueName, rate)
                 return rate
             else
-                local expiredValues = redis.call('zrangebyscore', permitsName, 0, tonumber(ARGV[1]) - interval)
+                local expiredValues = redis.call('zrangebyscore', permitsName, 0, tonumber(args[1]) - interval)
                 local released = 0
                 for i, v in ipairs(expiredValues) do
                      local random, permits = struct.unpack('Bc0I', v)
@@ -111,13 +94,13 @@ class TokenBucket:
                 end
 
                 if released > 0 then
-                     redis.call('zremrangebyscore', permitsName, 0, tonumber(ARGV[1]) - interval)
+                     redis.call('zremrangebyscore', permitsName, 0, tonumber(args[1]) - interval)
                      currentValue = tonumber(currentValue) + released
                      redis.call('set', valueName, currentValue)
                 end
 
                 return currentValue
-            end
+            end   
 
         redis.register_function('try_set_rate', try_set_rate)
         redis.register_function('set_rate', set_rate)
