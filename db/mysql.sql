@@ -8,12 +8,6 @@
 2. 在原表中创建几个触发器针对uptate、delete 、insert操作都记录下来,方便更新到新建立的临时表中去
 3. 对调表名并删除原表
 
-连接池(Faster and safer)
-The connection pool acts as a bounded buffer for the incoming connection requests. 
-If there is a traffic spike the connection pool will level it instead of saturating all available database resources.
-The waiting step and the timeout mechanism are safety hooks, preventing excessive database server load. 
-If one application gets way too much database traffic, the connection pool is going to mitigate it therefore preventing it from taking down the database server.
-
 processlist 
 show full processlist;  # 如果是root帐号,能看到所有用户的当前连接;如果是其他普通帐号,则只能看到自己占用的连接
 kill Id;                # 杀死指定Id的sql语句,常用于mysql死锁情况  
@@ -183,12 +177,6 @@ Myisam & InnoDB(默认)
 如何选择:
 1. 是否要支持事务,如果要请选择innodb,如果不需要可以考虑Myisam
 2. 如果表中绝大多数都只是读查询,可以考虑Myisam,如果既有读写也挺频繁,请使用InnoDB
-
-
-Oracle批量删除和查询表数据
-select 'truncate table '||table_name||';' from user_tables;
-select 'select * from '||table_name||';' from user_tables;
-
                                         
 login
 mysql.user表具有全局性,控制着用户的登录信息和登录后的权限

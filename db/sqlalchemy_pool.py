@@ -1,13 +1,14 @@
 import time
-from multiprocessing.dummy import  Lock
+from multiprocessing.dummy import Lock
 from .base import Pool
 from .. import util
-from ..util import queue as sqla_queue  
+from ..util import queue as sqla_queue
 
 '''
 sqla_queue.Queue跟queue.Queue基本一致,但前者用的是可重入锁
 refer: https://github.com/sqlalchemy/sqlalchemy/blob/master/lib/sqlalchemy/util/queue.py
 '''
+
 
 class QueuePool(Pool):  # sqlalchemy连接池源码(稍微有精简),refer: impl.py
     def __init__(self, creator, pool_size=5, max_overflow=10, timeout=30, use_lifo=False, **kw):
