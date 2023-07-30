@@ -391,7 +391,7 @@ class TestCondition:
 def lock_tutorial():
     """
     线程Lock的获取与释放可以在不同线程中完成,进程Lock的获取与释放可以在不同进程或线程中完成,嵌套Lock会导致死锁,但可以顺序出现多次
-    线程RLock的获取与释放必须在同一个线程中完成,进程RLock的获取与释放必须在同一个进程或线程中完成,RLock可以嵌套,也可以顺序
+    线程/进程RLock的获取与释放必须在同一个线程/进程中完成(跟Lock一样,在A线/进程上锁后,没法在B线/进程上锁),RLock可以嵌套,也可以顺序
     Barrier每个任务按规定的分组数进行任务执行,如果没有达到规定的分组数,则需要一直阻塞等待满足规定的分数组(屏障点)才会继续执行任务
     Semaphore用于控制线/进程并发量(类似线程池),初始值为1的信号量等效为非重入锁
     Semaphore管理一个计数器,计数器 = release调用次数 - acquire调用次数 + 初始值(默认1),当计数器为负时acquire会阻塞
@@ -550,7 +550,7 @@ def shared_pipe_tutorial():
 
 
 if __name__ == "__main__":
-    shared_memory_tutorial()
+    # shared_memory_tutorial()
     # shared_pipe_tutorial()
     # shared_manager_tutorial()
     # shared_mmap_tutorial()
@@ -558,7 +558,7 @@ if __name__ == "__main__":
     # pool_executor_tutorial()
     # DeriveRelationship.main()
     # join_tutorial()
-    # lock_tutorial()
+    lock_tutorial()
     # ThreadLocal.thread_local_tutorial()
     # fork_tutorial()
     # QueueTutorial.scheduler()

@@ -1,6 +1,5 @@
 from _thread import allocate_lock as Lock, get_ident, get_native_id, TIMEOUT_MAX
 from collections import deque
-from threading import Thread
 from time import monotonic
 
 # 参考python3.11的threading.py(https://github.com/python/cpython/blob/main/Lib/threading.py),待完善补充
@@ -10,18 +9,14 @@ __all__ = ['get_ident', 'Condition', 'TIMEOUT_MAX', 'Event', 'Lock', 'RLock', 'S
 
 
 class RLock:
-    """
-    A reentrant lock must be released by the thread that acquired it. Once a thread has acquired a reentrant lock,
-    the same thread may acquire it again without blocking; the thread must release it once for each time it has acquired it.
-    """
-
+    # 可重入锁必须由获取它的线程释放,一旦线程获得了可重入锁,同一个线程可以再次获取它而不会阻塞,线程每次获取它时都必须释放它一次
     def __init__(self):
         self._block = Lock()
         self._owner = None  # get_ident返回的线程id
         self._count = 0  # 上锁次数
 
     def _at_fork_reinit(self):
-        # reinitialize the lock after fork in the child process; reset the lock to the unlocked state.
+        # fork后在子进程中重新初始化锁,将锁重置为解锁状态
         self._block._at_fork_reinit()
         self._owner = None
         self._count = 0
@@ -108,22 +103,11 @@ class RLock:
 
 
 class Condition:
-    """Class that implements a condition variable.
-
-    A condition variable allows one or more threads to wait until they are
-    notified by another thread.
-
-    If the lock argument is given and not None, it must be a Lock or RLock
-    object, and it is used as the underlying lock. Otherwise, a new RLock object
-    is created and used as the underlying lock.
-
-    """
-
+    # 条件变量允许一个或多个线程等待,直到它们被执行为止,由另一个线程通知
     def __init__(self, lock=None):
         if lock is None:
             lock = RLock()
         self._lock = lock
-        # Export the lock's acquire() and release() methods
         self.acquire = lock.acquire
         self.release = lock.release
         self._waiters = deque()
@@ -154,9 +138,7 @@ class Condition:
         try:
             self._lock._is_owned()
         except AttributeError:
-            # Return True if lock is owned by current_thread.
-            # This method is called only if _lock doesn't have _is_owned().
-            if self._lock.acquire(False):
+            if self._lock.acquire(False):  # 如果当前线程拥有锁返回True,仅当_lock没有_is_owned()时才会调用此方法
                 self._lock.release()
                 return False
             else:
@@ -206,7 +188,7 @@ class Condition:
             self._acquire_restore(saved_state)
             if not gotit:
                 try:
-                    self._waiters.remove(waiter)
+                    self._waiters.remove(waiter)  # notify中已经remove,为啥这里要再次remove
                 except ValueError:
                     pass
 
@@ -264,26 +246,13 @@ class Condition:
 
     def notify_all(self):
         """Wake up all threads waiting on this condition.
-
         If the calling thread has not acquired the lock when this method
         is called, a RuntimeError is raised.
-
         """
         self.notify(len(self._waiters))
 
 
 class Semaphore:
-    """This class implements semaphore objects.
-
-    Semaphores manage a counter representing the number of release() calls minus
-    the number of acquire() calls, plus an initial value. The acquire() method
-    blocks if necessary until it can return without making the counter
-    negative. If not given, value defaults to 1.
-
-    """
-
-    # After Tim Peters' semaphore class, but not quite the same (no maximum)
-
     def __init__(self, value=1):
         if value < 0:
             raise ValueError("semaphore initial value must be >= 0")
@@ -292,8 +261,7 @@ class Semaphore:
 
     def __repr__(self):
         cls = self.__class__
-        return (f"<{cls.__module__}.{cls.__qualname__} at {id(self):#x}:"
-                f" value={self._value}>")
+        return f"<{cls.__module__}.{cls.__qualname__} at {id(self):#x}: value={self._value}>"
 
     def acquire(self, blocking=True, timeout=None):
         """Acquire a semaphore, decrementing the internal counter by one.
@@ -361,30 +329,14 @@ class Semaphore:
 
 
 class BoundedSemaphore(Semaphore):
-    """Implements a bounded semaphore.
-
-    A bounded semaphore checks to make sure its current value doesn't exceed its
-    initial value. If it does, ValueError is raised. In most situations
-    semaphores are used to guard resources with limited capacity.
-
-    If the semaphore is released too many times it's a sign of a bug. If not
-    given, value defaults to 1.
-
-    Like regular semaphores, bounded semaphores manage a counter representing
-    the number of release() calls minus the number of acquire() calls, plus an
-    initial value. The acquire() method blocks if necessary until it can return
-    without making the counter negative. If not given, value defaults to 1.
-
-    """
-
+    # 有界信号量检查以确保其当前值不超过其初始值,如果是会引发 ValueError,大多数情况下信号量用于保护容量有限的资源
     def __init__(self, value=1):
         Semaphore.__init__(self, value)
         self._initial_value = value
 
     def __repr__(self):
         cls = self.__class__
-        return (f"<{cls.__module__}.{cls.__qualname__} at {id(self):#x}:"
-                f" value={self._value}/{self._initial_value}>")
+        return f"<{cls.__module__}.{cls.__qualname__} at {id(self):#x}: value={self._value}/{self._initial_value}>"
 
     def release(self, n=1):
         """Release a semaphore, incrementing the internal counter by one or more.
@@ -473,14 +425,7 @@ class Event:
 
 
 class Barrier:
-    """Implements a Barrier.
-
-    Useful for synchronizing a fixed number of threads at known synchronization
-    points.  Threads block on 'wait()' and are simultaneously awoken once they
-    have all made that call.
-
-    """
-
+    # 对于满足固定数量线程后再执行很有用,线程在wait()上阻塞,一旦它们被同时唤醒,所有线程将同时执行
     def __init__(self, parties, action=None, timeout=None):
         """Create a barrier, initialised to 'parties' threads.
 
@@ -628,29 +573,3 @@ class Barrier:
 
 class BrokenBarrierError(RuntimeError):
     pass
-
-
-class Timer(Thread):
-    """Call a function after a specified number of seconds:
-            t = Timer(30.0, f, args=None, kwargs=None)
-            t.start()
-            t.cancel()     # stop the timer's action if it's still waiting
-    """
-
-    def __init__(self, interval, function, args=None, kwargs=None):
-        Thread.__init__(self)
-        self.interval = interval
-        self.function = function
-        self.args = args if args is not None else []
-        self.kwargs = kwargs if kwargs is not None else {}
-        self.finished = Event()
-
-    def cancel(self):
-        """Stop the timer if it hasn't finished yet."""
-        self.finished.set()
-
-    def run(self):
-        self.finished.wait(self.interval)
-        if not self.finished.is_set():
-            self.function(*self.args, **self.kwargs)
-        self.finished.set()
