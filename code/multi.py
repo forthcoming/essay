@@ -393,9 +393,9 @@ def lock_tutorial():
     线程Lock的获取与释放可以在不同线程中完成,进程Lock的获取与释放可以在不同进程或线程中完成,嵌套Lock会导致死锁,但可以顺序出现多次
     线程/进程RLock的获取与释放必须在同一个线程/进程中完成(跟Lock一样,在A线/进程上锁后,没法在B线/进程上锁),RLock可以嵌套,也可以顺序
     Barrier每个任务按规定的分组数进行任务执行,如果没有达到规定的分组数,则需要一直阻塞等待满足规定的分数组(屏障点)才会继续执行任务
-    Semaphore用于控制线/进程并发量(类似线程池),初始值为1的信号量等效为非重入锁
-    Semaphore管理一个计数器,计数器 = release调用次数 - acquire调用次数 + 初始值(默认1),当计数器为负时acquire会阻塞
-    建议使用BoundedSemaphore代替Semaphore,应为他会对release做检测,如果计数器大于初始值则会引发ValueError
+    BoundedSemaphore用于控制线/进程并发量(类似线程池),计数器 = release调用次数 - acquire调用次数 + 初始值(默认1)
+    当计数器为负时acquire会阻塞,会对release做检测(Semaphore不会检测),如果计数器大于初始值则会引发ValueError,初始值为1的信号量等效为非重入锁
+    Barrier和BoundedSemaphore都是在满足某些条件下执行线程,内部都是基于Condition实现
     注意: 线程锁没法在spawn产生的进程间传递(pickle没法序列化)
     """
     salary = [0]
@@ -406,6 +406,11 @@ def lock_tutorial():
     run_subroutine(threads)
     assert salary[0] == 100
 
+    condition = Condition()
+    threads = [Thread(target=TestCondition.producer, args=(condition,)) for _ in range(2)]
+    threads += [Thread(target=TestCondition.consumer, args=(condition,)) for _ in range(3)]
+    run_subroutine(threads)
+
     barrier = Barrier(3, action=lambda: print('开始执行任务'))  # 设置3个障碍对象
     threads = [Thread(target=test_barrier, args=(i, barrier)) for i in range(8)]
     run_subroutine(threads)
@@ -415,11 +420,6 @@ def lock_tutorial():
     threads = [Thread(target=test_semaphore, args=(idx, semaphore)) for idx in range(5)]
     run_subroutine(threads)
     print(time.monotonic() - t1)  # 6
-
-    condition = Condition()
-    threads = [Thread(target=TestCondition.producer, args=(condition,)) for _ in range(2)]
-    threads += [Thread(target=TestCondition.consumer, args=(condition,)) for _ in range(3)]
-    run_subroutine(threads)
 
 
 class ThreadLocal:
