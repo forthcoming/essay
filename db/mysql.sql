@@ -1,6 +1,27 @@
+sql执行顺序: from > where > group by > having > select > order by > limit
+
 枚举核心id
 数据库自增id不要用于业务暴漏给用户(比如用户可以猜昨天的订单量,也不利于分表)
+mysql单机支撑到2000QPS容易报警,分库是提高并发
+mysql可以读写分离
 
+分表 & partition
+数据量太大可考虑分表,例如根据用户id与10取模,将用户信息存储到不同的十张表里面
+水平分表:把数据分到不同表
+垂直分表:把热点字段和冷门字段分开
+create table topic(
+    tid int primary key auto_increment,
+    update_time datetime not null default current_timestamp on update current_timestamp comment '消息更新时间', --如果update set没有更新数据时update_time不会被更新
+    title char(20) not null default ''
+)engine innodb charset utf8   # 不支持myisam
+# partition by hash( tid ) partitions 4   # 只能用数字类型,根据tid%4分区(默认名字p0,p1,p2,p3),可通过explain查看查询需要的分区
+partition by range(tid)(      # 还支持hash,list等分区
+    partition t0 values less than(1000),
+    partition t1 values less than(2000),
+    partition t2 values less than(maxvalue)
+)
+ALTER TABLE topic REMOVE PARTITIONING;
+ALTER TABLE topic partition by hash(tid) partitions 5;
 
 如何不锁表修改表结构
 有专门工具,但原理一样,mysql新版本也不用锁表(5.6以后版本,待验证)
@@ -147,24 +168,6 @@ varbinary(N) //变长,字节最多为N,对于字母数字等没区别,但对于�
 date         // YYYY-MM-DD  如:2010-03-14, The supported range is '1000-01-01' to '9999-12-31'.
 time         // HH:MM:SS    如:19:26:32
 datetime     // YYYY-MM-DD HH:MM:SS 如:2010-03-14 19:26:32, The supported range is '1000-01-01 00:00:00' to '9999-12-31 23:59:59'.
-
-
-分表 & partition
-数据量太大可考虑分表,例如根据用户id与10取模,将用户信息存储到不同的十张表里面
-create table topic(
-    tid int primary key auto_increment,
-    update_time datetime not null default current_timestamp on update current_timestamp comment '消息更新时间', --如果update set没有更新数据时update_time不会被更新 
-    title char(20) not null default ''
-)engine innodb charset utf8   # 不支持myisam
-# partition by hash( tid ) partitions 4   # 只能用数字类型,根据tid%4分区(默认名字p0,p1,p2,p3),可通过explain查看查询需要的分区
-partition by range(tid)(      # 还支持hash,list等分区
-    partition t0 values less than(1000),
-    partition t1 values less than(2000),
-    partition t2 values less than(maxvalue)
-)
-ALTER TABLE topic REMOVE PARTITIONING;
-ALTER TABLE topic partition by hash(tid) partitions 5;
-
 
 Myisam & InnoDB(默认)
 区别:
