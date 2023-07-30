@@ -22,7 +22,7 @@ class Queue:
     def __init__(self, maxsize=0):
         self.maxsize = maxsize
         self._init(maxsize)
-        self.mutex = threading.Lock()  # 当队列发生变化时,必须保持互斥锁,mutex在三个conditions之间共享,因此获取和释放conditions也会获取和释放mutex
+        self.mutex = threading.Lock()  # 当队列发生变化时,必须保持互斥锁,mutex在三个conditions之间共享,因此获取和释放condition也会获取和释放mutex
         # not_empty与not_full拥有不同的_waiters,目的是把因put挂起的线程和因get挂起的线程区分开
         # Notify not_empty whenever an item is added to the queue; a thread waiting to get is notified then.
         # Notify not_full whenever an item is removed from the queue; a thread waiting to put is notified then.

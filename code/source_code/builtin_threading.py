@@ -5,7 +5,7 @@ from time import monotonic
 # 参考python3.11的threading.py(https://github.com/python/cpython/blob/main/Lib/threading.py),待完善补充
 
 __all__ = ['get_ident', 'Condition', 'TIMEOUT_MAX', 'Event', 'Lock', 'RLock', 'Semaphore', 'BoundedSemaphore',
-           'Barrier', 'BrokenBarrierError', 'Timer', 'get_native_id']
+           'Barrier', 'BrokenBarrierError', 'get_native_id']
 
 
 class RLock:

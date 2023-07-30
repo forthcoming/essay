@@ -395,7 +395,7 @@ def lock_tutorial():
     Barrier每个任务按规定的分组数进行任务执行,如果没有达到规定的分组数,则需要一直阻塞等待满足规定的分数组(屏障点)才会继续执行任务
     BoundedSemaphore用于控制线/进程并发量(类似线程池),计数器 = release调用次数 - acquire调用次数 + 初始值(默认1)
     当计数器为负时acquire会阻塞,会对release做检测(Semaphore不会检测),如果计数器大于初始值则会引发ValueError,初始值为1的信号量等效为非重入锁
-    Barrier和BoundedSemaphore都是在满足某些条件下执行线程,内部都是基于Condition实现
+    Queue,Barrier和BoundedSemaphore都是在满足某些条件下执行线程,内部都是基于Condition实现
     注意: 线程锁没法在spawn产生的进程间传递(pickle没法序列化)
     """
     salary = [0]
