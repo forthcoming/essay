@@ -11,7 +11,7 @@ LinuxIO模型分为阻塞IO,非阻塞IO,IO多路复用,信号驱动IO,异步IO,�
 阻塞、非阻塞、IO复用、信号驱动都是同步IO模型,虽然数据加载到内核缓冲区过程中可能阻塞/不阻塞,但发起操作的系统调用(如read)过程中是被阻塞,需要等待数据拷贝回用户缓冲区
 只有异步IO模型才是异步,因为发起异步类的系统调用(如aio_read)后直接返回,直到内核缓冲区中的数据准备好并复制到用户缓冲区后,再通知用户
 阻塞IO:读取数据时等待数据到来和把数据从内核空间拷贝到用户空间
-非阻塞IO:指数据还未到达网卡,或到达网卡但还没拷贝到内核缓冲区,这个阶段是非阻塞,读取数据时如果数据未就绪就立即返回,数据就绪时依然会阻塞等待数据从内核空间拷贝到用户空间
+非阻塞IO:指数据还未到达网卡,或到达网卡但还没拷贝到内核缓冲区,这个阶段读取数据是非阻塞,数据就绪时依然会阻塞等待数据从内核空间拷贝到用户空间
 IO多路复用:分为select,poll,epoll,kqueue等实现
 select缺点: 需要将整个fd_set从用户空间拷贝到内核空间,select结束再拷贝回用户空间,且fd_set监听的fd数量不能超过1024
 typedef long int __fd_mask;
@@ -75,17 +75,20 @@ TCP和UDP是两种常用的传输层协议,用于网络数据传输
 TCP是面向连接的协议,数据传输前必须先建立连接,通过三次握手来实现,提供可靠的数据顺序传输,如网页浏览、文件传输和电子邮件
 UDP是无连接的协议,数据传输前不需要建立连接,数据传输不保证顺序和可靠性,使得UDP比TCP更加轻量级和快速
 对于某些实时性和速度要求高、同时能容忍少量数据丢失的应用,如实时视频和音频通话、在线游戏等
+
+三次握手
+1. client首先发送SYN报文和随机产生一个值seq=X给server,此时client进入SYN_SENT状态,等待server端确认
+2. server收到client发过来的SYN包后知道client请求建立连接,将产生一个SYN+ACK=X+1包和随机产生的seq=Y发送给client以确认连接请求,此时server进入SYN_RCVD状态
+3. client收到server的SYN+ACK包,向server发送确认包ACK=Y+1,此包发送完毕,client和server进入ESTABLISHED(TCP连接成功)状态
+第三次握手就是让server确认client可用,避免无效等待,应为第二次握手可能是因为网络延迟某个已关闭的client发出
 """
 
 
 class BlockingIO:  # 阻塞IO
     def __init__(self, ip='127.0.0.1', port=9999):
-        self.server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # AF_INET指使用IPv4协议,SOCK_STREAM指使用面向流的TCP协议
+        self.server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # AF_INET指使用IPv4协议,SOCK_STREAM指使用TCP协议
         self.server_sock.bind((ip, port))  # 监听端口,0.0.0.0表示绑定到所有的网络地址
         self.server_sock.listen(5)  # 调用listen()方法开始监听端口,传入的参数指定等待连接的最大数量
-
-    def __del__(self):
-        self.server_sock.close()
 
     @staticmethod
     def tcp_link(client_sock, addr):  # 这是个长连接,服务端一般可以通过接收的数据某个字段判断
@@ -101,7 +104,7 @@ class BlockingIO:  # 阻塞IO
             data = client_sock.recv(1024)
             if data:
                 # time.sleep(1.8)  # 测试客户端socket超时
-                client_sock.sendall(f'Hello, {data.decode()}'.encode())  # 如何需要发送多种类型的数据,可考虑用struct.pack
+                client_sock.sendall(f'Hello, {data.decode()}'.encode())  # 如果需要发送多种类型的数据,可考虑用struct.pack
             else:
                 client_sock.close()
                 print('Connection from {}:{} closed.'.format(*addr))
@@ -112,7 +115,7 @@ class BlockingIO:  # 阻塞IO
         with ThreadPoolExecutor(10) as executor:
             while True:
                 client_sock, addr = self.server_sock.accept()  # 等待并返回一个客户端的连接
-                executor.submit(BlockingIO.tcp_link, client_sock, addr)
+                executor.submit(self.__class__.tcp_link, client_sock, addr)
 
 
 class IOMultiplexing:  # IO多路复用
@@ -123,8 +126,15 @@ class IOMultiplexing:  # IO多路复用
         server_sock.setblocking(False)  # 创建一个非阻塞的TCP套接字
         # 选择最佳实现, epoll|kqueue|devpoll > poll > select, macOS下为kqueue,Linux下为epoll
         self.selector = selectors.DefaultSelector()  # 相当于epoll_create
-        # 相当于epoll_ctl的EPOLL_CTL_ADD,让accept关联server
+        # 相当于epoll_ctl的EPOLL_CTL_ADD模式,让accept关联server
         self.selector.register(server_sock, selectors.EVENT_READ, self.accept)  # 此处的EVENT_READ和EVENT_WRITE什么区别
+
+    def start(self):
+        while True:
+            ready = self.selector.select()  # 相当于epoll_wait,等待已注册文件对象准备就绪或超时到期
+            for selector_key, events in ready:  # events就是register时指定的EVENT_READ或EVENT_WRITE
+                callback = selector_key.data
+                callback(selector_key.fileobj)  # 调用相应的回调函数处理事件
 
     def accept(self, server_sock):  # 回调函数,用于处理新连接的客户端套接字
         client_sock, addr = server_sock.accept()
@@ -140,15 +150,8 @@ class IOMultiplexing:  # IO多路复用
             client_sock.sendall(f'Hello, {data.decode()}'.encode())  # 回显数据给客户端
         else:  # client断开连接时会执行
             print("connection closed")
-            self.selector.unregister(client_sock)  # 取消selector上的注册,相当于epoll_ctl的EPOLL_CTL_DEL
+            self.selector.unregister(client_sock)  # 取消selector上的注册,相当于epoll_ctl的EPOLL_CTL_DEL模式
             client_sock.close()
-
-    def start(self):
-        while True:
-            ready = self.selector.select()  # 相当于epoll_wait,等待已注册文件对象准备就绪或超时到期
-            for selector_key, events in ready:  # events就是register时指定的EVENT_READ或EVENT_WRITE
-                callback = selector_key.data
-                callback(selector_key.fileobj)  # 调用相应的回调函数处理事件
 
 
 if __name__ == "__main__":

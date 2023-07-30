@@ -22,11 +22,6 @@ def http_request():
     """
     TCP连接创建的是双向通道,双方都可以同时给对方发数据,但是谁先发谁后发,怎么协调,要根据具体的协议来决定
     例如HTTP协议规定客户端必须先发请求给服务器,服务器收到后才发数据给客户端
-    TCP连接需要三次握手
-    1. client首先发送SYN报文和随机产生一个值seq=X给server,此时client进入SYN_SENT状态,等待server端确认
-    2. server收到client发过来的SYN包后知道client请求建立连接,将产生一个SYN+ACK=X+1包和随机产生的seq=Y发送给client以确认连接请求,此时server进入SYN_RCVD状态
-    3. client收到server的SYN+ACK包,向server发送确认包ACK=Y+1,此包发送完毕,client和server进入ESTABLISHED(TCP连接成功)状态
-    第三次握手就是让server确认client可用,避免无效等待,应为第二次握手可能是因为网络延迟某个已关闭的client发出
     """
     client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     client.connect(('www.sina.com.cn', 80))
