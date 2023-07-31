@@ -312,7 +312,7 @@ def test_garbage_collection():
 class ObjGraph:
     # https://github.com/mgedmin/objgraph/blob/master/objgraph.py
     @staticmethod
-    def type_stats():
+    def type_stats():  # objgraph.count就是基于type_stats返回字典中的某个key值
         """
         Count the number of instances for each type tracked by the GC.
         Note that classes with the same name but defined in different modules will be lumped together if shortnames is True.
