@@ -167,7 +167,7 @@ class Condition:
         then used to restore the recursion level when the lock is reacquired.
 
         """
-        if not self._is_owned():
+        if not self._is_owned():  # 前提是自己上了锁
             raise RuntimeError("cannot wait on un-acquired lock")
         waiter = Lock()
         waiter.acquire()
@@ -224,7 +224,7 @@ class Condition:
         variable; it is a no-op if no threads are waiting.
 
         """
-        if not self._is_owned():
+        if not self._is_owned():  # 前提是自己上了锁
             raise RuntimeError("cannot notify on un-acquired lock")
         waiters = self._waiters
         while waiters and n > 0:
