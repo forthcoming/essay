@@ -529,7 +529,7 @@ class QueueTutorial:
         with ThreadPoolExecutor(3) as executor:  # 为什么不能用ProcessPoolExecutor??
             for index in range(20):
                 executor.submit(QueueTutorial.producer, task, index)  # 多线程中task不用传,传了也没事
-        task.join()  # 阻塞主程序,每完成一次任务执行一次task_done,直到所有任务完成
+        task.join()  # 阻塞主程序,每完成一次任务执行一次task_done,直到所有任务完成,调用时必须满足所有生产者已完成生产
 
 
 def test_shared_pipe(conn):
@@ -558,7 +558,7 @@ if __name__ == "__main__":
     # pool_executor_tutorial()
     # DeriveRelationship.main()
     # join_tutorial()
-    lock_tutorial()
+    # lock_tutorial()
     # ThreadLocal.thread_local_tutorial()
     # fork_tutorial()
-    # QueueTutorial.scheduler()
+    QueueTutorial.scheduler()

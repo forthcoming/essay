@@ -36,13 +36,8 @@ class Queue:
             return self._qsize()
 
     def task_done(self):  # 要放到任务执行完的最后一步调用,标记本次任务结束
-        """
-        Indicate that a formerly enqueued task is complete.Used by Queue consumer threads.
-        For each get() used to fetch a task, a subsequent call to task_done() tells the queue that the processing on the task is complete.
-        If a join() is currently blocking, it will resume when all items have been processed
-        meaning that a task_done() call was received for every item that had been put() into the queue.
-        Raises a ValueError if called more times than there were items placed in the queue.
-        """
+        # 由队列消费者线程使用,对于获取任务的每个get(),随后对task_done()的调用会告诉队列该任务的处理已完成
+        # 如果join()当前处于阻塞状态,它将在处理完所有项目后恢复
         with self.all_tasks_done:
             unfinished = self.unfinished_tasks - 1
             if unfinished <= 0:
@@ -51,13 +46,8 @@ class Queue:
                 self.all_tasks_done.notify_all()
             self.unfinished_tasks = unfinished
 
-    def join(self):  # 使用前要保证所有生产者都已完成生产任务(可通过线程join达到目的)
-        """
-        Blocks until all items in the Queue have been gotten and processed.
-        The count of unfinished tasks goes up whenever an item is added to the queue.
-        The count goes down whenever a consumer thread calls task_done() to indicate the item was retrieved
-        and all work on it is complete. When the count of unfinished tasks drops to zero, join() unblocks.
-        """
+    def join(self):  # 使用前要保证所有生产者都已完成生产任务(可通过线程join达到目的),阻塞直到队列中的所有项目都被获取并处理(计数为0)
+        # 每当将项目添加到队列中时未完成任务的计数就会增加; 每当消费者线程调用task_done()来表明该项目已被检索时,计数就会减少
         with self.all_tasks_done:
             while self.unfinished_tasks:
                 self.all_tasks_done.wait()
