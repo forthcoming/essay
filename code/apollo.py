@@ -119,8 +119,9 @@ class TestApollo:
     def test_concurrency():
         apollo = Apollo(app_id='ktv', server_url='http://10.16.4.194:8080')
         threads = [
-            Process(target=lambda apl: print(apl.get_value('test', "default", namespace='config')), args=(apollo,)) for
-            _ in range(1000)]
+            Process(target=lambda apl: print(apl.get_value('test', "default", namespace='config')), args=(apollo,))
+            for _ in range(1000)
+        ]
         for thread in threads:
             thread.start()
         for thread in threads:

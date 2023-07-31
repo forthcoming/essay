@@ -36,7 +36,7 @@ y.append(x)
 对象被销毁(引用计数为0)时如果自定义了__del__,会执行__del__函数(一般用于资源释放如数据库连接),然后销毁对象
 内存泄漏仅仅存在于某个进程中,无法进程间传递(即gc.get_objects仅仅统计所在进程的对象),会随着进程的结束而释放内存
 
-gc流程
+gc流程(仅针对容器)
 1. 创建容器(https://github.com/python/cpython/blob/main/Include/internal/pycore_object.h#L195)
 static inline void _PyObject_GC_TRACK(PyObject *op) {
     PyGC_Head *gc = _Py_AS_GC(op);
@@ -74,7 +74,7 @@ static Py_ssize_t gc_collect_generations(PyThreadState *tstate) {
     for (int i = NUM_GENERATIONS-1; i >= 0; i--) {  // i从2由老到年轻开始遍历
         if (gcstate->generations[i].count > gcstate->generations[i].threshold) {
             if (i == NUM_GENERATIONS - 1 && gcstate->long_lived_pending < gcstate->long_lived_total / 4)
-                continue; // 如果是最老一代,且次代追踪对象数量long_lived_pending小与最老一代追踪对象数量long_lived_total的1/4,则不回收,提高效率
+                continue; // 如果是最老一代,且次代追踪对象数量long_lived_pending小于最老一代追踪对象数量long_lived_total的1/4,则不回收,提高效率
             n = gc_collect_with_callback(tstate, i);  // 找到计数超过阈值最老的一代,连同比它年轻的代追踪的对象将被收集
             break;  // 退出循环,应为更年轻的generation一定满足阈值
         }
@@ -187,27 +187,6 @@ class Gc:
         self.next = None
 
 
-def circular_reference_to_leak():
-    a = Gc()
-    b = Gc()
-    a.next = b  # a.next = weakref.ref(b),解决循环引用问题
-    b.next = a  # b.next = weakref.ref(a),解决循环引用问题
-
-
-def default_parameter_to_leak(idx, _cache={}):
-    _cache[idx] = {Gc()}  # a very explicit and easy-to-find "leak" but oh well
-    _ = Gc()  # this one doesn't leak
-    print("in default_parameter_to_leak", objgraph.count('Gc'))
-
-
-def generator_to_leak():
-    cnt = 0
-    _ = [Gc() for _ in range(10)]
-    while True:
-        yield cnt
-        cnt += 1
-
-
 def test_ref():
     """
     弱引用不增加引用计数,当对像的引用只剩弱引用时, garbage collection可以销毁对象并将其内存重用于其他内容
@@ -239,7 +218,7 @@ def test_cache():
     del immutable_val
     immutable_val1 = "1314520."
     immutable_val2 = "1314520."
-    print(id_immutable_val == id(immutable_val1) == id(immutable_val2))  # True
+    assert id_immutable_val == id(immutable_val1) == id(immutable_val2)
 
     def test_mutable_cache():
         set1 = set()
@@ -250,11 +229,32 @@ def test_cache():
     list2 = [1]
     id_set2, id_list2 = id(set2), id(list2)
     id_set1, id_list1 = test_mutable_cache()  # 放在set2,list2前面调用会不同
-    del set2, list2
+    del set2, list2  # 此时set1,set2,list1,list2均已不存在
     set3, list3 = {2}, [2]
     set4, list4 = {3}, [3]
-    print(id_set2 == id(set3), id_list2 == id(list3), id_set1 == id(set4), id_list1 == id(list4))  # True True True True
-    print(len({id_set2, id_list2, id_set1, id_list1}) == 4)  # True
+    assert id_set2 == id(set3) and id_list2 == id(list3) and id_set1 == id(set4) and id_list1 == id(list4)
+    assert len({id_set2, id_list2, id_set1, id_list1}) == 4
+
+
+def circular_reference_to_leak():
+    a = Gc()
+    b = Gc()
+    a.next = b  # a.next = weakref.ref(b),解决循环引用问题
+    b.next = a  # b.next = weakref.ref(a),解决循环引用问题
+
+
+def default_parameter_to_leak(idx, _cache={}):
+    _cache[idx] = {Gc()}  # a very explicit and easy-to-find "leak" but oh well
+    _ = Gc()  # this one doesn't leak
+    print("in default_parameter_to_leak", objgraph.count('Gc'))
+
+
+def generator_to_leak():
+    cnt = 0
+    _ = [Gc() for _ in range(10)]
+    while True:
+        yield cnt
+        cnt += 1
 
 
 def test_circular_reference():
@@ -287,6 +287,26 @@ def test_generator():
     it = generator_to_leak()
     next(it)
     print(objgraph.count("Gc"))
+
+
+def test_garbage_collection():
+    a = [{}, (), 1, ""]
+    b = a,
+    c = {1: a}
+    print(gc.get_referents(a))  # 返回所有被a引用的对象
+    print(gc.get_referrers(a))  # 返回所有引用了a的对象
+
+    d = ""
+    e = {1: 2}
+    assert not gc.is_tracked(d)  # 非容器对象不会被垃圾回收追踪
+    assert not gc.is_tracked(e)  # 简单容器也不被垃圾回收追踪
+    e[2] = []
+    assert gc.is_tracked(e)  # 复杂容器会被垃圾回收追踪
+
+    assert gc.get_threshold() == (700, 10, 10)  # 垃圾回收每代阈值
+    print(gc.get_count())  # (407,9,2), 表示当前每一代count值,与get_threshold返回值相对应
+    # print(gc.get_objects())  # 返回被垃圾回收器追踪的所有对象的列表,不包括返回的列表
+    print(gc.collect())  # 手动执行垃圾回收, 返回不可达(unreachable objects)对象的数目
 
 
 class ObjGraph:
@@ -343,31 +363,11 @@ class ObjGraph:
                 sys.stdout.write('%-*s%9d %+9d\n' % (width, name, count, delta))
 
 
-def test_garbage_collection():
-    a = [{}, (), 1, ""]
-    b = a,
-    c = {1: a}
-    print(gc.get_referents(a))  # 返回所有被a引用的对象
-    print(gc.get_referrers(a))  # 返回所有引用了a的对象
-
-    d = ""
-    e = {1: 2}
-    assert not gc.is_tracked(d)  # 非容器对象不会被垃圾回收追踪
-    assert not gc.is_tracked(e)  # 简单容器也不被垃圾回收追踪
-    e[2] = []
-    assert gc.is_tracked(e)  # 复杂容器会被垃圾回收追踪
-
-    assert gc.get_threshold() == (700, 10, 10)  # 垃圾回收每代阈值
-    print(gc.get_count())  # (407,9,2), 表示当前每一代count值,与get_threshold返回值相对应
-    # print(gc.get_objects())  # 返回被垃圾回收器追踪的所有对象的列表,不包括返回的列表
-    print(gc.collect())  # 手动执行垃圾回收, 返回不可达(unreachable objects)对象的数目
-
-
 if __name__ == '__main__':
-    test_garbage_collection()
     # test_ref()
     # test_cache()
     # test_circular_reference()
     # test_multiprocess_circular_reference()
     # test_default_parameter()
     # test_generator()
+    test_garbage_collection()

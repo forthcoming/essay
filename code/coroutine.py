@@ -64,16 +64,6 @@ def run_fetch():
 
 
 if __name__ == "__main__":
-    run_find()
-    """
-    start find(508000, 34113)
-    start find(100052, 3210)
-    start find(500, 3)
-    end find(500, 3)
-    end find(100052, 3210)
-    end find(508000, 34113)
-    """
-    run_fetch()
     asyncio.run(run_say_after())  # 内部创建一个新的event loop,并将传入的coroutine转换为task
     """
     main started at 21:25:27
@@ -86,3 +76,14 @@ if __name__ == "__main__":
     [3, 1]
     main finished at 21:25:30
     """
+    run_find()
+    """
+    start find(508000, 34113)
+    start find(100052, 3210)
+    start find(500, 3)
+    end find(500, 3)
+    end find(100052, 3210)
+    end find(508000, 34113)
+    """
+    run_fetch()
+
