@@ -41,7 +41,7 @@ typedef struct dictType {
 typedef struct dict {
     dictEntry **table;  // entry数组,数组中保存指向entry的指针
     dictType *type;
-    unsigned long size;  // 哈希表大小,总是2**n大小
+    unsigned long size;  // table长度,总是2**n大小
     unsigned long sizemask; // 哈希表掩码,总等于size-1,方便位运算
     unsigned long used; // entry个数
     void *privdata;

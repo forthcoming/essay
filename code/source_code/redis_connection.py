@@ -159,7 +159,7 @@ class ConnectionPool:
 
     def _check_pid(self):
         """
-        所有更改池状态的ConnectionPool方法都会调用_check_pid,子进程不能使用父进程的文件描述符(如sockets)
+        所有更改池状态的ConnectionPool方法都会调用_check_pid,子进程不能使用父进程的文件描述符(如socket)
         当进程id改变(比如分叉)时获取_fork_lock锁,在此期间子进程的多个线程可以尝试获取此锁,持有此锁时最多调用一次reset
         第一个获取锁的线程将重置数据结构和锁等对象,后续线程获取此锁会注意到第一个线程已经完成了工作,直接释放锁
         在以下情况下有极小可能性失败：
@@ -243,11 +243,6 @@ class BlockingConnectionPool(ConnectionPool):  # 线程安全的阻塞连接池,
         self._connections = []  # Keep a list of actual connection instances so that we can disconnect them later.
         self.pid = os.getpid()  # 必须放最后赋值
 
-    def make_connection(self):
-        connection = self.connection_class(**self.connection_kwargs)
-        self._connections.append(connection)
-        return connection
-
     def get_connection(self):
         """
         阻塞获取(最多等待self.timeout)池中连接,如果返回的连接是None则创建一个新连接
@@ -279,6 +274,11 @@ class BlockingConnectionPool(ConnectionPool):  # 线程安全的阻塞连接池,
             # release the connection back to the pool so that we don't leak it
             self.release(connection)
             raise
+        return connection
+
+    def make_connection(self):
+        connection = self.connection_class(**self.connection_kwargs)
+        self._connections.append(connection)
         return connection
 
     def release(self, connection):

@@ -230,16 +230,6 @@ double geohashGetDistance(double lon1d, double lat1d, double lon2d, double lat2d
     return 2.0 * EARTH_RADIUS_IN_METERS * asin(sqrt(u * u + cos(lat1r) * cos(lat2r) * v * v));
 }
 
-int main(){
-    uint32_t x=0;
-    uint32_t y=0b11111111111111111111111111111111;
-    printf("%llu\n",deinterleave64(interleave64(x, y)));
-
-    GeoHashBits hash={ .bits=1234567,.step=20};
-    GeoHashNeighbors neighbors;
-    geohashNeighbors(&hash,&neighbors);
-}
-
 /* GEOHASH key ele1 ele2 ... eleN
  * Returns an array with an 11 characters geohash representation of the position of the specified elements.
  */
@@ -298,4 +288,14 @@ void geohashCommand(client *c) {  // redis命令对应函数一般都是xxxComma
             addReplyBulkCBuffer(c,buf,11);
         }
     }
+}
+
+int main(){
+    uint32_t x=0;
+    uint32_t y=0b11111111111111111111111111111111;
+    printf("%llu\n",deinterleave64(interleave64(x, y)));
+
+    GeoHashBits hash={ .bits=1234567,.step=20};
+    GeoHashNeighbors neighbors;
+    geohashNeighbors(&hash,&neighbors);
 }

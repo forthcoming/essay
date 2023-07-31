@@ -136,7 +136,7 @@ static intset *intsetUpgradeAndAdd(intset *is, int64_t value) {
     uint8_t curenc = intrev32ifbe(is->encoding);
     uint8_t newenc = _intsetValueEncoding(value);
     int length = intrev32ifbe(is->length);
-    int prepend = value < 0 ? 1 : 0; // 判断插入值正负,正数插入数组尾部,负数插入数组头部
+    int prepend = value < 0 ? 1 : 0; // 判断插入值正负,正数插入数组尾部,负数插入数组头部(因为该数导致扩容,说明其绝对值最大)
 
     /* First set new encoding and resize */
     is->encoding = intrev32ifbe(newenc);

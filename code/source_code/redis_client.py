@@ -110,7 +110,7 @@ class Pipeline(Redis):  # 一般通过调用Redis实例的pipeline方法获取Pi
             self.connection = None
 
     def multi(self):  # 手动开启事务
-        if self.explicit_transaction:
+        if self.explicit_transaction:  # 防止MULTI命令执行两次
             raise RedisError('Cannot issue nested calls to MULTI')
         if self.command_stack:
             raise RedisError('Commands without an initial WATCH have already been issued')
