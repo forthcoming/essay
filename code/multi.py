@@ -11,6 +11,7 @@ from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_compl
 from multiprocessing import shared_memory
 from multiprocessing.dummy import Lock as ThreadLock, RLock as ThreadRLock
 from threading import get_ident, local, Barrier, BrokenBarrierError, BoundedSemaphore, Thread, Condition
+from types import SimpleNamespace
 
 """
 atexit
@@ -69,7 +70,7 @@ def pool_compute(item, thread_lock, set_counter, dict_counter):
             time.sleep(random.uniform(0, .01))
             dict_counter[item] = 1
 
-    # with thread_lock:  # 必须加锁
+    # with thread_lock:  # 必须加锁(思想类似redis分布式锁)
     #     while True:
     #         if item in set_counter:
     #             time.sleep(.001)
@@ -174,12 +175,12 @@ def shared_mmap_tutorial():
     pid = os.fork()
     if pid == 0:  # In a child process
         mm[6:12] = b'python'
-        print('child process: ', mm.readline(), mm.tell())
+        print('child process: ', mm.readline(), mm.tell())  # child process:  b'Hello python\x00' 13
         mm.close()
         os._exit(0)  # 会停止进程,即使有异常处理也会失效
     else:  # In a parent process
         time.sleep(1)  # 让子进程先执行
-        print('parent process: ', mm.tell(), mm.readline())
+        print('parent process: ', mm.tell(), mm.readline())  # parent process:  0 b'Hello python\x00'
         mm.close()
 
     with mmap.mmap(fileno=-1, length=256, access=mmap.ACCESS_COPY) as mm:
@@ -187,15 +188,15 @@ def shared_mmap_tutorial():
         mm.write(b"welcome to python!\n")  # 如果剩余空间不足,则抛出ValueError
 
         # 不会移动文件指针,也不使用文件指针
-        print(re.findall(rb'!', mm))
+        print(re.findall(rb'!', mm))  # [b'!', b'!']
         mm[0] = 97
         mm[6:12] = b'python'
-        print(mm[:5])
+        print(mm[:5])  # b"aello"
 
         # 会移动文件指针
         mm.seek(0)  # 指定文件指针到某个位置
-        print(mm.read(13))  # 读指定字节数据
-        print(mm.readline())  # 读一行数据
+        print(mm.read(13))  # 读指定字节数据 , b"aello python\n"
+        print(mm.readline())  # 读一行数据 , b"welcome to python!\n"
 
 
 def shared_value_simulation_tutorial():  # 模拟multiprocessing.Value
@@ -211,74 +212,6 @@ def shared_value_simulation_tutorial():  # 模拟multiprocessing.Value
     else:
         time.sleep(1)
         print('in parent', obj.value)  # in parent 13
-
-
-class DeriveRelationship:
-    """
-    进程之间的派生拥有父子关系
-    线程之间的派生是对等关系,都隶属于主进程的子线程
-    线程进程交互派生时,进程隶属于上个进程的子进程,线程隶属于上个进程的子线程
-    """
-
-    @staticmethod
-    def main():
-        print('in main', os.getpid(), os.getppid())
-        program = Thread(target=DeriveRelationship.kid1)  # daemon=False且无法更改,想自定义请用threading.Thread
-        run_subroutine([program])
-        time.sleep(5)
-        # in main 15944 13085
-        # in kid1 15944 13085
-        # in kid2 15948 15944
-        # in kid3 15948 15944
-        # in kid3 15950 15948
-
-    @staticmethod
-    def kid1():
-        print('in kid1', os.getpid(), os.getppid())
-        program = mp.Process(target=DeriveRelationship.kid2)
-        run_subroutine([program])
-        time.sleep(5)
-
-    @staticmethod
-    def kid2():
-        print('in kid2', os.getpid(), os.getppid())
-        programs = [Thread(target=DeriveRelationship.kid3), mp.Process(target=DeriveRelationship.kid3)]
-        run_subroutine(programs)
-        time.sleep(5)
-
-    @staticmethod
-    def kid3():
-        print('in kid3', os.getpid(), os.getppid())
-        time.sleep(5)
-
-
-def join_tutorial():
-    """
-    该方法阻塞主程序直到子进程终止,但不会阻塞其他子程序的运行,如果timeout是正数,则最多阻塞timeout秒,一个进程可以多次join
-    join会调用系统的os.waitpid()方法回收子进程资源,防止产生僵尸进程,但如果超过timeout后父进程被唤醒,子进程在这之后结束,仍可能产生僵尸进程
-    如果timeout未指定,则主进程总的等待时间T = max(t1,t2,...,tn)
-    如果timeout大于0,T1 = min(timeout,max(t1,0)),...,Tn = min(timeout,max(tn-Tn-1,0)),则主进程总的等待时间T = sum(T1+T2,...+Tn)
-    """
-    processes = [
-        mp.Process(target=time.sleep, args=(5,)),
-        mp.Process(target=time.sleep, args=(3,)),
-        mp.Process(target=time.sleep, args=(7,)),
-    ]
-    for process in processes:
-        process.start()
-    begin = end = time.monotonic()
-    for process in processes:
-        process.join()
-        print('子进程阻塞耗时:', time.monotonic() - end)
-        end = time.monotonic()
-    print('总耗时:', end - begin)
-    '''
-    OUTPUT:
-    子进程阻塞耗时: 5
-    子进程阻塞耗时: 0
-    子进程阻塞耗时: 2
-    总耗时: 7
-    '''
 
 
 def test_shared_manager(shared_dict, shared_list, process_rlock):
@@ -310,11 +243,10 @@ def shared_manager_tutorial():
     如果您有manager.list()对象,则对托管列表本身的任何更改都会传播到所有其他进程,但如果该列表中有一个列表,则对内部列表的任何更改都不会传播
     """
     with mp.Manager() as manager:
-        process_rlock = mp.RLock()  # 必须从外部传入子程序
+        lock = mp.RLock()  # 必须从外部传入子程序
         shared_dict = manager.dict({'a': 0})
         shared_list = manager.list()
-        processes = [mp.Process(target=test_shared_manager, args=(shared_dict, shared_list, process_rlock)) for _ in
-                     range(10)]
+        processes = [mp.Process(target=test_shared_manager, args=(shared_dict, shared_list, lock)) for _ in range(10)]
         run_subroutine(processes)
         print(shared_dict)  # {'a': 10}
         print(shared_list)  # [16016, 19356, 18492, 17892, 13048, 19212, 1844, 14400, 7344, 1008]
@@ -337,6 +269,74 @@ def shared_manager_tutorial():
         process = mp.Process(target=test_shared_manager_namespace, args=(namespace,))
         run_subroutine([process])
         print(namespace)  # Namespace(dict_={'a': {'b': 'ab'}, 'c': 'c'}, int_=3, list_=[0, 2, 4], string_='hi')
+
+
+class DeriveRelationship:
+    """
+    进程之间的派生拥有父子关系
+    线程之间的派生是对等关系,都隶属于主进程的子线程
+    线程进程交互派生时,进程隶属于上个进程的子进程,线程隶属于上个进程的子线程
+    """
+
+    @staticmethod
+    def main():
+        print('in main', os.getpid(), os.getppid())
+        program = Thread(target=DeriveRelationship.kid1)
+        run_subroutine([program])
+        time.sleep(5)
+        # in main 15944 13085
+        # in kid1 15944 13085
+        # in kid2 15948 15944
+        # in kid3 15948 15944
+        # in kid3 15950 15948
+
+    @staticmethod
+    def kid1():
+        print('in kid1', os.getpid(), os.getppid())
+        program = mp.Process(target=DeriveRelationship.kid2)
+        run_subroutine([program])
+        time.sleep(5)
+
+    @staticmethod
+    def kid2():
+        print('in kid2', os.getpid(), os.getppid())
+        programs = [Thread(target=DeriveRelationship.kid3), mp.Process(target=DeriveRelationship.kid3)]
+        run_subroutine(programs)
+        time.sleep(5)
+
+    @staticmethod
+    def kid3():
+        print('in kid3', os.getpid(), os.getppid())
+        time.sleep(5)
+
+
+def join_tutorial():
+    """
+    该方法阻塞主程序直到子进程终止(不阻塞子进程运行),如果timeout是正数,则最多阻塞timeout秒,一个进程可以多次join
+    join会调用系统的os.waitpid()方法回收子进程资源,防止产生僵尸进程,但如果超过timeout后父进程被唤醒,子进程在这之后结束,仍可能产生僵尸进程
+    如果timeout未指定,则主进程总的等待时间T = max(t1,t2,...,tn)
+    如果timeout大于0,T1 = min(timeout,max(t1,0)),...,Tn = min(timeout,max(tn-Tn-1,0)),则主进程总的等待时间T = sum(T1+T2,...+Tn)
+    """
+    processes = [
+        mp.Process(target=time.sleep, args=(5,)),
+        mp.Process(target=time.sleep, args=(3,)),
+        mp.Process(target=time.sleep, args=(7,)),
+    ]
+    for process in processes:
+        process.start()
+    begin = end = time.monotonic()
+    for process in processes:
+        process.join()
+        print('子进程阻塞耗时:', time.monotonic() - end)
+        end = time.monotonic()
+    print('总耗时:', end - begin)
+    '''
+    OUTPUT:
+    子进程阻塞耗时: 5
+    子进程阻塞耗时: 0
+    子进程阻塞耗时: 2
+    总耗时: 7
+    '''
 
 
 def test_rlock(lock, salary):
@@ -425,7 +425,7 @@ def lock_tutorial():
 class ThreadLocal:
     def __init__(self):
         self.id = local()  # 保证同一个实例在不同线程中拥有不同的token值,redis分布式锁利用该性质达到线程安全
-        self.token = type('dummy', (), {})  # 注意此用法,很好类似达到namespace效果
+        self.token = SimpleNamespace()  # 相当于type('dummy', (), {})
         self.id.value = self.token.value = 0
 
     def show(self, timeout):
@@ -467,7 +467,7 @@ def fork_tutorial():
     子进程可通过fork或者spawn方式生成,spawn底层用了pickle将父进程数据序列化后传到子进程
     子进程是从fork后面那个指令开始执行,在父进程中fork返回新创建子进程的进程ID,子进程返回0
     kill(跟linux一致),pid>0: 向进程号pid的进程发送信号,可以验证kill杀死父进程,子进程会不会结束;pid=0: 向当前进程所在的进程组发送信号
-    父进程里使用wait,相当于join,这个函数会让父进程阻塞,直到任意一个子进程执行完成,回收该子进程的内核进程资源
+    父进程里使用wait(被join调用),这个函数会让父进程阻塞,直到任意一个子进程执行完成,回收该子进程的内核进程资源
     每个进程都属于一个进程组,通过getpgid(0)获取,getpgid(pid)获取进程ID是pid所在组的组ID,默认为父进程id,父进程,子进程以及子子进程都属于这个进程组
 
     孤儿进程: 父进程退出而它的子进程还在运行,则子进程将成为孤儿进程
@@ -559,6 +559,6 @@ if __name__ == "__main__":
     # DeriveRelationship.main()
     # join_tutorial()
     # lock_tutorial()
-    # ThreadLocal.thread_local_tutorial()
+    ThreadLocal.thread_local_tutorial()
     # fork_tutorial()
-    QueueTutorial.scheduler()
+    # QueueTutorial.scheduler()
