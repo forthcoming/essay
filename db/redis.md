@@ -518,7 +518,7 @@ GETEX key [EX seconds | PX milliseconds | EXAT unix-time-seconds | PERSIST]: 获
 GETDEL key
 setrange key offset value: 把字符串key的第offset个位置起替换成value,只覆盖value个长度
 getrange key start stop: 获取字符串中[start, stop]范围的值，左数从0开始,右数从-1开始
-set key value [NX | XX] [GET] [PX milliseconds | EXAT unix-time-seconds | KEEPTTL]
+set key value [NX | XX] [GET] [EX seconds | PX milliseconds | EXAT unix-time-seconds | KEEPTTL]
 如果key已存在,则无论其类型如何都会被覆盖,成功后该key先前生存时间将被丢弃
 [NX | XX]-- key[不存在|存在]时生效
 GET -- Return the old string stored at key

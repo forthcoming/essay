@@ -60,19 +60,21 @@ class RedisCache:  # 接口缓存
         return int(value)
 
     def get(self, key):
-        return RedisCache.load_object(self._client.get(self.key_prefix + key))
+        key = self.key_prefix + key
+        content = self._client.get(key)
+        return self.__class__.load_object(content)
 
     def set(self, key, value, timeout=None):
         timeout = timeout or self.default_timeout
-        dump = RedisCache.dump_object(value)
+        dump = self.__class__.dump_object(value)
         if timeout == -1:
             return self._client.set(name=self.key_prefix + key, value=dump)
-        return self._client.setex(name=self.key_prefix + key, time=timeout, value=dump)
+        return self._client.set(name=self.key_prefix + key, value=dump, ex=timeout)
 
     def get_many(self, *keys):
         if self.key_prefix:
             keys = [self.key_prefix + key for key in keys]
-        return [RedisCache.load_object(x) for x in self._client.mget(keys)]
+        return [self.__class__.load_object(x) for x in self._client.mget(keys)]
 
     def set_many(self, mapping, timeout=None):
         timeout = timeout or self.default_timeout
@@ -80,11 +82,11 @@ class RedisCache:  # 接口缓存
         pipe = self._client.pipeline(transaction=False)
 
         for key, value in mapping.items():
-            dump = RedisCache.dump_object(value)
+            dump = self.__class__.dump_object(value)
             if timeout == -1:
                 pipe.set(name=self.key_prefix + key, value=dump)
             else:
-                pipe.setex(name=self.key_prefix + key, time=timeout, value=dump)
+                pipe.set(name=self.key_prefix + key, value=dump,ex=timeout)
         return pipe.execute()
 
 
@@ -104,13 +106,13 @@ class DispatchWork:  # 功能类似分布式锁,保证同一时刻服务只在�
     running_status = '''
         local ip = redis.call('get',KEYS[1]);  -- 没有返回nil
         if ip==false then
-            redis.call('setex',KEYS[1],ARGV[2],ARGV[1]);
-            return true;
+            redis.call('set',KEYS[1],ARGV[1],'ex',ARGV[2])
+            return true
         elseif ip==ARGV[1] then
-            redis.call('expire',KEYS[1],ARGV[2]);
-            return true;
+            redis.call('expire',KEYS[1],ARGV[2])
+            return true
         else 
-            return false;
+            return false
         end
     '''
     running_status_sha = rc.script_load(running_status)

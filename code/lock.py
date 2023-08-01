@@ -233,7 +233,7 @@ class Redlock:
     time: 5, thread-1 has not yet completed. redis expires the lock key.
     time: 5, thread-2 acquired `my-lock` now that it's available.thread-2 sets the token to "xyz"
     time: 6, thread-1完成任务并调用release(),如果token未存储在threading.local中,那么thread-1会将token值视为"xyz",并且能够成功释放thread-2的锁
-    可以通过每个线程一个锁实例解决,具有相同name的锁视为专门处理某一任务的锁集合
+    如果不想让token存储在threading.local,可以通过每个线程一个锁实例解决,具有相同name的锁视为专门处理某一任务的锁集合
     如果一个线程获得锁,然后把这个锁实例传递给另一个线程稍后释放它,这种情况不能用threading.local
     """
     redlock_script = """#!lua name=redlock   
