@@ -83,10 +83,9 @@ sys.path.append('/root/Desktop')   # 添加python查询路径
 
 
 and, or, not
-x and y返回的结果是决定表达式结果的值
-如果x为真, 则y决定结果, 返回y; 如果x为假, x决定了结果为假, 返回x
-x or y返回的结果是决定表达式结果的值
-not 返回表达式结果的相反的值, 如果表达式结果为真则返回false, 如果表达式结果为假则返回true
+x and y和x or y返回的结果是决定表达式结果的值
+and: 如果x为真, 则y决定结果, 返回y; 如果x为假, x决定了结果为假, 返回x
+not返回表达式结果的相反的值, 如果表达式结果为真则返回false, 如果表达式结果为假则返回true
 
 
 __str__: 自定义打印类的格式,print打印类实例时被调用
@@ -94,14 +93,9 @@ __len__: 自定义类长度,len作用于类实例时被调用
 __call__: 类实例被当作函数调用时调用
 __name__: 通过"类.__name__"返回字符串类型的类名,类实例无此属性
 
-
 What kinds of global value mutation are thread-safe?
-A global interpreter lock (GIL) is used internally to ensure that only one thread runs in the Python VM at a time.
-In general, Python offers to switch among threads only between bytecode instructions; 
-how frequently it switches can be set via sys.setswitchinterval().Each bytecode instruction and therefore 
-all the C implementation code reached from each instruction is therefore atomic from the point of view of a Python program.
-it means that operations on shared variables of built-in data types (ints, lists, dicts, etc) that “look atomic” really are.
-For example, the following operations are all atomic (L, L1, L2 are lists, D, D1, D2 are dicts, x, y are objects, i, j are ints):
+内部使用GIL来确保Python VM中一次只有一个线程运行,Python只提供字节码指令之间的线程切换
+从Python程序的角度来看,每条指令到达的所有C实现代码都是原子,例如以下原子操作(L,L1,L2是列表,D,D1,D2是字典,x,y是对象,i,j是整数):
 L.append(x)
 L1.extend(L2)
 x = L[i]
@@ -118,8 +112,6 @@ i = i+1
 L.append(L[-1])
 L[i] = L[j]
 D[x] = D[x] + 1
-Operations that replace other objects may invoke those other objects’ __del__() method when their reference count reaches zero, 
-and that can affect things.this is especially true for the mass updates to dictionaries and lists. When in doubt, use a mutex!
 
 
 ipdb
@@ -141,7 +133,7 @@ h(elp)   打印当前版本Pdb可用的命令,如果要查询某个命令,可以
 pinfo2   Provide extra detailed information about an object(值,类型,长度等信息)
 
 
-big-endian: 低位地址保存高位数字,方便阅读理解
+big-endian: 低位地址保存高位数字,方便阅读和排序
 little-endian: 低位地址保存低位数字(比特位从右至左),在变量指针转换的时候地址保持不变,比如int64*转到int32*
 目前看来是little-endian成为主流了
 bool is_big_endian() //如果字节序为big-endian,返回1,反之返回0
