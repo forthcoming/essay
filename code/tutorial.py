@@ -147,34 +147,6 @@ bool is_big_endian() //如果字节序为big-endian,返回1,反之返回0
 """
 
 
-class Singleton(type):
-    _instance = None
-    _instance_lock = Lock()
-
-    def __call__(cls, *args, **kwargs):
-        if cls._instance is None:
-            with cls._instance_lock:  # 线程安全单例模式
-                if cls._instance is None:
-                    cls._instance = type.__call__(cls, *args, **kwargs)
-        return cls._instance
-
-
-def singleton(cls):
-    _instance_pool = {}
-    _instance_lock = Lock()
-
-    def _singleton(*args, **kwargs):
-        _kwargs = {_key: kwargs[_key] for _key in sorted(kwargs)}
-        hash_key = f"{args}:{_kwargs}"
-        if hash_key not in _instance_pool:
-            with _instance_lock:  # 线程安全单例池
-                if hash_key not in _instance_pool:
-                    _instance_pool[hash_key] = cls(*args, **kwargs)
-        return _instance_pool[hash_key]
-
-    return _singleton
-
-
 def get_ip():
     ip = '127.0.0.1'
     try:
@@ -213,7 +185,7 @@ def tuple_tutorial():
     # a[1] = [3]  # error
     print(id(a), id(a[0]), id(a[1]))  # 4566784320 4577922136 4566790656
     b = 1,
-    print(type(b))  # <class 'tuple'>
+    assert type(b) == tuple
 
 
 def list_tutorial():
@@ -245,13 +217,13 @@ def set_tutorial():  # 无序不重复, 添加元素用add
     set_a = {1, 2, 3, 3}
     set_b = {3, 4, 5, 6, 7}
     print(set_a == set_b)  # False
-    print(set_a < set_b)  # False,set_a不是set_b的子集
-    print(set_a | set_b)  # set([1, 2, 3, 4, 5, 6, 7])
-    print(set_a & set_b)  # set([3])
+    print(set_a < set_b)  # False,set_a不是set_b的子集,因为集合无序,比较运算符无法比较元素字典大小,比较的是子集关系
     print(set_a - set_b)  # set([1, 2])
     print(set_b - set_a)  # set([4, 5, 6, 7])
-    # (set_a ^ set_b) == ((set_a - set_b) | (set_b - set_a)),numbers in set_a or in set_b but not both
-    print(set_a ^ set_b)  # set([1, 2, 4, 5, 6, 7])
+    print(set_a | set_b)  # set([1, 2, 3, 4, 5, 6, 7])
+    print(set_a & set_b)  # set([3])
+    print(set_a ^ set_b)  # set([1, 2, 4, 5, 6, 7]) , numbers in set_a or in set_b but not both
+    assert (set_a | set_b) - (set_a & set_b) == (set_a - set_b) | (set_b - set_a) == set_a ^ set_b
 
 
 def dict_tutorial():  # 字典有序
@@ -325,7 +297,7 @@ def common_tutorial():
     ip = f"{a}.{b}.{c}.{d}"
     ip_byte_str = socket.inet_aton(ip)
     assert socket.inet_ntoa(ip_byte_str) == ip
-    assert struct.unpack(">I", ip_byte_str)[0] == (a << 24) + (b << 16) + (c << 8) + d
+    assert struct.unpack(">I", ip_byte_str)[0] == (a << 24) | (b << 16) | (c << 8) | d
 
     x = 1
     print(eval('x+1'), x)  # 2, 1  执行字符串形式的表达式,返回执行结果
@@ -426,31 +398,29 @@ def variable_tutorial():
     """
 
     class Test:
-        class_var = [1]
+        c_var = []
 
         def __init__(self):
             self.i_var = 2
-            self.__secret = 3
 
     v1 = Test()
     v2 = Test()
-    print(v1.__dict__)  # {'i_var': 2, '_Test__secret': 3},只包含实例属性,私有属性__secret被更改为_Test__secret
-    print(Test.__dict__)  # {'class_var': [1], '__init__': <function Test.__init__ at 0x0000000003731D90>},不包含实例属性
-    v1.class_var = [4]  # 当且仅当class_var是可变类属性并修改他时才会修改类属性,否则改变的是当前的实例属性
-    print(v1.__dict__)  # {'i_var': 2, '_Test__secret': 3, 'class_var': [4]},新增class_var实例属性
-    print(v2.__dict__)  # {'i_var': 2, '_Test__secret': 3},不包含v1新增的实例属性class_var
-    print(Test.__dict__)  # {'class_var': [1], '__init__': <function Test.__init__ at 0x1>},此时的class_var = [1]不变
+    v3 = Test()
+    print(v1.__dict__)  # {'i_var': 2},只包含实例属性
+    print(Test.__dict__)  # {'c_var': [], '__init__': <function Test.__init__>},只包含类属性
 
-    class A:
-        a = []
+    v1.c_var = [5]  # 当且仅当c_var是可变类属性并修改他时才会修改类属性,否则改变的是当前的实例属性
+    print(v1.__dict__)  # {'i_var': 2, 'c_var': [5]},新增c_var实例属性
+    print(v2.__dict__)  # {'i_var': 2},不包含v1新增的实例属性c_var
+    print(Test.__dict__)  # {'c_var': [], '__init__': <function Test.__init__>},此时的c_var = []不变
 
-    obj1 = A()
-    obj2 = A()
-    obj1.a += [2]  # 等价于obj1.a.append(2);obj1.a=A.a
-    print(id(obj1.a), id(obj2.a), id(A.a))  # 58584712 58584712 58584712
-    print(obj1.a, obj2.a, A.a)  # [2] [2] [2]
-    print(obj1.__dict__, obj2.__dict__)  # {'a': [2]} {}
-    print(A.__dict__)  # {'fun': <function A.fun>, '__dict__': <attribute '__dict__' of 'A' objects>, 'a': [2]}
+    # 此时v2,v3,Test都保持原样
+    v2.c_var += [4]  # 等价于v2.c_var.append(4)
+    assert id(v2.c_var) == id(v3.c_var) == id(Test.c_var) and id(Test.c_var) != id(v1.c_var)
+    assert v2.c_var == v3.c_var == Test.c_var == [4]
+    print(v2.__dict__)  # {'i_var': 2, 'c_var': [4]}
+    print(v3.__dict__)  # {'i_var': 2}
+    print(Test.__dict__) # # {'c_var': [4], '__init__': <function Test.__init__>}
 
     class A:
         a = 10
@@ -460,8 +430,7 @@ def variable_tutorial():
     obj1.a += 2
     print(id(obj1.a), id(obj2.a), id(A.a))  # 8790824644704 8790824644640 8790824644640
     print(obj1.a, obj2.a, A.a)  # 12 10 10
-    print(obj1.__dict__, obj2.__dict__)  # {'a': 12} {}
-    print(A.__dict__)  # {'a': 10, '__dict__': <attribute '__dict__' of 'A'>, 'fun': <function A.fun>}
+    print(obj1.__dict__, obj2.__dict__,A.__dict__)  # {'a': 12} {} {'a': 10}
 
 
 def exception_tutorial():
@@ -1217,6 +1186,34 @@ def metaclass_tutorial():
     print(test.random_id, test.a, test.b)
 
 
+class Singleton(type):
+    _instance = None
+    _instance_lock = Lock()
+
+    def __call__(cls, *args, **kwargs):
+        if cls._instance is None:
+            with cls._instance_lock:  # 线程安全单例模式
+                if cls._instance is None:
+                    cls._instance = type.__call__(cls, *args, **kwargs)
+        return cls._instance
+
+
+def singleton(cls):
+    _instance_pool = {}
+    _instance_lock = Lock()
+
+    def _singleton(*args, **kwargs):
+        _kwargs = {_key: kwargs[_key] for _key in sorted(kwargs)}
+        hash_key = f"{args}:{_kwargs}"
+        if hash_key not in _instance_pool:
+            with _instance_lock:  # 线程安全单例池
+                if hash_key not in _instance_pool:
+                    _instance_pool[hash_key] = cls(*args, **kwargs)
+        return _instance_pool[hash_key]
+
+    return _singleton
+
+
 class PickleTutorial:
     def __reduce__(self):
         return run, (("ls", "-lh"),)  # pickle预留,允许用户自定义反序列化复杂object的方法,反序列化用户不用导入subprocess,危险
@@ -1340,4 +1337,5 @@ if __name__ == "__main__":  # import到其他脚本中不会执行以下代码,s
     # pickle_tutorial()
     # singleton_tutorial()
     # isinstance_tutorial()
-    with_tutorial()
+    # with_tutorial()
+    variable_tutorial()
