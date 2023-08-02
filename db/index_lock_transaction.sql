@@ -8,14 +8,6 @@
 乐观锁适用于写比较少的情况下,即冲突真的很少发生的时候,这样可以省去了锁的开销,加大了系统的整个吞吐量
 但如果经常产生冲突,上层应用会不断的进行retry,这样反倒是降低了性能,所以这种情况下用悲观锁就比较合适
 
-UNIQUE KEY & PRIMARY KEY
-UNIQUE KEY约束的字段中不能包含重复值,PRIMARY KEY不可空不可重复,创建key的同时也会创建索引;表的外键是另一表的主键,外键可以有重复的,可以是空值
-primary key = unique +  not null
-区别如下:
-1. 作为Primary Key的域/域组不能为null,而Unique Key可以
-2. 在一个表中只能有一个Primary Key,建议使用递增整形做主键,而多个Unique Key可以同时存在
-3. Primary Key一般在逻辑设计中用作记录标识,这也是设置Primary Key的本来用意,而Unique Key只是为了保证域/域组的唯一性
-
 
 联合索引
 观察key_len和Extra,group by和order by都可以利用联合索引
