@@ -144,15 +144,72 @@ update view_name set name='张家界' where name='张家辉'; //OK
 ### unique key & primary key
 
 ```
-unique key约束的字段中不能包含重复值,primary key不可空不可重复,创建key的同时也会创建索引;表的外键是另一表的主键,外键可以有重复的,可以是空值
+unique key和primary key约束的字段不可重复
+创建key的同时也会创建索引;表的外键是另一表的主键,外键可以有重复的,可以是空值
 primary key = unique +  not null
 区别如下:
 1. 作为primary key的域/域组不能为null,而unique key可以
-2. 在一个表中只能有一个primary key,建议使用递增整形做主键,而多个unique key可以同时存在
-3. primary key一般在逻辑设计中用作记录标识,这也是设置primary key的本来用意,而unique Key只是为了保证域/域组的唯一性
+2. 在一个表中只能有一个primary key,建议使用递增整形做主键,可以有多个unique key同时存在
 ```
 
+### null
 
+```
+判断空(null)只能用is null/is not null来判断,建表时通常设置默认属性default,使其不为null
+1. null的列使用索引,索引统计,值都更加复杂,MySQL更难优化
+2. null需要更多的存储空间
+```
+
+### sql基础语法
+
+```
+SELECT SLEEP(100);  # 模拟耗时查询
+like  %匹配任意字符,_匹配单个字符
+limit [offset,] N  offset是偏移量,默认为0; N取出条目
+explain sql;     // obtain information about table structure or query execution plans
+? data types  //显示所有数据类型
+? int     //显示int的具体属性
+? show    //显示show的语法
+\s        //查看当前用户的信息
+mysql -u[username] -p[password] -h[host] -P[port] -D[database] -A 
+create database [dname];
+create table t_name like t1_name;  // 完全复制表结构(包括主键,分区等)
+insert into t_name(...,...,...) select ...,...,... from t1_name;
+drop database [dname];
+drop table [tname];  
+use [dname];
+desc [tname];
+truncate [tname];  # 速度比delete更快,但truncate删除后不记录mysql日志,不可以恢复数据 
+insert into [tname] values(...),(...);
+delete from [tname] where .... and...;
+update [tname] set ... , ... where ... and ...;
+select [distinct] * from [tname] where ... and ...; 
+select count(1) from (select * from mysql.user) tt;  -- from子查询,临时表需要加别名,count(id<9)不能实现逻辑小于9的效果
+select * from article where (title,content,uid) = (select title,content,uid from blog where bid=2);  // where子查询
+select * from article where (title,content,uid) in (select title,content,uid from blog);   // where子查询,第一处括号不能省
+show variables;  //显示各种变量(配置文件参数)
+show triggers;
+show tables;
+show databases;
+show procedure status;
+show create procedure create_ktv_requested_song_by_month;
+show events;  // 查看定时任务
+show create table t_name;
+show create database db_name;	
+select now(),SUBDATE(now(),INTERVAL 1 MINUTE),SUBDATE(now(),INTERVAL -1 MINUTE) from dual; -- 2019-07-29 18:00:59 | 2019-07-29 17:59:59 | 2019-07-29 18:01:59
+alter table t_name add name varchar(255) not null default avatar; // add之后的列名语法和创建表时的列声明一样
+alter table t_name add (column_1,column_2);  // 同时新增多列
+alter table t_name change 旧列名 新列名 列类型 列参数
+rename table old_name to new_name;
+(select aid,title from article limit 2) union all (select bid,title from blog limit 2); //在UNION中如果对SELECT子句做限制,需要对SELECT添加圆括号,ORDER BY类似
+# 创建一个从2019-02-22 16:30:00开始到10分钟后结束,每隔1分钟运行pro的事件
+create event if not exists test on schedule every 1 minute starts '2019-02-22 16:30:00' ends '2019-02-22 16:30:00'+ interval 10 minute do call pro( );
+# upsert,当唯一索引/主键索引冲突时会执行update操作,否则执行insert操作                                     
+insert into test(_id, version, flag) values( 1, '1.0', 1 ) on duplicate key update version = '2.0',flag = 0; 
+insert ignore into test(_id, version, flag) values( 1, '1.0', 1 ); -- 遇到duplicate约束时,ignore会直接跳过这条语句的插入
+select name,case class when 1 then 'one' when 2 then 'two' else 'unknown' end gender from student;
+select name,if(class=1,'one','two') gender from student;
+```
 
 ```
 mysqlbinlog binlog-file   // 查看binlog
@@ -166,13 +223,14 @@ mysql可以读写分离
 互联网项目不要使用外键,可通过程序保证数据完整性
 一般不需要给create_time索引,应为有自增id索引
 ip建议用无符号整型(uint32)存储
+utf8mb4是utf8的超集,有存储4字节例如表情符号时使用它
 
 分表 & partition
 数据量太大可考虑分表,例如根据用户id与10取模,将用户信息存储到不同的十张表里面
 水平分表:把数据分到不同表
 垂直分表:把热点字段和冷门字段分开
 create table topic(
-    tid int primary key auto_increment,
+    tid int primary key auto_increment,  -- there can be only one auto column and it must be defined as a key
     update_time datetime not null default current_timestamp on update current_timestamp comment '消息更新时间', --如果update set没有更新数据时update_time不会被更新
     title char(20) not null default ''
 )engine innodb charset utf8   # 不支持myisam
@@ -191,22 +249,10 @@ ALTER TABLE topic partition by hash(tid) partitions 5;
 3. 对调表名并删除原表
 
 
-case & if
-select name,case class when 1 then 'one' when 2 then 'two' else 'unknown' end gender from student;
-select name,if(class=1,'one','two') gender from student;
-
-
 sql执行顺序: from > where > group by > having > select > order by > limit
 select class,avg(score) avg_score from student where class<3 group by class having avg_score<100 order by class limit 2;
 where中不能出现聚集函数(max min avg count sum)直接作用于原表,但可以包含普通函数(upper)
 
-
-
-
-count
-count(*): 计算表的行数
-count(列名): 计算列名x中除null行以外的行数
-注意: count(goods_id<30)不能实现逻辑小于30的效果,最终还是转换成count(*)来计算
 
 Myisam & InnoDB(默认)
 区别:
@@ -219,60 +265,7 @@ Myisam & InnoDB(默认)
 如何选择:
 1. 是否要支持事务,如果要请选择innodb,如果不需要可以考虑Myisam
 2. 如果表中绝大多数都只是读查询,可以考虑Myisam,如果既有读写也挺频繁,请使用InnoDB
-                                   
-common
-SELECT SLEEP(100);  # 模拟耗时查询
-like  %匹配任意字符,_匹配单个字符
-limit [offset,] N  offset是偏移量,默认为0; N取出条目
-explain sql;     // obtain information about table structure or query execution plans
-auto_increment:there can be only one auto column and it must be defined as a key
-判断空(null)只能用is null/is not null来判断,建表时通常设置默认属性default,使其不为null
-1. null的列使用索引,索引统计,值都更加复杂,MySQL更难优化
-2. null需要更多的存储空间
-utf8mb4是utf8的超集,有存储4字节例如表情符号时使用它
-? data types  //显示所有数据类型
-? int     //显示int的具体属性
-? show    //显示show的语法
-\s        //查看当前用户的信息
-mysql -u[username] -p[password] -h[host] -P[port] -D[database] -A 
-create database [dname];
-create table t_name like t1_name;  // 完全复制表结构(包括主键,分区等)
-insert into t_name(...,...,...) select ...,...,... from t1_name;
-drop database [dname];
-drop table [tname];  
-use [dname];
-desc [tname];
-truncate [tname];  # 速度比delete更快,但truncate删除后不记录mysql日志,不可以恢复数据 
-insert into [tname] values(...),(...);
-delete from [tname] where .... and...;
-update [tname] set ... , ... where ... and ...;
-select [distinct] * from [tname] where ... and ...; 
-select count(1) from (select * from mysql.user) tt;                                                  // from子查询,临时表需要加别名
-select * from article where (title,content,uid) = (select title,content,uid from blog where bid=2);  // where子查询
-select * from article where (title,content,uid) in (select title,content,uid from blog);             // where子查询,第一处括号不能省
-show variables;  //显示各种变量(配置文件参数)
-show triggers;
-show tables;
-show databases;
-show procedure status;
-show create procedure create_ktv_requested_song_by_month;
-show events;  // 查看定时任务
-show create table t_name;
-show create database db_name;	
-select now(),SUBDATE(now(),INTERVAL 1 MINUTE),SUBDATE(now(),INTERVAL -1 MINUTE) from dual; -- 2019-07-29 18:00:59 | 2019-07-29 17:59:59 | 2019-07-29 18:01:59
-alter table t_name add name varchar(255) not null default avatar after created_time; //加在列created_time后面,add之后的旧列名之后的语法和创建表时的列声明一样
-alter table t_name add (column_1,column_2);  // 同时新增多列
-alter table t_name change 旧列名 新列名 列类型 列参数
-rename table old_name to new_name;
-(select aid,title from article limit 2) union all (select bid,title from blog limit 2);  //在UNION中如果对SELECT子句做限制,需要对SELECT添加圆括号,ORDER BY类似
-# 创建一个从2019-02-22 16:30:00开始到10分钟后结束,每隔1分钟运行pro的事件
-create event if not exists test on schedule every 1 minute starts '2019-02-22 16:30:00' ends '2019-02-22 16:30:00'+ interval 10 minute do call pro( );
-# upsert,当唯一索引/主键索引冲突时会执行update操作,否则执行insert操作                                     
-insert into test(_id, version, flag) values( 1, '1.0', 1 ) on duplicate key update version = '2.0',flag = 0; 
-# 遇到duplicate约束时,ignore会直接跳过这条语句的插入
-insert ignore into test(_id, version, flag) values( 1, '1.0', 1 ); 
-
-
+                                  
 binlog
 使用场景(binlog日志与数据库文件在同目录中)
 1. MySQL主从复制: 在master开启binlog,master把它的二进制日志传递给slave来达到数据一致的目的
