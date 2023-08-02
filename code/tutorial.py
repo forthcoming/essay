@@ -420,7 +420,7 @@ def variable_tutorial():
     assert v2.c_var == v3.c_var == Test.c_var == [4]
     print(v2.__dict__)  # {'i_var': 2, 'c_var': [4]}
     print(v3.__dict__)  # {'i_var': 2}
-    print(Test.__dict__) # # {'c_var': [4], '__init__': <function Test.__init__>}
+    print(Test.__dict__)  # {'c_var': [4], '__init__': <function Test.__init__>}
 
     class A:
         a = 10
@@ -430,7 +430,7 @@ def variable_tutorial():
     obj1.a += 2
     print(id(obj1.a), id(obj2.a), id(A.a))  # 8790824644704 8790824644640 8790824644640
     print(obj1.a, obj2.a, A.a)  # 12 10 10
-    print(obj1.__dict__, obj2.__dict__,A.__dict__)  # {'a': 12} {} {'a': 10}
+    print(obj1.__dict__, obj2.__dict__, A.__dict__)  # {'a': 12} {} {'a': 10}
 
 
 def exception_tutorial():
@@ -570,7 +570,7 @@ def arguments_tutorial():
     test_keywords(*{'gender': 'man', 'name': 'Jack', 'age': 20})  # name: gender age: name gender: age
     test_keywords(**{'gender': 'man', 'name': 'Jack', 'age': 20})  # 解包字典,会得到一系列key=value,本质上是使用关键字参数调用函数
 
-    def test_variable(first_key, *args, **kwargs):  # 在形参前加一个*或**来指定函数可以接收任意数量的实参,关键字参数必须跟随在位置参数后面
+    def test_variable(first_key, *args, **kwargs):  # 在形参前加一个*或**来指定函数可以接收任意数量的实参,位置参数必须在关键字参数之前
         print(first_key, type(args), args, type(kwargs), kwargs)
 
     test_variable(1, *[2, 3], c=4, d=5, **{'e': 6})  # 1 <class 'tuple'> (2, 3) <class 'dict'> {'c': 4, 'd': 5, 'e': 6}
@@ -596,23 +596,18 @@ def arguments_tutorial():
 
 def delayed_binding_tutorial():
     # 延迟绑定出现在闭包问题和lambda表达式中, 特点是变量在调用时才会去检测是否存在, 如果存在则使用现有值, 如果不存在, 直接报错
-    # 对于lambda表达式来说y不是局部变量,it is accessed when the lambda is called — not when it is defined.
-    squares = [lambda: y ** 2 for _ in range(3)]
-    y = 5
+    # 对于lambda表达式来说y不是局部变量,it is accessed when the lambda is called — not when it is defined
+    squares = [lambda: x ** 2 for x in range(3)]  # 会立马执行for循环
     for square in squares:
-        print(square())  # 25 25 25
-
-    squares = [lambda y=x: y ** 2 for x in range(3)]  # lambda参数也可以有默认值
-    for square in squares:
-        print(square())  # 0 1 4
+        print(square())  # 4 4 4
 
     squares = (lambda: x ** 2 for x in range(3))  # generator,并不会立马执行for循环
     for square in squares:
         print(square())  # 0 1 4
 
-    squares = [lambda: x ** 2 for x in range(3)]  # 会立马执行for循环
+    squares = [lambda y=x: y ** 2 for x in range(3)]  # lambda参数也可以有默认值
     for square in squares:
-        print(square())  # 4 4 4
+        print(square())  # 0 1 4
 
 
 def datetime_tutorial():
@@ -841,7 +836,7 @@ def regular_tutorial():
     print(re.findall(r'ava[a-z]+ cao', s))  # ['avatar cao', 'avast cao']
     print(re.sub(r"like", r"love", "I like you, do you like me?"))  # I love you, do you love me?
     print(re.subn(r'([a-z]+) ([a-z]+)', r'\2 \1', 'i say, hello world!'))  # ('say i, world hello!', 2)
-    print(re.split(r'[\s,;]+', 'a,b;; c d'))  # ['a', 'b', 'c', 'd']
+    print(re.split(r'[ ,;]+', 'a,b;; c d'))  # ['a', 'b', 'c', 'd']
 
     s = '[q\w1'  # r串的使用
     re.findall(r'\[q\\w1', s)  # ['[q\\w1']
@@ -849,11 +844,11 @@ def regular_tutorial():
     re.findall('\\[q\\\w1', s)  # ['[q\\w1']
 
     print(re.findall(r'ab(?:.|\n)+bc', 'ab\nbc'))  # ['ab\nbc'], ?:意思是让findall,search等函数'看不见'括号
-    print(re.findall(r'(?:[0-9]{1,3}\.){3}[0-9]{1,3}', '192.168.1.33'))  # ['192.168.1.33'],
-    print(re.findall(r'\w+\.(?!com)\w+', 'www.com https.org'))  # ['https.org']
-    print(re.findall(r'\w+(?<!www)\.\w+', 'www.com https.org'))  # ['https.org']
+    print(re.findall(r'(?:[0-9]{1,3}\.){3}[0-9]{1,3}', '192.168.1.33'))  # ['192.168.1.33']
     print(re.findall(r'\w+\.(?=c.m)', 'www.com https.org'))  # ['www.']
+    print(re.findall(r'\w+\.(?!com)\w+', 'www.com https.org'))  # ['https.org']
     print(re.findall(r'(?<=\w{5})\.\w+', 'www.com https.org'))  # ['.org']
+    print(re.findall(r'\w+(?<!www)\.\w+', 'www.com https.org'))  # ['https.org']
 
     print(re.findall(r"ab.+bc", "ab\nbc"))  # []
     print(re.findall(r"Ab.+bc", "ab\nbc", re.S | re.I))  # ['ab\nbc'], re.S可以使.匹配换行符\n,re.I忽略大小写
@@ -1029,7 +1024,7 @@ def decorator_tutorial():  # 装饰器,被装饰对象都可以是函数或者�
 def iterable_tutorial():
     """
     定义了__iter__方法的对象是Iterable类型,可作为iter的入参
-    Iterable类型定义了__next__方法,或iter(Iterable)方式生成的对象是Iterator类型,可作为next的入参,终止时抛出StopIteration异常
+    定义了__next__方法的Iterable类型,或iter(Iterable)方式生成的对象是Iterator类型,可作为next的入参,终止时抛出StopIteration异常
     包含yield关键字的函数实例或括号列表推导式产生的对象是Generator类型
     Generator是Iterator子集,Iterator是Iterable子集
     Iterator执行完next()后,该方法的上下文(变量)环境消失;Generator执行完next()后,代码会执行到yield处,并将yield后的值返回,同时该方法的上下文(挂起位置,变量等)会被保留
@@ -1084,14 +1079,66 @@ def iterable_tutorial():
     after-yield before-yield 2
     """
     assert not isinstance(100, Iterable)
+
     assert isinstance([], Iterable)
     assert not isinstance([], Iterator)
     assert isinstance(iter([]), Iterable)
     assert isinstance(iter([]), Iterator)
+
     assert isinstance(generator_f, Iterable)
     assert isinstance(generator_f, Iterator)
     assert isinstance(generator_f, Generator)
     assert isinstance((_ for _ in range(5)), Generator)
+
+
+class LogTutorial:
+    def __init__(self, level=logging.NOTSET, name='track.log'):
+        """
+        默认情况下日志打印到屏幕,日志级别为WARNING
+        日志级别：CRITICAL > ERROR > WARNING > INFO > DEBUG > NOTSET
+        logging.debug('this is debug info')
+        logging.info('this is information')
+        logging.warning('this is warning message')
+        logging.error('this is error message')
+        logging.critical('this is critical message')
+        """
+        logging.basicConfig(
+            filename=name,
+            filemode='a',
+            # format='%(asctime)s %(filename)s %(lineno)d %(process)s %(levelname)s %(module)s %(message)s',
+            format='%(asctime)s line:%(lineno)d pid:%(process)s level:%(levelname)s message:%(message)s',
+            datefmt='%Y-%m-%d %H:%M:%S %p',
+            level=level,
+        )
+        logging.root.name = __name__
+
+    def __call__(self, f):
+        def wrapper(*args):
+            try:
+                return f(*args)
+            except Exception as e:
+                logging.exception(e)
+
+        return wrapper
+
+
+class PickleTutorial:
+    def __reduce__(self):
+        return run, (("ls", "-lh"),)  # pickle预留,允许用户自定义反序列化复杂object的方法,反序列化用户不用导入subprocess,危险
+
+
+def pickle_tutorial():
+    # 除个别外(如不能序列化lambda表达式), pickle.dumps可以序列化任何数据类型成b字符串,并保留原有的数据(比如生成好的树,图结构)
+    # pickle.loads反序列化后的对象与原对象是等值的副本对象, 类似与deepcopy
+    # pickle模块并不安全,你只应该对你信任的数据进行unpickle操作
+    with open("data", "wb") as f:
+        pickle.dump(tuple_tutorial, f)
+    with open("data", "rb") as f:
+        func = pickle.load(f)
+        func()
+
+    pickle_obj_byte = pickle.dumps(PickleTutorial())
+    _ = pickle.loads(pickle_obj_byte)
 
 
 def inherit_tutorial():
@@ -1214,25 +1261,6 @@ def singleton(cls):
     return _singleton
 
 
-class PickleTutorial:
-    def __reduce__(self):
-        return run, (("ls", "-lh"),)  # pickle预留,允许用户自定义反序列化复杂object的方法,反序列化用户不用导入subprocess,危险
-
-
-def pickle_tutorial():
-    # 除个别外(如不能序列化lambda表达式), pickle.dumps可以序列化任何数据类型成b字符串,并保留原有的数据(比如生成好的树,图结构)
-    # pickle.loads反序列化后的对象与原对象是等值的副本对象, 类似与deepcopy
-    # pickle模块并不安全,你只应该对你信任的数据进行unpickle操作
-    with open("data", "wb") as f:
-        pickle.dump(tuple_tutorial, f)
-    with open("data", "rb") as f:
-        func = pickle.load(f)
-        func()
-
-    pickle_obj_byte = pickle.dumps(PickleTutorial())
-    _ = pickle.loads(pickle_obj_byte)
-
-
 def singleton_tutorial():
     class TestSingleton(metaclass=Singleton):  # 继承了元类的_instance和_instance_lock
         def __init__(self):
@@ -1246,37 +1274,6 @@ def singleton_tutorial():
     assert TestSingleton() is TestSingleton()
     assert TestSingleTonPool(1, "2", c=2.4, d="d") is TestSingleTonPool(1, "2", c=2.4, d="d")
     assert TestSingleTonPool() is TestSingleTonPool()
-
-
-class LogTutorial:
-    def __init__(self, level=logging.NOTSET, name='track.log'):
-        """
-        默认情况下日志打印到屏幕,日志级别为WARNING
-        日志级别：CRITICAL > ERROR > WARNING > INFO > DEBUG > NOTSET
-        logging.debug('this is debug info')
-        logging.info('this is information')
-        logging.warning('this is warning message')
-        logging.error('this is error message')
-        logging.critical('this is critical message')
-        """
-        logging.basicConfig(
-            filename=name,
-            filemode='a',
-            # format='%(asctime)s %(filename)s %(lineno)d %(process)s %(levelname)s %(module)s %(message)s',
-            format='%(asctime)s line:%(lineno)d pid:%(process)s level:%(levelname)s message:%(message)s',
-            datefmt='%Y-%m-%d %H:%M:%S %p',
-            level=level,
-        )
-        logging.root.name = __name__
-
-    def __call__(self, f):
-        def wrapper(*args):
-            try:
-                return f(*args)
-            except Exception as e:
-                logging.exception(e)
-
-        return wrapper
 
 
 def frame_tutorial():
