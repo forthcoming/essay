@@ -141,15 +141,15 @@ update view_name set name='张家界' where name='张家辉'; //OK
 2.对于delete,有无with check option都一样
 ```
 
-### UNIQUE KEY & PRIMARY KEY
+### unique key & primary key
 
 ```
-UNIQUE KEY约束的字段中不能包含重复值,PRIMARY KEY不可空不可重复,创建key的同时也会创建索引;表的外键是另一表的主键,外键可以有重复的,可以是空值
+unique key约束的字段中不能包含重复值,primary key不可空不可重复,创建key的同时也会创建索引;表的外键是另一表的主键,外键可以有重复的,可以是空值
 primary key = unique +  not null
 区别如下:
-1. 作为Primary Key的域/域组不能为null,而Unique Key可以
-2. 在一个表中只能有一个Primary Key,建议使用递增整形做主键,而多个Unique Key可以同时存在
-3. Primary Key一般在逻辑设计中用作记录标识,这也是设置Primary Key的本来用意,而Unique Key只是为了保证域/域组的唯一性
+1. 作为primary key的域/域组不能为null,而unique key可以
+2. 在一个表中只能有一个primary key,建议使用递增整形做主键,而多个unique key可以同时存在
+3. primary key一般在逻辑设计中用作记录标识,这也是设置primary key的本来用意,而unique Key只是为了保证域/域组的唯一性
 ```
 
 
