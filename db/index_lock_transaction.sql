@@ -365,12 +365,6 @@ This ensures that updates to a table are not “starved” even when there is he
 
 
 Transaction
-一致性非锁定读: 
-要读取的行被加了排他锁(写锁),这时候读取操作不会等待行上锁的释放,而是会读取行的一个快照数据,每行记录可能有多个版本
-在事务隔离级别READ COMMITTED(RC)和REPEATABLE READ(简写RR)下,InnoDB存储引擎使用一致性非锁定读,但是对快照的定义却不相同
-在RC下,一致性非锁定读总是读取被锁定行的最新一份快照数据;而在RR级别下,总是读取事务开始时的数据版本
-
-并发事务中如果在更改同一条数据,那么先改的会成功,后改的会被阻塞,直到先改的事务提交后才能修改成功,可以理解为加了写锁
 MySQL事务是基于UNDO/REDO日志
 UNDO日志记录修改前状态,ROLLBACK基于UNDO日志实现; REDO日志记录修改后的状态,COMMIT基于REDO日志实现,执行COMMIT数据才会被写入磁盘
 Innodb支持跨库级别的分布式事务
