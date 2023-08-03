@@ -307,12 +307,22 @@ MySQL对InnoDB表使用行级锁定来支持多个会话同时写入访问,使�
 当不同会话访问不同行时,锁冲突更少
 回滚更改较少 
 可以长时间锁定单行
+select … for update # 加行级写锁,其他事务不能获取该记录的任何读写锁
+select … for share # 加行级读锁,其他事务能够获取该记录的读锁,不能获取该记录的写锁
+必须在事物中才会生效,事务提交或回滚后会释放锁
 
-表级锁定(Table-Level Locking)
+表级锁(Table-Level Locking)
 MySQL对MyISAM和MEMORY表使用表级锁定,一次只允许一个会话更新这些表,这种锁定级别更适合只读、主要读取或单用户应用程序
 优点: 所需内存相对较少(行锁定锁定的每行都需要内存)
 当查询表大部分数据时速度很快,因为只涉及一个锁
 经常对大部分数据进行GROUP BY或频繁扫描整个表时速度很快
+lock table t1 read; # 加表级读锁,任何客户端可以对该表再次加读锁,但不能加写锁,只允许select,insert/update/delete都将被阻塞
+lock table t1 write; # 加表级写锁,只有当前客户端可以再次加读写锁,可以增删改查,其他任何客户端读写锁请求和增删改查都会被阻塞
+unlock tables;  # 解锁表级读写锁,在使用lock table之后,unlock之前,当前客户端只能操作加锁的表
+MyISAM在执行SELECT前,会自动给涉及的所有表加读锁,在执行insert/update/delete前会自动给涉及的表加写锁
+
+MyISAM只支持表锁
+InnoDB支持表锁和行锁,行锁是在索引上实现,如果访问没命中索引无法使用行锁,将退化为表锁
 
 MySQL授予表写锁的方式: 如果表上没有锁,则在其上放置写锁,否则将锁请求放入写锁队列中
 MySQL授予表读锁的方式: 如果表上没有写锁,则在其上放置读锁,否则将锁请求放入读锁队列中
@@ -740,31 +750,11 @@ possible_keys: NULL
         Extra: Using index
 注意: 如果把存储引擎换成innodb,两者速度一样快
 
-读锁
-lock table t1 read # 所有客户端都只能读,insert/update/delete都将被阻塞,一旦数据表被加上读锁,其他请求可以对该表再次增加读锁,但是不能增加写锁
-写锁
-lock table t1 write # 只有本人可以增删改查,其他人增删改查都不行,一旦数据表被加上写锁,其他请求无法在对该表增加读锁和写锁
-
-在使用lock table之后,解锁之前,当前会话不能操作未加锁的表
-MyISAM在执行查询语句(SELECT)前,会自动给涉及的所有表加读锁,在执行更新操(UPDATE/DELETE/INSERT)前会自动给涉及的表加写锁
-
-select … for update # 显式地给一条记录加写锁(行锁),其他事务不能获取该记录的任何锁(for update和for share)
-select … for share # 显式地给记录加读锁(行锁),其他事务能够获取该记录的读锁(for share),不能获取该记录的写锁(for update)
-必须在一个事物中才会生效,事务提交或回滚后才会释放锁
-其他事物无法更新该记录,依然可以select该记录,此时读取的是快照
-for share适合两张表存在业务关系时的一致性要求,而for update适用于操作同一张表时保证业务的一致性要求
-refer: https://dev.mysql.com/doc/refman/8.0/en/innodb-locking-reads.html
-
-MyISAM只支持表锁;InnoDB支持表锁和行锁,行锁是实现在索引上的,如果访问没有命中索引,也无法使用行锁,将退化为表锁
 行锁对提高并发帮助很大;事务对数据一致性帮助很大
 t_user(uid PK, uname, age, sex) innodb;
 update t_user set age=10 where uid=1;            -- 命中索引,行锁
 update t_user set age=10 where uid != 1;         -- 未命中索引,表锁(负向查询无法命中索引)
 update t_user set age=10 where name='shenjian';  -- 无索引,表锁
-
-解决死锁方法:
-1. 设置最大等待时间
-2. wait-for graph原理,检测有向图是否出现环路,出现环路就是死锁
 
 MySQL事务是基于UNDO/REDO日志
 UNDO日志记录修改前状态,ROLLBACK基于UNDO日志实现; REDO日志记录修改后的状态,COMMIT基于REDO日志实现,执行COMMIT数据才会被写入磁盘
