@@ -365,49 +365,15 @@ This ensures that updates to a table are not “starved” even when there is he
 
 
 Transaction
-原子性:多步操作逻辑上不可分割,要么都成功,要么都不成功
-一致性:操作前后值的变化逻辑上成立
-隔离性:事务结束前不会影响到其他会话
-持久性:事务一旦提交无法撤回
-
-mysql> show variables like '%isolation%';
-+-----------------------+-----------------+
-| Variable_name         | Value           |
-+-----------------------+-----------------+
-| transaction_isolation | REPEATABLE-READ |
-+-----------------------+-----------------+
-set session transaction isolation level [read uncommitted] | [read committed] | [repeatable read] | [serializable];
-read uncommitted(读取未提交内容): 所有事务都可以看到其他未提交事务的执行结果,本隔离级别很少用于实际应用,也被称之为脏读
-read committed(读取提交内容): 一个事务只能看见其他已经提交事务所做的改变,支持所谓的不可重复读(在一个事务的两次查询之中数据不一致)
-repeatable read(可重读): 在同一个事务中多次读取同样记录的结果是一致的,不受其他事务提交的影响
-隔离级别             脏读可能性    不可重复读可能性     幻读可能性    加锁读   
-read uncommitted    Y           Y                  Y            N    
-read committed      N           Y                  Y            N
-repeatable read     N           N                  Y            N
-serializable        N           N                  N            Y  写会加"写锁",读会加"读锁",当出现读写锁冲突的时候,后访问的事务必须等前一个事务执行完成才能继续执行(A读B写和A写B读通条数据都会阻塞)
-
 一致性非锁定读: 
 要读取的行被加了排他锁(写锁),这时候读取操作不会等待行上锁的释放,而是会读取行的一个快照数据,每行记录可能有多个版本
 在事务隔离级别READ COMMITTED(RC)和REPEATABLE READ(简写RR)下,InnoDB存储引擎使用一致性非锁定读,但是对快照的定义却不相同
 在RC下,一致性非锁定读总是读取被锁定行的最新一份快照数据;而在RR级别下,总是读取事务开始时的数据版本
 
 并发事务中如果在更改同一条数据,那么先改的会成功,后改的会被阻塞,直到先改的事务提交后才能修改成功,可以理解为加了写锁
-幻读: 在一个事务中,第一次查询某条记录没有,但试图更新这条记录时竟然能成功,并且再次读取同一条记录,它就神奇地出现了(应为在另一个事务中插入了该记录并已提交)
-
-事务的隔离性是由锁来实现,隔离级别的隔离性越低,并发能力就越强,MySQL的默认隔离级别为repeatable read
-MySQL默认开启一个事务,自动提交,每成功执行一个SQL,一个事务就会马上COMMIT,所以不能Rollback
 MySQL事务是基于UNDO/REDO日志
 UNDO日志记录修改前状态,ROLLBACK基于UNDO日志实现; REDO日志记录修改后的状态,COMMIT基于REDO日志实现,执行COMMIT数据才会被写入磁盘
 Innodb支持跨库级别的分布式事务
-                                        
-show variables like "%autocommit%";  # mysql默认是on,可通过set autocommit=off;关闭
-set autocommit=off;   # 关闭自动提交功能,当前会话有效,绝大部分sql语句都会自动开启事(个别语句如建表等除外),即begin可以省略
-begin;     -- 在存储过程中,mysql会将begin识别为begin···end,所以在存储过程中,只能使用start transaction来表示开始一个事务
-update student set score=score+10 where class=1;  # 只对本会话可见
-savepoint point1;
-update student set score=score-10 where class=2;
-commit;    -- 一旦提交事务便结束,须再次开启事务才能使用
-rollback;  -- 回滚到事务开始处并结束事务
 
                                         
 show full processlist;         # 显示连接数(有上限)

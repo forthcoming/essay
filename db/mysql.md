@@ -106,6 +106,7 @@ varbinary(N) //变长,字节最多为N,对于字母数字等没区别,但对于�
 date         // YYYY-MM-DD  如:2010-03-14, The supported range is '1000-01-01' to '9999-12-31'.
 time         // HH:MM:SS    如:19:26:32
 datetime     // YYYY-MM-DD HH:MM:SS 如:2010-03-14 19:26:32, 支持范围从'1000-01-01 00:00:00' 到 '9999-12-31 23:59:59'
+json         // column_name->'$.key_name'方式查询json
 ```
 
 ### trigger
@@ -141,12 +142,11 @@ update view_name set name='张家界' where name='张家辉'; //OK
 2.对于delete,有无with check option都一样
 ```
 
-### unique key & primary key
+### unique key & primary key & foreign key
 
 ```
-unique key和primary key约束的字段不可重复
-创建key的同时也会创建索引;表的外键是另一表的主键,外键可以有重复的,可以是空值
-primary key = unique +  not null
+unique key和primary key约束的字段不可重复,foreign key是另一表的主键,外键可以重复,可以是空值
+创建key的同时会创建索引,primary key = unique +  not null
 区别如下:
 1. 作为primary key的域/域组不能为null,而unique key可以
 2. 在一个表中只能有一个primary key,建议使用递增整形做主键,可以有多个unique key同时存在
@@ -200,6 +200,7 @@ select now(),SUBDATE(now(),INTERVAL 1 MINUTE),SUBDATE(now(),INTERVAL -1 MINUTE) 
 alter table t_name add name varchar(255) not null default avatar; // add之后的列名语法和创建表时的列声明一样
 alter table t_name add (column_1,column_2);  // 同时新增多列
 alter table t_name change 旧列名 新列名 列类型 列参数
+alter table t_name drop column column_name;
 rename table old_name to new_name;
 (select aid,title from article limit 2) union all (select bid,title from blog limit 2); //在UNION中如果对SELECT子句做限制,需要对SELECT添加圆括号,ORDER BY类似
 # 创建一个从2019-02-22 16:30:00开始到10分钟后结束,每隔1分钟运行pro的事件
@@ -209,6 +210,72 @@ insert into test(_id, version, flag) values( 1, '1.0', 1 ) on duplicate key upda
 insert ignore into test(_id, version, flag) values( 1, '1.0', 1 ); -- 遇到duplicate约束时,ignore会直接跳过这条语句的插入
 select name,case class when 1 then 'one' when 2 then 'two' else 'unknown' end gender from student;
 select name,if(class=1,'one','two') gender from student;
+```
+
+### 存储引擎
+
+```
+mysql> show engines;
++--------------------+---------+----------------------------------------------------------------+--------------+------+------------+
+| Engine             | Support | Comment                                                        | Transactions | XA   | Savepoints |
++--------------------+---------+----------------------------------------------------------------+--------------+------+------------+
+| ARCHIVE            | YES     | Archive storage engine                                         | NO           | NO   | NO         |
+| BLACKHOLE          | YES     | /dev/null storage engine (anything you write to it disappears) | NO           | NO   | NO         |
+| MRG_MYISAM         | YES     | Collection of identical MyISAM tables                          | NO           | NO   | NO         |
+| MyISAM             | YES     | MyISAM storage engine                                          | NO           | NO   | NO         |
+| PERFORMANCE_SCHEMA | YES     | Performance Schema                                             | NO           | NO   | NO         |
+| InnoDB             | DEFAULT | Supports transactions, row-level locking, and foreign keys     | YES          | YES  | YES        |
+| MEMORY             | YES     | Hash based, stored in memory, useful for temporary tables      | NO           | NO   | NO         |
+| CSV                | YES     | CSV storage engine                                             | NO           | NO   | NO         |
++--------------------+---------+----------------------------------------------------------------+--------------+------+------------+
+Myisam & InnoDB(默认)区别:
+1. InnoDB支持事务,Myisam不支持,对于InnoDB每一条SQL语言都默认封装成事务,自动提交,这样会影响速度,所以最好把多条SQL语言放在begin和commit之间,组成一个事务
+2. InnoDB支持外键,而Myisam不支持,对一个包含外键的InnoDB表转为MYISAM会失败
+3. InnoDB是聚集索引,必须要有主键,通过主键索引效率很高,但辅助索引需要两次查询,先查询到主键,然后再通过主键查询到数据.因此主键不应该过大,因为主键太大,其他索引也都会很大
+   Myisam是非聚集索引,数据文件是分离的,索引保存的是数据文件的指针,主键索引和辅助索引是独立的
+4. InnoDB不保存表的具体行数,执行select count(*) from table时需要全表扫描,而MyISAM用一个变量保存了整个表的行数,执行上述语句时只需要读出该变量即可,速度很快
+5. InnoDB只包含一个*.frm文件,MyISAM包含*.frm(结构), *.MYD(数据文件),*.MYI(索引)
+如何选择:
+1. 是否要支持事务,如果要请选择innodb,如果不需要可以考虑Myisam
+2. 如果表中绝大多数都只是读查询,可以考虑Myisam,如果既有读写也挺频繁,请使用InnoDB
+```
+
+### transaction
+
+```
+原子性:多步操作逻辑上不可分割,要么都成功,要么都不成功
+一致性:操作前后值的变化逻辑上成立
+隔离性:事务结束前不会影响到其他会话
+持久性:事务一旦提交无法撤回
+
+show variables like '%isolation%';
++-----------------------+-----------------+
+| Variable_name         | Value           |
++-----------------------+-----------------+
+| transaction_isolation | REPEATABLE-READ |
++-----------------------+-----------------+
+set session transaction isolation level [read uncommitted] | [read committed] | [repeatable read] | [serializable];
+隔离级别             脏读可能性    不可重复读可能性     幻读可能性    加锁读   
+read uncommitted    Y           Y                  Y            N    
+read committed      N           Y                  Y            N
+repeatable read     N           N                  Y            N
+serializable        N           N                  N            Y  
+read uncommitted(读取未提交内容): 所有事务都可以看到其他未提交事务的执行结果,被称为脏读,本隔离级别很少用于实际应用
+read committed(读取提交内容): 一个事务只能看见其他已经提交事务所做的改变,会出现在一个事务的两次查询中数据不一致,被称为不可重复读
+repeatable read(可重读): 在一个事务中多次查询相同数据结果不变,不受其他事务提交影响,但会出现幻读
+serializable(可串行化): 写加写锁,读加读锁,当出现读写锁冲突的时候,后访问的事务必须等前一个事务执行完成才能继续执行(A读B写和A写B读通条数据都会阻塞)
+幻读: 在A事务中,第一次查询某条记录没有,接着在B事务中插入了该记录并提交,然后在A事务中更新这条记录时成功,并且再次读取这条记录时能读到
+
+事务的隔离性是由锁来实现,隔离级别的隔离性越低,并发能力就越强,MySQL的默认隔离级别为repeatable read
+MySQL默认开启一个事务,自动提交,每成功执行一个SQL,一个事务就会马上COMMIT,所以不能rollback
+show variables like "%autocommit%";  # mysql默认是on,可通过set autocommit=off;关闭
+set autocommit=off;   # 关闭自动提交功能,当前会话有效,绝大部分sql语句都会自动开启事(个别语句如建表等除外),即begin可以省略
+start transaction;
+update student set score=score+10 where class=1;  # 只对本会话可见
+savepoint point1;
+update student set score=score-10 where class=2;
+commit;    -- 一旦提交事务便结束,须再次开启事务才能使用
+rollback;  -- 回滚到事务开始处并结束事务
 ```
 
 ```
@@ -252,20 +319,7 @@ ALTER TABLE topic partition by hash(tid) partitions 5;
 sql执行顺序: from > where > group by > having > select > order by > limit
 select class,avg(score) avg_score from student where class<3 group by class having avg_score<100 order by class limit 2;
 where中不能出现聚集函数(max min avg count sum)直接作用于原表,但可以包含普通函数(upper)
-
-
-Myisam & InnoDB(默认)
-区别:
-1. InnoDB支持事务,Myisam不支持,对于InnoDB每一条SQL语言都默认封装成事务,自动提交,这样会影响速度,所以最好把多条SQL语言放在begin和commit之间,组成一个事务
-2. InnoDB支持外键,而Myisam不支持,对一个包含外键的InnoDB表转为MYISAM会失败
-3. InnoDB是聚集索引,必须要有主键,通过主键索引效率很高,但辅助索引需要两次查询,先查询到主键,然后再通过主键查询到数据.因此主键不应该过大,因为主键太大,其他索引也都会很大
-   Myisam是非聚集索引,数据文件是分离的,索引保存的是数据文件的指针,主键索引和辅助索引是独立的
-4. InnoDB不保存表的具体行数,执行select count(*) from table时需要全表扫描,而MyISAM用一个变量保存了整个表的行数,执行上述语句时只需要读出该变量即可,速度很快
-5. InnoDB只包含一个*.frm文件,MyISAM包含*.frm(结构), *.MYD(数据文件),*.MYI(索引)
-如何选择:
-1. 是否要支持事务,如果要请选择innodb,如果不需要可以考虑Myisam
-2. 如果表中绝大多数都只是读查询,可以考虑Myisam,如果既有读写也挺频繁,请使用InnoDB
-                                  
+                              
 binlog
 使用场景(binlog日志与数据库文件在同目录中)
 1. MySQL主从复制: 在master开启binlog,master把它的二进制日志传递给slave来达到数据一致的目的
