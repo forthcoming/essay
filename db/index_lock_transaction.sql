@@ -8,6 +8,8 @@
 乐观锁适用于写比较少的情况下,即冲突真的很少发生的时候,这样可以省去了锁的开销,加大了系统的整个吞吐量
 但如果经常产生冲突,上层应用会不断的进行retry,这样反倒是降低了性能,所以这种情况下用悲观锁就比较合适
 
+索引优点: 提高数据检索能力,通过索引列对数据进行排序,降低数据排序成本
+索引缺点: 占用额外空间,降低了表更新速度
 
 联合索引
 观察key_len和Extra,group by和order by都可以利用联合索引
@@ -231,6 +233,10 @@ Only the InnoDB and MyISAM storage engines support FULLTEXT indexes and only for
 alter table test add fulltext(title,content)
 InnoDB用户无法手动创建哈希索引,这一层上说InnoDB确实不支持哈希索引
 InnoDB会自调优(self-tuning),如果判定建立自适应哈希索引(Adaptive Hash Index, AHI),能够提升查询效率,InnoDB自己会建立相关哈希索引,这一层上说InnoDB又是支持哈希索引
+Mysql索引:
+B+Tree
+Hash: 哈希表实现,只有精确匹配索引列的查询才有效,不支持范围查询
+Full-text: 一种倒排索引
 
 
 覆盖索引(covering index)

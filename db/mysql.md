@@ -215,7 +215,9 @@ select name,if(class=1,'one','two') gender from student;
 ### 存储引擎
 
 ```
-mysql> show engines;
+存储引擎就是存储数据,建立索引,更新查询数据等技术的实现方式
+InnoDB逻辑存储结构: Tablespace -> Segment -> Extent(1M,一共64个Page) -> Page(16k) -> Row
+show engines;
 +--------------------+---------+----------------------------------------------------------------+--------------+------+------------+
 | Engine             | Support | Comment                                                        | Transactions | XA   | Savepoints |
 +--------------------+---------+----------------------------------------------------------------+--------------+------+------------+
@@ -232,9 +234,8 @@ Myisam & InnoDB(默认)区别:
 1. InnoDB支持事务,Myisam不支持,对于InnoDB每一条SQL语言都默认封装成事务,自动提交,这样会影响速度,所以最好把多条SQL语言放在begin和commit之间,组成一个事务
 2. InnoDB支持外键,而Myisam不支持,对一个包含外键的InnoDB表转为MYISAM会失败
 3. InnoDB是聚集索引,必须要有主键,通过主键索引效率很高,但辅助索引需要两次查询,先查询到主键,然后再通过主键查询到数据.因此主键不应该过大,因为主键太大,其他索引也都会很大
-   Myisam是非聚集索引,数据文件是分离的,索引保存的是数据文件的指针,主键索引和辅助索引是独立的
-4. InnoDB不保存表的具体行数,执行select count(*) from table时需要全表扫描,而MyISAM用一个变量保存了整个表的行数,执行上述语句时只需要读出该变量即可,速度很快
-5. InnoDB只包含一个*.frm文件,MyISAM包含*.frm(结构), *.MYD(数据文件),*.MYI(索引)
+   Myisam是非聚集索引,数据文件是分离的,索引保存的是数据文件的指针,主键索引和辅助索引是独立的,支持表锁不支持行锁
+4. InnoDB只包含一个*.frm文件,MyISAM包含*.frm(结构), *.MYD(数据文件),*.MYI(索引)
 如何选择:
 1. 是否要支持事务,如果要请选择innodb,如果不需要可以考虑Myisam
 2. 如果表中绝大多数都只是读查询,可以考虑Myisam,如果既有读写也挺频繁,请使用InnoDB
@@ -248,7 +249,7 @@ Myisam & InnoDB(默认)区别:
 隔离性:事务结束前不会影响到其他会话
 持久性:事务一旦提交无法撤回
 
-show variables like '%isolation%';
+show variables like '%transaction_isolation%';
 +-----------------------+-----------------+
 | Variable_name         | Value           |
 +-----------------------+-----------------+
@@ -274,9 +275,9 @@ serializable(可串行化): 写加写锁,读加读锁,当出现读写锁冲突�
 事务的隔离性是由锁来实现,隔离级别的隔离性越低,并发能力就越强,MySQL的默认隔离级别为repeatable read
 并发事务中如果在更改同一条数据,那么先改的会成功,后改的会被阻塞,直到先改的事务提交后才能修改成功,可以理解为加了写锁
 
-MySQL默认开启一个事务,自动提交,每成功执行一个SQL,一个事务就会马上COMMIT,所以不能rollback
-show variables like "%autocommit%";  # mysql默认是on,可通过set autocommit=off;关闭
-set autocommit=off;   # 关闭自动提交功能,当前会话有效,绝大部分sql语句都会自动开启事(个别语句如建表等除外),即begin可以省略
+绝大部分sql语句(个别语句如建表等除外)都会自动开启事务,sql执行完事务自动COMMIT,所以不能rollback
+show variables like "%autocommit%";  # mysql默认是on
+set autocommit=off;   # 关闭自动提交功能,当前会话有效
 start transaction;
 update student set score=score+10 where class=1;  # 只对本会话可见
 savepoint point1;
