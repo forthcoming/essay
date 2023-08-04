@@ -366,6 +366,41 @@ update test set name='TA' where _id=2;
                                          update test set name='TB' where _id=1;  
 ```
 
+### index
+```
+索引优点: 提高数据检索能力,通过索引列对数据进行排序,降低数据排序成本,提高并发能力(锁相关)
+索引缺点: 占用额外空间,降低了表更新速度
+
+BTREE索引: 所有索引和数据都会出现在叶子结点,叶子结点形成有序双向链表,非叶子结点只存储索引;适宜范围查询;左前缀匹配;全值匹配
+HASH索引: 哈希表实现,只有精确匹配索引列的查询才有效,不支持范围查询;不能前缀索引
+FULLTEXT索引: 倒排索引,仅InnoDB和MyISAM存储引擎支持,且仅适用于CHAR、VARCHAR和TEXT列
+
+聚簇索引(Clustered index) & 非聚簇索引
+聚簇索引叶子结点存储了真实的数据,在一张表上最多只能创建一个聚簇索引,因为真实数据的物理顺序只能有一种
+InnoDB一定会建立聚簇索引,把实际数据行和相关的键值保存在一起
+  1. 有主键时,根据主键自动创建聚簇索引
+  2. 没有主键时,会用第一个唯一索引列做为主键,成为此表的聚簇索引
+  3. 如果以上两个都不满足那innodb自己创建一个虚拟的聚集索引
+建议使用int的auto_increment作为主键(按主键递增顺序插入)
+聚簇索引的二级索引叶子节点不会保存引用的行的物理位置,而是保存了行的主键值,减小了移动数据或者数据页面分裂时维护二级索引的开销
+通过二级索引查询首先查到是主键值,然后再通过主键索引找到相应的数据块   
+非聚簇索引叶结点包含索引字段值及指向数据行的磁盘位置(逻辑指针),需通过磁盘位置访问磁盘数据,MyISAM二级索引叶结点和主键索引在存储结构上没有任何区别
+
+覆盖索引(covering index)
+一个查询语句只用从索引中就能够取得,避免了查到索引后再返回表操作,减少I/O提高效率,称之为索引覆盖
+
+索引长度 & 索引选择性(Index Selectivity)
+索引列中不同值的数量与表中记录数量的比叫索引的选择性,理想值是1,如果索引选择性过低,建议直接全表扫描而不是建立索引
+对于字符型列,索引长度越大,区分度越高,但会占用更多的空间,因此需要在两者间做一个权衡
+惯用手法:在字符列截取不同长度,测试其区分度,选择一个合适的索引长度
+select count(distinct(left(word,4)))/count(1) from tb_name;
+alter table tb_name add index word(word(4));  -- 指定索引长度为4(如果指定字符集为utf8,key_len大概为4*3=12),联合索引也能这么建
+前缀索引兼顾索引大小和查询速度,但是其缺点是不能用于ORDER BY和GROUP BY操作,也不能用于Covering index(不包含被截取列的情况下任然可以)
+对于左前缀不易区分的列如网址,有两种解决方案
+1. 把列内容倒过来存储
+2. 增加哈希列,即同时把列的哈希存进来,并对哈希列建索引
+```
+
 ```
 mysqlbinlog binlog-file   // 查看binlog
 mysqlbinlog --stop-position='120' binlog-file |mysql -uroot -p db_name   // 用binlog日志恢复数据,stop-position指定结束位置,-d指定只要某个数据库
@@ -444,10 +479,6 @@ start slave;
 show slave status;     # 以下两项都为Yes才说明主从创建成功
 Slave_IO_Running:Yes   读主服务器binlog日志,并写入从服务器的中继日志中
 Slave_SQL_Running:Yes  执行中继日志
-
-
-索引优点: 提高数据检索能力,通过索引列对数据进行排序,降低数据排序成本,提高并发能力(锁相关)
-索引缺点: 占用额外空间,降低了表更新速度
 
 联合索引
 观察key_len和Extra,group by和order by都可以利用联合索引
@@ -628,59 +659,15 @@ possible_keys: c1
      filtered: 100.00
         Extra: NULL
 
-
-索引长度 & 区分(Index Selectivity)
-The ratio of the number of distinct values in the indexed column / columns to the number of records in the table represents the selectivity of an index. The ideal selectivity is 1
-lf an index on a table of 100'000 records had only 500 distinct values, then the index's selectivity is 500 / 100'000 = 0.005 and in this case a query which uses the limitation of such an index will retum 100'000 / 500 = 200 records for each distinct value. 
-It is evident that a full table scan is more efficient as using such an index where much more I/O is needed to scan repeatedly the index and the table. 
-
-对于字符型列,索引长度越大,区分度越高,但会占用更多的空间,因此需要在两者间做一个权衡
-惯用手法:在字符列截取不同长度,测试其区分度,选择一个合适的索引长度
-select count(distinct(left(word,4)))/count(1) from tb_name;
-alter table tb_name add index word(word(4));  -- 指定索引长度为4(如果指定字符集为utf8,key_len大概为4*3=12),联合索引也能这么建
-前缀索引兼顾索引大小和查询速度,但是其缺点是不能用于ORDER BY和GROUP BY操作,也不能用于Covering index(不包含被截取列的情况下任然可以)
-对于左前缀不易区分的列如网址,有两种解决方案
-1. 把列内容倒过来存储
-2. 增加哈希列,即同时把列的哈希存进来,并对哈希列建索引
-
-
-聚簇索引(Clustered index) & 非聚簇索引
-聚簇索引叶子结点存储了真实的数据,在一张表上最多只能创建一个聚簇索引,因为真实数据的物理顺序只能有一种
-InnoDB一定会建立聚簇索引,把实际数据行和相关的键值保存在一起
-  1. 有主键时,根据主键自动创建聚簇索引;
-  2. 没有主键时,会用第一个唯一索引列做为主键,成为此表的聚簇索引;
-  3. 如果以上两个都不满足那innodb自己创建一个虚拟的聚集索引.
-优点: 对于范围查询的效率很高,因为其数据是按照大小排列,找到索引也就找到了数据
-建议使用int的auto_increment作为主键(按主键递增顺序插入)
-聚簇索引的二级索引叶子节点不会保存引用的行的物理位置,而是保存了行的主键值,减小了移动数据或者数据页面分裂时维护二级索引的开销
-通过二级索引查询首先查到是主键值,然后InnoDB再通过主键索引找到相应的数据块        
-非聚簇索引叶结点包含索引字段值及指向数据页数据行的逻辑指针,并不是数据本身,MyISAM二级索引叶结点和主键索引在存储结构上没有任何区别
-MYISAM引擎的索引文件.MYI和数据文件.MYD相互独立,索引和数据没放在一块,索引对应的是磁盘位置,不得不通过磁盘位置访问磁盘数据
-
-
 show index from table_name;
 create index index_name on t_name(..,..,..);
 drop index index_name on t_name;
-btree索引: 适宜范围查询;左前缀匹配;全值匹配
-hash索引: 理论寻址O(1);无法排序优化;必须回行;不能前缀索引;不适宜范围查询
 innodb,myisam支持自适应哈希索引,根据表的使用情况自动为表生成哈希索引,无法人为指定
 查询条件中的列使用函数或者表达式,则无法使用索引
 查询条件如果包含类型转换(如score为int类型下where score='98'),则无法使用索引                                        
 like匹配某列的前缀字符串可以使用索引
-Only the InnoDB and MyISAM storage engines support FULLTEXT indexes and only for CHAR, VARCHAR, and TEXT columns
-alter table test add fulltext(title,content)
 InnoDB用户无法手动创建哈希索引,这一层上说InnoDB确实不支持哈希索引
 InnoDB会自调优(self-tuning),如果判定建立自适应哈希索引(Adaptive Hash Index, AHI),能够提升查询效率,InnoDB自己会建立相关哈希索引,这一层上说InnoDB又是支持哈希索引
-Mysql索引:
-BTREE: 所有索引和数据都会出现在叶子结点,叶子结点形成有序双向链表,非叶子结点只存储索引
-Hash: 哈希表实现,只有精确匹配索引列的查询才有效,不支持范围查询
-Full-text: 一种倒排索引
-
-
-覆盖索引(covering index)
-一个查询语句只用从索引中就能够取得,不必从数据表中读取,也可以称之为实现了索引覆盖,这样避免了查到索引后再返回表操作,减少I/O提高效率
-Explain的时候,输出的Extra信息中如果有"Using Index",就表示这条查询使用了覆盖索引
-InnoDB二级索引的叶子节点包含了主键值,所以查询字段包含主键时也可以覆盖查询
 
 
 索引延迟关联
