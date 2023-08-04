@@ -163,6 +163,7 @@ unique key和primary key约束的字段不可重复,foreign key是另一表的�
 ### sql基础语法
 
 ```
+sql执行顺序: from > where > group by > having > select > order by > limit
 SELECT SLEEP(100);  # 模拟耗时查询
 like  %匹配任意字符,_匹配单个字符
 limit [offset,] N  offset是偏移量,默认为0; N取出条目
@@ -181,9 +182,9 @@ use [dname];
 desc [tname];
 truncate [tname];  # 速度比delete更快,但truncate删除后不记录mysql日志,不可以恢复数据 
 insert into [tname] values(...),(...);
-delete from [tname] where .... and...;
+delete from [tname] where .... and...;  
 update [tname] set ... , ... where ... and ...;
-select [distinct] * from [tname] where ... and ...; 
+select [distinct] * from [tname] where ... and ...; # where中不能出现聚集函数(max min avg count sum),但可以包含普通函数(upper等)
 select count(1) from (select * from mysql.user) tt;  -- from子查询,临时表需要加别名,count(id<9)不能实现逻辑小于9的效果
 select * from article where (title,content,uid) = (select title,content,uid from blog where bid=2);  // where子查询
 select * from article where (title,content,uid) in (select title,content,uid from blog);   // where子查询,第一处括号不能省
@@ -393,6 +394,8 @@ InnoDB一定会建立聚簇索引,把实际数据行和相关的键值保存在�
 
 覆盖索引(covering index)
 一个查询语句只用从索引中就能够取得,避免了查到索引后再返回表操作,减少I/O提高效率,称之为索引覆盖
+Explain的时候,输出的Extra信息中如果有Using Index,就表示这条查询使用了覆盖索引(Using Index Condition意思是使用了索引但需要回表查询)
+InnoDB二级索引的叶子节点包含了主键值,所以查询字段包含主键时也可以覆盖查询
 
 索引长度 & 索引选择性(Index Selectivity)
 索引列中不同值的数量与表中记录数量的比叫索引的选择性,理想值是1,如果索引选择性过低,建议直接全表扫描而不是建立索引
@@ -401,6 +404,12 @@ InnoDB一定会建立聚簇索引,把实际数据行和相关的键值保存在�
 select count(distinct(left(word,4)))/count(1) from tb_name;
 create index idx_word on tb_name(word(4));  -- 指定索引长度为4(如果字符集为utf8,key_len大概为4*3=12)
 前缀索引兼顾索引大小和查询速度,但缺点是不能用于ORDER BY和GROUP BY操作,也不能用于Covering index
+
+行锁对提高并发帮助很大;事务对数据一致性帮助很大
+t_user(uid PK, uname, age, sex) innodb;
+update t_user set age=10 where uid=1;            -- 命中索引,行锁
+update t_user set age=10 where uid != 1;         -- 未命中索引,表锁(负向查询无法命中索引)
+update t_user set age=10 where name='shenjian';  -- 无索引,表锁
 ```
 
 ```
@@ -434,10 +443,6 @@ partition by range(tid)(      # 还支持hash,list等分区
 )
 ALTER TABLE topic REMOVE PARTITIONING;
 ALTER TABLE topic partition by hash(tid) partitions 5;
-
-sql执行顺序: from > where > group by > having > select > order by > limit
-select class,avg(score) avg_score from student where class<3 group by class having avg_score<100 order by class limit 2;
-where中不能出现聚集函数(max min avg count sum)直接作用于原表,但可以包含普通函数(upper)
                               
 binlog
 使用场景(binlog日志与数据库文件在同目录中)
@@ -722,17 +727,9 @@ possible_keys: NULL
         Extra: Using index
 注意: 如果把存储引擎换成innodb,两者速度一样快
 
-行锁对提高并发帮助很大;事务对数据一致性帮助很大
-t_user(uid PK, uname, age, sex) innodb;
-update t_user set age=10 where uid=1;            -- 命中索引,行锁
-update t_user set age=10 where uid != 1;         -- 未命中索引,表锁(负向查询无法命中索引)
-update t_user set age=10 where name='shenjian';  -- 无索引,表锁
-
 MySQL事务是基于UNDO/REDO日志
 UNDO日志记录修改前状态,ROLLBACK基于UNDO日志实现; REDO日志记录修改后的状态,COMMIT基于REDO日志实现,执行COMMIT数据才会被写入磁盘
 Innodb支持跨库级别的分布式事务
-
-netstat -anp|grep '10.1.208.25:3306'
 ```
 
 
