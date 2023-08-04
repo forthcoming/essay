@@ -377,6 +377,13 @@ drop index index_name on t_name;
 or两边都有索引时才会用上索引            
 like 'xx%'可以使用索引,like '%xx'不可以使用索引
 
+索引设计原则:
+针对数据量大,查询频繁的表建立索引
+针对常作为where,order by,group by操作的字段加索引
+尽量选选择性高的列做索引,唯一索引和主键索引选择性为1
+如果是字符串类型字段且长度较长,可建立前缀索引
+尽量使用联合索引,节省空间,且利用覆盖索引机制提高查询效率
+
 BTREE索引: 所有索引和数据都会出现在叶子结点,叶子结点形成有序双向链表,非叶子结点只存储索引;适宜范围查询;左前缀匹配;全值匹配
 HASH索引: 只有精确匹配(in,=)索引列的查询才有效,不支持范围查询,innodb,myisam支持自适应哈希索引,根据表使用情况自动生成哈希索引,无法人为指定
 FULLTEXT索引: 倒排索引,仅InnoDB和MyISAM存储引擎支持,且仅适用于CHAR、VARCHAR和TEXT列
@@ -413,9 +420,6 @@ update t_user set age=10 where name='shenjian';  -- 无索引,表锁
 ```
 
 ```
-mysqlbinlog binlog-file   // 查看binlog
-mysqlbinlog --stop-position='120' binlog-file |mysql -uroot -p db_name   // 用binlog日志恢复数据,stop-position指定结束位置,-d指定只要某个数据库
-
 枚举核心id
 数据库自增id不要用于业务暴漏给用户(比如用户可以猜昨天的订单量,也不利于分表)
 mysql单机支撑到2000QPS容易报警,分库是提高并发
@@ -453,7 +457,8 @@ show master status; # 查看最新一个binlog日志的名称及最后一个操�
 flush logs;         # 刷新日志,自此刻开始产生一个新的binlog日志文件(每当mysqld重启or在mysqldump备份数据时加-F选项都会执行该命令)
 reset master;       # 清空所有binlog日志
 show binlog events in '201810-08571-bin.000001' from pos limit m,n;  # 日志查询
-
+mysqlbinlog binlog-file   // 查看binlog
+mysqlbinlog --stop-position='120' binlog-file |mysql -uroot -p db_name   // 用binlog日志恢复数据,stop-position指定结束位置,-d指定只要某个数据库
 
 主从复制(slave执行查询操作,降低master访问压力,实时性要求高的数据仍需要从master查询)
 1. 主开启binlog
