@@ -394,11 +394,8 @@ InnoDB一定会建立聚簇索引,把实际数据行和相关的键值保存在�
 对于字符型列,索引长度越大,区分度越高,但会占用更多的空间,因此需要在两者间做一个权衡
 惯用手法:在字符列截取不同长度,测试其区分度,选择一个合适的索引长度
 select count(distinct(left(word,4)))/count(1) from tb_name;
-alter table tb_name add index word(word(4));  -- 指定索引长度为4(如果指定字符集为utf8,key_len大概为4*3=12),联合索引也能这么建
-前缀索引兼顾索引大小和查询速度,但是其缺点是不能用于ORDER BY和GROUP BY操作,也不能用于Covering index(不包含被截取列的情况下任然可以)
-对于左前缀不易区分的列如网址,有两种解决方案
-1. 把列内容倒过来存储
-2. 增加哈希列,即同时把列的哈希存进来,并对哈希列建索引
+create index idx_word on tb_name(word(4));  -- 指定索引长度为4(如果字符集为utf8,key_len大概为4*3=12)
+前缀索引兼顾索引大小和查询速度,但缺点是不能用于ORDER BY和GROUP BY操作,也不能用于Covering index
 ```
 
 ```
