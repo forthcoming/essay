@@ -421,6 +421,12 @@ select count(distinct(left(word,4)))/count(*) from tb_name;
 create index idx_word on tb_name(word(4));  -- 指定索引长度为4(如果字符集为utf8,key_len大概为4*3=12)
 前缀索引兼顾索引大小和查询速度,但缺点是不能用于ORDER BY和GROUP BY操作,也不能用于Covering index
 
+延迟索引关联(仅适用于Myisam)
+我们尽量只查有索引的ID,速度非常快,然后再根据查出来的id进行join一次性取具体数据,这就是延迟索引
+select * from cnarea order by id limit 700000,10;
+可优化为
+select cnarea.* from cnarea_2023 join (select id from cnarea limit 700000,10) x on cnarea.id=x.id;
+
 行锁对提高并发帮助很大;事务对数据一致性帮助很大
 t_user(uid PK, uname, age, sex) innodb;
 update t_user set age=10 where uid=1;            -- 命中索引,行锁
@@ -674,76 +680,8 @@ possible_keys: c1
      filtered: 100.00
         Extra: NULL
 
-索引延迟关联
-我们尽量只查有索引的ID,速度非常快,然后再根据查出来的id进行join一次性取具体数据,这就是延迟索引
-CREATE TABLE `profiles` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `sex` tinyint(4) NOT NULL DEFAULT '0',
-  `rating` smallint(6) NOT NULL DEFAULT '0',
-  `name` varchar(10) NOT NULL DEFAULT '',
-  PRIMARY KEY (`id`)
-) ENGINE=MyISAM
-select sql_no_cache * from profiles limit 200000,10000;
-mysql> explain select sql_no_cache * from profiles limit 200000,10000\G
-*************************** 1. row ***************************
-           id: 1
-  select_type: SIMPLE
-        table: profiles
-   partitions: NULL
-         type: ALL
-possible_keys: NULL
-          key: NULL
-      key_len: NULL
-          ref: NULL
-         rows: 241000
-     filtered: 100.00
-        Extra: NULL
-select sql_no_cache profiles.* from profiles join (select id from profiles limit 200000,10000) x on profiles.id=x.id; # 0.077
-mysql> explain select sql_no_cache profiles.* from profiles join (select id from profiles limit 200000,10000) x on profiles.id=x.id\G
-*************************** 1. row ***************************
-           id: 1
-  select_type: PRIMARY
-        table: <derived2>
-   partitions: NULL
-         type: ALL
-possible_keys: NULL
-          key: NULL
-      key_len: NULL
-          ref: NULL
-         rows: 210000
-     filtered: 100.00
-        Extra: NULL
-*************************** 2. row ***************************
-           id: 1
-  select_type: PRIMARY
-        table: profiles
-   partitions: NULL
-         type: eq_ref
-possible_keys: PRIMARY
-          key: PRIMARY
-      key_len: 4
-          ref: x.id
-         rows: 1
-     filtered: 100.00
-        Extra: NULL
-*************************** 3. row ***************************
-           id: 2
-  select_type: DERIVED
-        table: profiles
-   partitions: NULL
-         type: index
-possible_keys: NULL
-          key: PRIMARY
-      key_len: 4
-          ref: NULL
-         rows: 241000
-     filtered: 100.00
-        Extra: Using index
-注意: 如果把存储引擎换成innodb,两者速度一样快
-
 MySQL事务是基于UNDO/REDO日志
 UNDO日志记录修改前状态,ROLLBACK基于UNDO日志实现; REDO日志记录修改后的状态,COMMIT基于REDO日志实现,执行COMMIT数据才会被写入磁盘
-Innodb支持跨库级别的分布式事务
 ```
 
 
