@@ -214,6 +214,7 @@ select name,if(class=1,'one','two') gender from student;
 ```
 
 ### sql优化
+
 ```
 insert into tb_name values(),,,();  # 批量插入
 start transaction; insert into tb_name values(); insert into tb_name values(); commit;
@@ -245,6 +246,26 @@ InnoDB(默认) & Myisam区别:
 2. InnoDB是聚集索引,支持行锁,Myisam是非聚集索引,支持表锁不支持行锁
 3. InnoDB支持外键,而Myisam不支持
 4. InnoDB只包含一个*.frm文件,MyISAM数据文件分离,包含*.frm(结构), *.MYD(数据文件),*.MYI(索引文件)
+```
+
+### partition(只支持Innodb)
+
+```
+水平分表:把数据分到不同表
+垂直分表:把热点字段和冷门字段分开
+create table topic(
+    tid int primary key auto_increment comment 'there can be only one auto column and it must be defined as a key',
+    update_time datetime not null default current_timestamp on update current_timestamp, # 如果update没有更新数据时update_time不会被更新
+    title char(20) not null default ''
+)engine innodb charset utf8  
+# partition by hash( tid ) partitions 4  # 只能用数字类型,根据tid%4分区(默认名字p0,p1,p2,p3),可通过explain查看查询需要的分区
+partition by range(tid)(
+    partition t0 values less than(1000),
+    partition t1 values less than(2000),
+    partition t2 values less than(maxvalue)
+)
+ALTER TABLE topic REMOVE PARTITIONING;
+ALTER TABLE topic partition by hash(tid) partitions 5;
 ```
 
 ### transaction
@@ -421,7 +442,7 @@ select count(distinct(left(word,4)))/count(*) from tb_name;
 create index idx_word on tb_name(word(4));  -- 指定索引长度为4(如果字符集为utf8,key_len大概为4*3=12)
 前缀索引兼顾索引大小和查询速度,但缺点是不能用于ORDER BY和GROUP BY操作,也不能用于Covering index
 
-延迟索引关联(仅适用于Myisam)
+延迟索引关联(仅适用于Myisam,Innodb下直接分页即可)
 我们尽量只查有索引的ID,速度非常快,然后再根据查出来的id进行join一次性取具体数据,这就是延迟索引
 select * from cnarea order by id limit 700000,10;
 可优化为
@@ -437,7 +458,7 @@ update t_user set age=10 where name='shenjian';  -- 无索引,表锁
 ```
 枚举核心id
 数据库自增id不要用于业务暴漏给用户(比如用户可以猜昨天的订单量,也不利于分表)
-mysql单机支撑到2000QPS容易报警,分库是提高并发
+mysql单机支撑到2000QPS容易报警,分库是提高并发,数据量太大可考虑分表
 mysql可以读写分离
 说明: 不建议使用text、blob这种可能特别大字段的数据类型,会影响表查询性能,一般用varchar(2000~4000),还是不够的话单独建表再用text/blob
 互联网项目不要使用外键,可通过程序保证数据完整性
@@ -445,23 +466,6 @@ mysql可以读写分离
 ip建议用无符号整型(uint32)存储
 utf8mb4是utf8的超集,有存储4字节例如表情符号时使用它
 
-分表 & partition
-数据量太大可考虑分表,例如根据用户id与10取模,将用户信息存储到不同的十张表里面
-水平分表:把数据分到不同表
-垂直分表:把热点字段和冷门字段分开
-create table topic(
-    tid int primary key auto_increment,  -- there can be only one auto column and it must be defined as a key
-    update_time datetime not null default current_timestamp on update current_timestamp comment '消息更新时间', --如果update set没有更新数据时update_time不会被更新
-    title char(20) not null default ''
-)engine innodb charset utf8   # 不支持myisam
-# partition by hash( tid ) partitions 4   # 只能用数字类型,根据tid%4分区(默认名字p0,p1,p2,p3),可通过explain查看查询需要的分区
-partition by range(tid)(      # 还支持hash,list等分区
-    partition t0 values less than(1000),
-    partition t1 values less than(2000),
-    partition t2 values less than(maxvalue)
-)
-ALTER TABLE topic REMOVE PARTITIONING;
-ALTER TABLE topic partition by hash(tid) partitions 5;
                               
 binlog
 使用场景(binlog日志与数据库文件在同目录中)
