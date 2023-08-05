@@ -185,7 +185,7 @@ insert into [tname] values(...),(...);
 delete from [tname] where .... and...;  
 update [tname] set ... , ... where ... and ...;
 select [distinct] * from [tname] where ... and ...; # where中不能出现聚集函数(max min avg count sum),但可以包含普通函数(upper等)
-select count(1) from (select * from mysql.user) tt;  -- from子查询,临时表需要加别名,count(id<9)不能实现逻辑小于9的效果
+select count(*) from (select * from mysql.user) tt;  -- from子查询,临时表需要加别名,count(id<9)不能实现逻辑小于9的效果,count列名时计算的是非null行
 select * from article where (title,content,uid) = (select title,content,uid from blog where bid=2);  // where子查询
 select * from article where (title,content,uid) in (select title,content,uid from blog);   // where子查询,第一处括号不能省
 show variables;  //显示各种变量(配置文件参数)
@@ -211,6 +211,15 @@ insert into test(_id, version, flag) values( 1, '1.0', 1 ) on duplicate key upda
 insert ignore into test(_id, version, flag) values( 1, '1.0', 1 ); -- 遇到duplicate约束时,ignore会直接跳过这条语句的插入
 select name,case class when 1 then 'one' when 2 then 'two' else 'unknown' end gender from student;
 select name,if(class=1,'one','two') gender from student;
+```
+
+### sql优化
+```
+insert into tb_name values(),,,();  # 批量插入
+start transaction; insert into tb_name values(); insert into tb_name values(); commit;
+按主键顺序插入
+尽量降低主键长度,应为二级索引都会包含主键,主键太长会浪费存储空间,推荐auto_increment 
+order by时根据排序字段建立合适索引,多字段排序时遵循最左前缀法则,尽量使用覆盖索引,排序的升降顺序跟索引保持一致
 ```
 
 ### 存储引擎
@@ -305,7 +314,7 @@ MySQL对InnoDB表使用行级锁定来支持多个会话同时写入访问,使�
 回滚更改较少 
 可以长时间锁定单行
 select … for update # 加行级写锁,其他事务不能获取该记录的任何读写锁
-select … for share # 加行级读锁,其他事务能够获取该记录的读锁,不能获取该记录的写锁
+select … for share # 加行级读锁(不再是一致性非锁定读),其他事务能够获取该记录的读锁,不能获取该记录的写锁
 必须在事物中才会生效,事务提交或回滚后会释放锁
 
 表级锁(Table-Level Locking)
@@ -367,7 +376,7 @@ update test set name='TA' where _id=2;
 
 ```
 show index from table_name;
-create index index_name on t_name(..,..,..);
+create index index_name on t_name(... asc,.. desc,..);  # 默认升序
 drop index index_name on t_name;
 索引优点: 提高数据检索能力,通过索引列对数据进行排序,降低数据排序成本,提高并发能力(锁相关)
 索引缺点: 占用额外空间,降低了表更新速度
@@ -408,7 +417,7 @@ InnoDB二级索引的叶子节点包含了主键值,所以查询字段包含主�
 索引列中不同值的数量与表中记录数量的比叫索引的选择性,理想值是1,如果索引选择性过低,建议直接全表扫描而不是建立索引
 对于字符型列,索引长度越大,区分度越高,但会占用更多的空间,因此需要在两者间做一个权衡
 惯用手法:在字符列截取不同长度,测试其区分度,选择一个合适的索引长度
-select count(distinct(left(word,4)))/count(1) from tb_name;
+select count(distinct(left(word,4)))/count(*) from tb_name;
 create index idx_word on tb_name(word(4));  -- 指定索引长度为4(如果字符集为utf8,key_len大概为4*3=12)
 前缀索引兼顾索引大小和查询速度,但缺点是不能用于ORDER BY和GROUP BY操作,也不能用于Covering index
 
