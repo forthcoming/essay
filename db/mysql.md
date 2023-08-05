@@ -253,6 +253,7 @@ InnoDB(默认) & Myisam区别:
 ```
 水平分表:把数据分到不同表
 垂直分表:把热点字段和冷门字段分开
+mysql单机超过2000QPS,单表超过3000万都会有性能瓶颈,分库可以提高并发,数据量太大可以分表提高单次查询效率
 create table topic(
     tid int primary key auto_increment comment 'there can be only one auto column and it must be defined as a key',
     update_time datetime not null default current_timestamp on update current_timestamp, # 如果update没有更新数据时update_time不会被更新
@@ -458,14 +459,14 @@ update t_user set age=10 where name='shenjian';  -- 无索引,表锁
 ```
 枚举核心id
 数据库自增id不要用于业务暴漏给用户(比如用户可以猜昨天的订单量,也不利于分表)
-mysql单机支撑到2000QPS容易报警,分库是提高并发,数据量太大可考虑分表
 mysql可以读写分离
 说明: 不建议使用text、blob这种可能特别大字段的数据类型,会影响表查询性能,一般用varchar(2000~4000),还是不够的话单独建表再用text/blob
 互联网项目不要使用外键,可通过程序保证数据完整性
 一般不需要给create_time索引,应为有自增id索引
 ip建议用无符号整型(uint32)存储
 utf8mb4是utf8的超集,有存储4字节例如表情符号时使用它
-
+MySQL事务是基于UNDO/REDO日志
+UNDO日志记录修改前状态,ROLLBACK基于UNDO日志实现; REDO日志记录修改后的状态,COMMIT基于REDO日志实现,执行COMMIT数据才会被写入磁盘
                               
 binlog
 使用场景(binlog日志与数据库文件在同目录中)
@@ -683,9 +684,6 @@ possible_keys: c1
          rows: 3
      filtered: 100.00
         Extra: NULL
-
-MySQL事务是基于UNDO/REDO日志
-UNDO日志记录修改前状态,ROLLBACK基于UNDO日志实现; REDO日志记录修改后的状态,COMMIT基于REDO日志实现,执行COMMIT数据才会被写入磁盘
 ```
 
 
