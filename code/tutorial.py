@@ -50,7 +50,7 @@ dict[str, str | int]
 -> None
 int | str
 value: int = 3
-需要在__init__中用到类类型时,在其两边加双引号即可
+需要在定义类型的时候用到类类型时,在类名两边加双引号即可
 
 
 compiler是将编程语言翻译成01机器语言的软件
