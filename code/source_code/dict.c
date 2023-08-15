@@ -45,7 +45,7 @@ typedef struct dict {
     unsigned long sizemask; // 哈希表掩码,总等于size-1,方便位运算
     unsigned long used; // entry个数
     void *privdata;
-} dict; // 添加entry时,先根据key计算哈希值h,然后利用h & sizemask确定应该插入到table中的位置,如果位置以存在entry,则把新entry加到链表头
+} dict; // 添加entry时,先根据key计算哈希值h,然后利用h & sizemask确定应该插入到table中的位置,如果位置已存在entry,则把新entry加到链表头
 
 typedef struct dictIterator {
     dict *ht;
