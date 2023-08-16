@@ -149,7 +149,7 @@ unique key和primary key约束的字段不可重复,foreign key是另一表的�
 创建key的同时会创建索引,primary key = unique +  not null
 区别如下:
 1. 作为primary key的域/域组不能为null,而unique key可以
-2. 在一个表中只能有一个primary key,建议使用递增整形做主键,可以有多个unique key同时存在
+2. 在一个表中只能有一个primary key,推荐auto_increment做主键,可以有多个unique key同时存在
 ```
 
 ### null
@@ -172,7 +172,7 @@ explain sql;     // obtain information about table structure or query execution 
 ? int     //显示int的具体属性
 ? show    //显示show的语法
 \s        //查看当前用户的信息
-mysql -u[username] -p[password] -h[host] -P[port] -D[database] -A 
+mysql -u[username] -p[password] -h[host] -P[port] -D[database]
 create database [dname];
 create table t_name like t1_name;  // 完全复制表结构(包括主键,分区等)
 insert into t_name(...,...,...) select ...,...,... from t1_name;
@@ -185,7 +185,7 @@ insert into [tname] values(...),(...);
 delete from [tname] where .... and...;  
 update [tname] set ... , ... where ... and ...;
 select [distinct] * from [tname] where ... and ...; # where中不能出现聚集函数(max min avg count sum),但可以包含普通函数(upper等)
-select count(*) from (select * from mysql.user) tt;  -- from子查询,临时表需要加别名,count(id<9)不能实现逻辑小于9的效果,count列名时计算的是非null行
+select count(*) from (select * from mysql.user) t;  -- from子查询,临时表需要加别名,count(id<9)不能实现逻辑小于9的效果,count列名时计算的是非null行
 select * from article where (title,content,uid) = (select title,content,uid from blog where bid=2);  // where子查询
 select * from article where (title,content,uid) in (select title,content,uid from blog);   // where子查询,第一处括号不能省
 show variables;  //显示各种变量(配置文件参数)
@@ -193,7 +193,7 @@ show triggers;
 show tables;
 show databases;
 show procedure status;
-show create procedure create_ktv_requested_song_by_month;
+show create procedure requested_song;
 show events;  // 查看定时任务
 show create table t_name;
 show create database db_name;	
@@ -219,7 +219,7 @@ select name,if(class=1,'one','two') gender from student;
 insert into tb_name values(),,,();  # 批量插入
 start transaction; insert into tb_name values(); insert into tb_name values(); commit;
 按主键顺序插入
-尽量降低主键长度,应为二级索引都会包含主键,主键太长会浪费存储空间,推荐auto_increment 
+尽量降低主键长度,应为二级索引都会包含主键,主键太长会浪费存储空间 
 order by时根据排序字段建立合适索引,多字段排序时遵循最左前缀法则,尽量使用覆盖索引,排序的升降顺序跟索引保持一致
 ```
 
@@ -241,7 +241,7 @@ show engines;
 | MEMORY             | YES     | Hash based, stored in memory, useful for temporary tables      | NO           | NO   | NO         |
 | CSV                | YES     | CSV storage engine                                             | NO           | NO   | NO         |
 +--------------------+---------+----------------------------------------------------------------+--------------+------+------------+
-InnoDB(默认) & Myisam区别:
+InnoDB(默认) & Myisam(买爱sam)区别:
 1. InnoDB支持事务,Myisam不支持
 2. InnoDB是聚集索引,支持行锁,Myisam是非聚集索引,支持表锁不支持行锁
 3. InnoDB支持外键,而Myisam不支持
