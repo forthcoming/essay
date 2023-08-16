@@ -329,16 +329,6 @@ FROM
 ### lock
 
 ```
-行级锁(Row-Level Locking)
-MySQL对InnoDB表使用行级锁定来支持多个会话同时写入访问,使其适合多用户、高并发和OLTP应用程序
-优点: 
-当不同会话访问不同行时,锁冲突更少
-回滚更改较少 
-可以长时间锁定单行
-select … for update # 加行级写锁,其他事务不能获取该记录的任何读写锁
-select … for share # 加行级读锁(不再是一致性非锁定读),其他事务能够获取该记录的读锁,不能获取该记录的写锁
-必须在事物中才会生效,事务提交或回滚后会释放锁
-
 表级锁(Table-Level Locking)
 MySQL对MyISAM和MEMORY表使用表级锁定,一次只允许一个会话更新这些表,这种锁定级别更适合只读、主要读取或单用户应用程序
 优点: 所需内存相对较少(行锁定锁定的每行都需要内存)
@@ -348,6 +338,22 @@ lock table t1 read; # 加表级读锁,任何客户端可以对该表再次加读
 lock table t1 write; # 加表级写锁,只有当前客户端可以再次加读写锁,可以增删改查,其他任何客户端读写锁请求和增删改查都会被阻塞
 unlock tables;  # 解锁表级读写锁,在使用lock table之后,unlock之前,当前客户端只能操作加锁的表
 MyISAM在执行SELECT前,会自动给涉及的所有表加读锁,在执行insert/update/delete前会自动给涉及的表加写锁
+元数据锁(meta data lock)属于表锁,加锁过程系统自动控制,当对表进行增删改查时加元数据读锁(SHARED_WRITE|SHARED_READ),当变更表结构时加元数据写锁(EXCLUSIVE)
+意向锁属于表锁,分为意向共享锁(IS)和意向排他锁(IX),方便表锁不用检查每行数据是否加锁,只需要检查意向锁就可以确定能否加表锁,可以同时存在多个IS和IX
+
+行级锁(Row-Level Locking)
+MySQL对InnoDB表使用行级锁定来支持多个会话同时写入访问,使其适合多用户、高并发和OLTP应用程序
+优点: 
+当不同会话访问不同行时,锁冲突更少
+回滚更改较少 
+可以长时间锁定单行
+间隙锁(GAP Lock)属于行级锁,锁定索引记录间隙(不含边界),在RR隔离级别下支持,目的是防止其他事物插入间隙,解决多个事务并发出现的幻读现象
+间隙锁可以共存,一个事务采用的间隙锁不会阻止另一个事务在同一间隙上采用间隙锁
+唯一索引上的等值查询或更新操作,给不存在的记录加锁时,会优化为间隙锁,如当前主键为1,5,当对id=4加行级锁时,会变为(1,5)之间的间隙锁,其他事物在该范围内无法插入
+
+select … for update # 加行级写锁,其他事务不能获取该记录的任何读写锁,insert/delete/update自动加行级锁,同时加意向排他锁
+select … for share # 加行级读锁(不再是一致性非锁定读),其他事务能够获取该记录的读锁,不能获取该记录的写锁,同时加意向共享锁
+必须在事物中才会生效,事务提交或回滚后会释放锁
 
 MyISAM只支持表锁
 InnoDB支持表锁和行锁,行锁是在索引上实现,如果访问没命中索引无法使用行锁,将退化为表锁
@@ -378,6 +384,16 @@ SELECT
 	LOCK_DATA               # 锁关联的数据,该值取决于存储引擎,对于InnoDB,如果LOCK_TYPE为RECORD,则显示一个值,否则该值为NULL
 FROM
 	performance_schema.data_locks;
+	
+SELECT
+	OBJECT_TYPE,
+	OBJECT_SCHEMA,
+	OBJECT_NAME,
+	LOCK_TYPE,
+	LOCK_DURATION,
+	LOCK_STATUS
+FROM  
+	performance_schema.metadata_locks;  -- 查询元数据锁
 	
 show status like 'innodb_row_lock_%';
 Innodb_row_lock_current_waits: 当前等待锁的数量
