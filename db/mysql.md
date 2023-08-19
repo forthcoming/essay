@@ -295,13 +295,9 @@ read committed(读取提交内容): 一个事务只能看见其他已经提交�
 repeatable read(可重读): 在一个事务中多次查询相同数据结果不变,不受其他事务提交影响,但会出现幻读
 serializable(可串行化): 写加写锁,读加读锁,当出现读写锁冲突的时候,后访问的事务必须等前一个事务执行完成才能继续执行(A读B写和A写B读同条数据都会阻塞)
 幻读: 在A事务中,第一次查询某条记录没有,接着在B事务中插入了该记录并提交,然后在A事务中更新这条记录时成功,并且再次读取这条记录时能读到
+MVCC和间隙锁可以解决大部分幻读问题
 
-一致性非锁定读: 
-要读取的行被加了写锁,这时候读取操作不会等待行上锁的释放,而是会读取行的一个快照数据,每行记录可能有多个版本
-在事务隔离级别READ COMMITTED(RC)和REPEATABLE READ(简写RR)下,InnoDB存储引擎使用一致性非锁定读,但是对快照的定义却不相同
-在RC下,一致性非锁定读总是读取被锁定行的最新一份快照数据;而在RR级别下,总是读取事务开始时的数据版本
-
-事务的隔离性是由锁来实现,隔离级别的隔离性越低,并发能力就越强,MySQL的默认隔离级别为repeatable read
+事务的隔离性是由锁和MVCC来实现,隔离级别的隔离性越低,并发能力就越强,MySQL的默认隔离级别为repeatable read
 并发事务中如果在更改同一条数据,那么先改的会成功,后改的会被阻塞,直到先改的事务提交后才能修改成功,可以理解为加了写锁
 
 对于InnoDB,绝大部分sql语句(个别语句如建表等除外)都会自动开启事务,sql执行完事务自动COMMIT,所以不能rollback
@@ -325,11 +321,31 @@ SELECT
 	trx_isolation_level  # 当前事务的隔离级别
 FROM
 	information_schema.innodb_trx; # 当前运行的所有事务
+	
+innodb表隐藏字段
+DB_TRX_ID: 6byte,最近修改事务ID,记录插入这条数据或最后一次修改改数据的事物ID
+DB_ROLL_PTR: 7byte,回滚指针,指向这条数据的上一个版本,用于配合undo log
+DB_ROW_ID: 6byte,隐藏主键,随着新行的插入而单调增加,如果表结构没有指定主键,将会生成该字段
+```
+
+### 多版本控制(MVCC)
+
+```
+当前读:读取的是记录最新版本,读取时还要保证其他并发事务不能修改当前记录,会对读取的记录加锁(如for share,for update)
+快照读(一致性非锁定读):简单的select(不加锁)非阻塞读就是快照读,读取操作不会等待行锁释放,读取行的快照数据,有可能是历史数据
+READ COMMITTED: 每次select都生成一个最新数据快照
+REPEATABLE READ: 开启事务后第一个select语句才是快照读的地方
+Serializable: 快照读退化为当前读
+MVCC维护一个数据的多个版本,使得读写操作没有冲突,无论是RC还是RR隔离级别,本事务内的更改还是可以被select查询到
 ```
 
 ### lock
 
 ```
+默认开启自动检查死锁功能,一旦检测到死锁,尝试选择小事务进行回滚,事务的大小由插入、更新或删除的行数决定 
+在高并发系统上当大量线程等待同一锁时,死锁检测可能会导致速度减慢
+使用innodb_deadlock_detect禁用死锁检测并在发生死锁时依靠innodb_lock_wait_timeout设置进行事务回滚可能会更有效
+
 表级锁(Table-Level Locking)
 MySQL对MyISAM和MEMORY表使用表级锁定,一次只允许一个会话更新这些表,这种锁定级别更适合只读、主要读取或单用户应用程序
 优点: 所需内存相对较少(行锁定锁定的每行都需要内存)
@@ -353,7 +369,7 @@ MySQL对InnoDB表使用行级锁定来支持多个会话同时写入访问,使�
 唯一索引上的等值查询或更新操作,给不存在的记录加锁时,会优化为间隙锁,如当前主键为1,5,当对id=4加行级锁时,会变为(1,5)之间的间隙锁,其他事物在该范围内无法插入
 
 select … for update # 加行级写锁,其他事务不能获取该记录的任何读写锁,insert/delete/update自动加行级锁,同时加意向排他锁
-select … for share # 加行级读锁(不再是一致性非锁定读),其他事务能够获取该记录的读锁,不能获取该记录的写锁,同时加意向共享锁
+select … for share # 加行级读锁,其他事务能够获取该记录的读锁,不能获取该记录的写锁,同时加意向共享锁
 必须在事物中才会生效,事务提交或回滚后会释放锁
 
 MyISAM只支持表锁
@@ -473,22 +489,12 @@ update t_user set age=10 where uid != 1;         -- 未命中索引,表锁(负�
 update t_user set age=10 where name='shenjian';  -- 无索引,表锁
 ```
 
+### binlog
+
 ```
-枚举核心id
-数据库自增id不要用于业务暴漏给用户(比如用户可以猜昨天的订单量,也不利于分表)
-mysql可以读写分离
-说明: 不建议使用text、blob这种可能特别大字段的数据类型,会影响表查询性能,一般用varchar(2000~4000),还是不够的话单独建表再用text/blob
-互联网项目不要使用外键,可通过程序保证数据完整性
-一般不需要给create_time索引,应为有自增id索引
-ip建议用无符号整型(uint32)存储
-utf8mb4是utf8的超集,有存储4字节例如表情符号时使用它
-MySQL事务是基于UNDO/REDO日志
-UNDO日志记录修改前状态,ROLLBACK基于UNDO日志实现; REDO日志记录修改后的状态,COMMIT基于REDO日志实现,执行COMMIT数据才会被写入磁盘
-                              
-binlog
-使用场景(binlog日志与数据库文件在同目录中)
-1. MySQL主从复制: 在master开启binlog,master把它的二进制日志传递给slave来达到数据一致的目的
-2. 使用mysqlbinlog工具恢复数据
+binlog记录了所有数据定义语言语句和数据操纵语言语句,但不包括数据查询(select show),配置文件可以配置binlog文件过期自动删除
+binlog.index记录了当前数据库所有的binlog文件名
+使用场景(binlog日志与数据库文件在同目录中): 主从复制; 使用mysqlbinlog工具恢复数据
 show master logs;   # 查看所有binlog日志列表
 show master status; # 查看最新一个binlog日志的名称及最后一个操作事件的Position
 flush logs;         # 刷新日志,自此刻开始产生一个新的binlog日志文件(每当mysqld重启or在mysqldump备份数据时加-F选项都会执行该命令)
@@ -496,8 +502,20 @@ reset master;       # 清空所有binlog日志
 show binlog events in '201810-08571-bin.000001' from pos limit m,n;  # 日志查询
 mysqlbinlog -s -d dbname binlog-file   // 查看binlog,-s显示简单格式,-d指定只列出指定数据库的操作
 mysqlbinlog --stop-position='120' binlog-file |mysql -uroot -p db_name   // 用binlog日志恢复数据,stop-position指定结束位置
+```
 
-主从复制(slave执行查询操作,降低master访问压力,实时性要求高的数据仍需要从master查询)
+### 主从复制
+
+```
+主从复制指在主开启binlog后,从服务器I/O线程读取binlog并写入从的中继日志,接者从服务器SQL线程执行中继日志来达到数据一致目的
+一台主库可同时向多台从库进行复制,从库同时也可以作为其他从服务器的主库,例如实现双主双从(由两个一主一丛构成,双主之间相互复制,实现高可用)
+中继日志充当缓冲(类似生产者消费者),这样主不必等待从执行完成就可以发送下一个binlog,中继日志格式与binlog文件相同,可以使用mysqlbinlog进行读取
+show variables like '%relay%'; 查看relay所有相关参数,relay-bin.index记录了当前数据库所有的relay-bin文件名
+优点:
+主库出现问题,可以快速切换到从库提供服务
+实现读写分离,从库负责查询(实时性要求高的数据仍需要从主库查询),降低主库访问压力
+可以在从库中执行备份,避免备份期间影响主库服务
+
 1. 主开启binlog
 2. 主从设置唯一的server_id
 3. 主创建主从复制用户(repl)并授权
@@ -522,6 +540,491 @@ start replica;
 show replica status;   # 以下两项都为Yes才说明主从创建成功
 Replica_IO_Running:Yes   读主服务器binlog日志,并写入从服务器的中继日志中
 Replica_SQL_Running:Yes  执行中继日志
+```
+
+### SQL练习
+
+```sql
+有AA(id,sex,c1,c2),BB(id,age,c1,c2)两张表,其中A.id与B.id关联,现在要求写一条SQL语句,将BB中age>50的记录的c1,c2更新到A表中同一记录中的c1,c2字段中.
+AA:
+create table AA(id int,sex char,c1 int,c2 int);
+insert into AA values(1,'m',34,45),(2,'m',4,5),(3,'w',30,4),(4,'m',94,85);
+BB:
+create table BB(id int,age tinyint,c1 int,c2 int);
+insert into BB values(1,59,45,46),(2,29,5,45),(4,56,46,23);
+
+mysql> select * from AA;
++------+------+------+------+
+| id   | sex  | c1   | c2   |
++------+------+------+------+
+|    1 | m    |   34 |   45 |
+|    2 | m    |    4 |    5 |
+|    3 | w    |   30 |    4 |
+|    4 | m    |   94 |   85 |
++------+------+------+------+
+mysql> select * from BB;
++------+------+------+------+
+| id   | age  | c1   | c2   |
++------+------+------+------+
+|    1 |   59 |   45 |   46 |
+|    2 |   29 |    5 |   45 |
+|    4 |   56 |   46 |   23 |
++------+------+------+------+
+
+mysql> update (AA join BB on AA.id=BB.id and BB.age>50) set AA.c1=BB.c1,AA.c2=BB.c2;
+mysql> select * from AA;
++------+------+------+------+
+| id   | sex  | c1   | c2   |
++------+------+------+------+
+|    1 | m    |   45 |   46 |
+|    2 | m    |    4 |    5 |
+|    3 | w    |   30 |    4 |
+|    4 | m    |   46 |   23 |
++------+------+------+------+
+
+-------------------------------------------------------------------------------------------------------------------------------------
+
+create table if not exists student (name char(4),class tinyint,score tinyint);
+insert into student values('张三',1,54),('下贱',1,22),('王五',3,79),('赵六',3,54),('周扬',3,36),('路遥',2,4),('锚机吧',2,64),('胖三',2,34);
+mysql> select * from student;
++--------+-------+-------+
+| name   | class | score |
++--------+-------+-------+
+| 张三   |     1 |    54 |
+| 下贱   |     1 |    22 |
+| 王五   |     3 |    79 |
+| 赵六   |     3 |    54 |
+| 周扬   |     3 |    36 |
+| 路遥   |     2 |     4 |
+| 锚机吧 |     2 |    64 |
+| 胖三   |     2 |    34 |
++--------+-------+-------+
+
+1) 选出每个班级中的学生,按照成绩降序排序
+mysql> select * from student order by class,score desc;
++--------+-------+-------+
+| name   | class | score |
++--------+-------+-------+
+| 张三   |     1 |    54 |
+| 下贱   |     1 |    22 |
+| 锚机吧 |     2 |    64 |
+| 胖三   |     2 |    34 |
+| 路遥   |     2 |     4 |
+| 王五   |     3 |    79 |
+| 赵六   |     3 |    54 |
+| 周扬   |     3 |    36 |
++--------+-------+-------+
+
+2) 查出每个班的不及格数和及格数
+mysql> select class,sum(score<60) 不及格数,sum(score>=60) 及格数 from student group by class;  -- 注意不能使用count
++-------+----------+--------+
+| class | 不及格数 | 及格数 |
++-------+----------+--------+
+|     1 |        2 |      0 |
+|     2 |        2 |      1 |
+|     3 |        2 |      1 |
++-------+----------+--------+
+
+3) 查出每个班分数最高的学生信息
+mysql> select * from student t where score=(select max(score) from student where student.class = t.class);  #注意理解,score=54只会筛选到class=1不会筛选到class=3;如果某个班级有2个相同最大分数则会查出2条
+mysql> select * from student t where not exists (select 1 from student where t.class=student.class and t.score<student.score);
+mysql> select student.* from student join (select class,max(score) max_score from student group by class) t on student.class=t.class and student.score=t.max_score;
++--------+-------+-------+
+| name   | class | score |
++--------+-------+-------+
+| 张三   |     1 |    54 |
+| 王五   |     3 |    79 |
+| 锚机吧 |     2 |    64 |
++--------+-------+-------+
+
+4) 查出每个班分数低于该班平均分的学生信息(类似于3的查询)
+mysql> select * from student t where score<(select avg(score) from student where student.class=t.class);
++------+-------+-------+
+| name | class | score |
++------+-------+-------+
+| 下贱 |     1 |    22 |
+| 赵六 |     3 |    54 |
+| 周扬 |     3 |    36 |
+| 路遥 |     2 |     4 |
++------+-------+-------+
+Oracle实现如下：
+with tmp as (select avg(score) avg_score,class from student group by class) select student.* from student join tmp on student.class=tmp.class and student.score<tmp.avg_score;
+with tmp as (select student.*, avg(score) over(partition by class) avg_score from student) select * from tmp where score<avg_score;
+
+5) 查出每个班分数最高的前两名学生信息
+select a.*,count(1) num from student a join student b 
+on a.class=b.class and a.score<=b.score    # 这里必须包含"=", ">="则表示最小的某几项
+group by a.class,a.score,a.name 
+having num<=2;
++-----------+-------+-------+-----+
+| name      | class | score | num |
++-----------+-------+-------+-----+
+| 张三      |     1 |    54 |   1 |
+| 下贱      |     1 |    22 |   2 |
+| 王五      |     3 |    79 |   1 |
+| 赵六      |     3 |    54 |   2 |
+| 锚机吧    |     2 |    64 |   1 |
+| 胖三      |     2 |    34 |   2 |
++-----------+-------+-------+-----+
+
+-------------------------------------------------------------------------------------------------------------------------------------
+
+取出同一个户编号但户口所在地不在同一个地方的数据
+eg:
+户编号0001,共计三个,户口所在地分别为云南省,贵州,则取出
+户编号0002,共计三人,户口所在地都是云南省,则不用取出
+DROP TABLE IF EXISTS `population`;
+CREATE TABLE `population` (
+  `id` tinyint(4) unsigned PRIMARY KEY AUTO_INCREMENT,
+  `num` varchar(10),
+  `nickname` varchar(10),
+  `name` varchar(10),
+  `addr` varchar(10)
+) ENGINE=InnoDB AUTO_INCREMENT=16 DEFAULT CHARSET=utf8;
+
+INSERT INTO population VALUES ('1', '0001', '户主', '李小龙', '云南省');
+INSERT INTO population VALUES ('2', '0001', '妻子', '张仙花', '云南省');
+INSERT INTO population VALUES ('3', '0001', '长子', '李青', '贵州');
+INSERT INTO population VALUES ('4', '0002', '户主', '赵明', '云南省');
+INSERT INTO population VALUES ('5', '0002', '妻子', '张兰', '云南省');
+INSERT INTO population VALUES ('6', '0002', '长子', '赵阳', '云南省');
+INSERT INTO population VALUES ('7', '0003', '户主', '钱老大', '云南省');
+INSERT INTO population VALUES ('8', '0003', '妻子', '金玉', '云南省');
+INSERT INTO population VALUES ('9', '0004', '户主', '许仙', '浙江省');
+INSERT INTO population VALUES ('10', '0004', '妻子', '白素贞', '广东省');
+INSERT INTO population VALUES ('11', '0004', '长女', '许珍珍', '浙江省');
+INSERT INTO population VALUES ('12', '0004', '长子', '许士林', '浙江省');
+INSERT INTO population VALUES ('13', '0004', '次女', '许美美', '浙江省');
+INSERT INTO population VALUES ('14', '0009', '户主', '黄飞鸿', '湖南省');
+INSERT INTO population VALUES ('15', '0009', '妻子', '十三姨', '广东省');
+
+mysql> select * from population;
++----+------+----------+--------+--------+
+| id | num  | nickname | name   | addr   |
++----+------+----------+--------+--------+
+|  1 | 0001 | 户主     | 李小龙 | 云南省 |
+|  2 | 0001 | 妻子     | 张仙花 | 云南省 |
+|  3 | 0001 | 长子     | 李青   | 贵州   |
+|  4 | 0002 | 户主     | 赵明   | 云南省 |
+|  5 | 0002 | 妻子     | 张兰   | 云南省 |
+|  6 | 0002 | 长子     | 赵阳   | 云南省 |
+|  7 | 0003 | 户主     | 钱老大 | 云南省 |
+|  8 | 0003 | 妻子     | 金玉   | 云南省 |
+|  9 | 0004 | 户主     | 许仙   | 浙江省 |
+| 10 | 0004 | 妻子     | 白素贞 | 广东省 |
+| 11 | 0004 | 长女     | 许珍珍 | 浙江省 |
+| 12 | 0004 | 长子     | 许士林 | 浙江省 |
+| 13 | 0004 | 次女     | 许美美 | 浙江省 |
+| 14 | 0009 | 户主     | 黄飞鸿 | 湖南省 |
+| 15 | 0009 | 妻子     | 十三姨 | 广东省 |
++----+------+----------+--------+--------+
+
+-------------------------------------------------------------------------------------------------------------------------------------
+
+查询每个员工姓名及员工的上级姓名(自连接)
+create table emp(empno number(4),ename varchar2(10),mgr number(4));
+insert into emp values(7369,'smith',7902);
+insert into emp values(7499,'allen',7698);
+insert into emp values(7521,'ward',7698);
+insert into emp values(7566,'jones',7839);
+insert into emp values(7654,'martin',7698);
+insert into emp values(7698,'blake',7839);
+insert into emp values(7782,'clark',7839);
+insert into emp values(7788,'scott',7566);
+insert into emp values(7839,'king',null);
+insert into emp values(7844,'turner',7698);
+insert into emp values(7876,'adams',7788);
+insert into emp values(7900,'james',7698);
+insert into emp values(7902,'ford',7566);
+insert into emp values(7934,'miller',7782);
+insert into emp values(9999,'shunping',7782);
+update emp set ename=upper(substr(ename,1,1))||lower(substr(ename,2,length(ename)-1));
+update emp set ename=initcap(ename);    --等价与上一条语句
+SQL> select * from emp;
+     EMPNO ENAME             MGR
+---------- ---------- ----------
+      7369 Smith            7902
+      7499 Allen            7698
+      7521 Ward             7698
+      7566 Jones            7839
+      7654 Martin           7698
+      7698 Blake            7839
+      7782 Clark            7839
+      7788 Scott            7566
+      7839 King
+      7844 Turner           7698
+      7876 Adams            7788
+      7900 James            7698
+      7902 Ford             7566
+      7934 Miller           7782
+      9999 Shunping         7782
+
+Answer:(这里的where不能用and和having代替,但是在MySQL中可以用having代替)
+SQL> select worker.ename,boss.ename from emp worker left join emp boss on worker.mgr=boss.empno  where worker.ename='ford';
+ENAME      ENAME
+---------- ----------
+Ford       Jones
+
+-------------------------------------------------------------------------------------------------------------------------------------
+
+删除重复行
+create table tb_test(name varchar2(10),age number(3));
+insert into tb_test values('张三',29);
+insert into tb_test values('李四',29);
+insert into tb_test values('张三',40);
+insert into tb_test values('李四',29);
+insert into tb_test values('张三',29);
+SQL> select * from tb_test;
+NAME              AGE
+---------- ----------
+张三               29
+李四               29
+张三               40
+李四               29
+张三               29
+
+方法一:
+delete from tb_test where rowid in (select distinct a.rowid from tb_test a join tb_test b on a.name=b.name and a.age=b.age where a.rowid>b.rowid);
+方法二:
+delete from tb_test a where rowid not in (select max(b.rowid) from tb_test b where a.name=b.name and a.age=b.age);
+方法三:
+create table tb_tmp as select distinct name,age from tb_test;
+truncate table tb_test;
+insert into tb_test select * from tb_tmp;
+
+-------------------------------------------------------------------------------------------------------------------------------------
+
+删除108号员工所在部门中工资最低的那个员工
+1). 查询 108 员工所在的部门 id
+select department_id from employees  where employee_id = 108;
+
+2). 查询 1) 部门中的最低工资:
+select min(salary) from employees where department_id =
+(
+     select department_id
+     from employees
+     where employee_id = 108
+)
+
+3). 删除 1) 部门中工资为 2) 的员工信息:
+delete from employees e
+     where department_id =
+     (
+          select department_id
+          from employees e
+          where employee_id = 108
+     )
+     and salary =
+     (
+          select min(salary)
+          from employees
+          where department_id = e.department_id
+     );
+
+-------------------------------------------------------------------------------------------------------------------------------------
+
+更改108员工的信息:使其工资变为所在部门中的最高工资,job变为公司中平均工资最低的job
+1). 搭建骨架
+update employees set salary = (), job_id = () where employee_id = 108;
+
+2). 所在部门中的最高工资  
+select max(salary) from employees where department_id =
+(
+     select department_id
+     from employees
+     where employee_id = 108
+)
+
+3). 公司中平均工资最低的job
+select job_id from employees group by job_id having avg(salary) =
+(
+     select min(avg(salary))
+     from employees
+     group by job_id
+)
+
+4). 填充
+update employees e set salary = (
+     select max(salary)
+     from employees
+     where department_id = e.department_id
+), job_id = (
+     select job_id
+     from employees
+     group by job_id
+     having avg(salary) =  (
+          select min(avg(salary))
+          from employees
+          group by job_id
+     )
+) where employee_id = 108;
+
+-------------------------------------------------------------------------------------------------------------------------------------
+
+在emp表中按部门分组,取出每个部门工资最高的前两名
+with tmp as (select emp.*,row_number() over(partition by department_id order by salary desc) RANK from emp)
+select * from tmp where RANK < 3;
+
+-------------------------------------------------------------------------------------------------------------------------------------
+
+造数
+drop procedure if exists item;
+create procedure item()
+begin
+  declare i int default 0;
+  while i < 10 do
+    insert into test values(concat('项目1-栏目1-测试',i),concat('项目1-栏目2-测试',i));
+    set i = i + 1;
+  end while;
+end
+call item();
+
+-------------------------------------------------------------------------------------------------------------------------------------
+
+行列互换
+create table student(class int,course varchar(10),score int);
+                                                          
+insert into student values(1,'Chinese',80);
+insert into student values(1,'Math',90);
+insert into student values(1,'English',100);
+insert into student values(2,'Chinese',70);
+insert into student values(2,'Math',80);
+insert into student values(2,'Chinese',90);
+insert into student values(3,'English',60);
+insert into student values(3,'Math',75);
+insert into student values(3,'English',80);
+insert into student values(3,'Chinese',95);
+                                                          
+select * from student;
+							  
+SELECT
+  class,
+  SUM_C,
+  SUM_M,
+  SUM_E,
+  SUM_C / COUNT_C AVG_C,
+  SUM_M / COUNT_M AVG_M,
+  SUM_E / COUNT_E AVG_E 
+FROM(
+  SELECT
+    class,
+    sum( CASE course WHEN 'Chinese' THEN score ELSE 0 END ) SUM_C,
+    sum( CASE course WHEN 'Math' THEN score ELSE 0 END ) SUM_M,
+    sum( CASE course WHEN 'English' THEN score ELSE 0 END ) SUM_E,
+    sum( CASE course WHEN 'Chinese' THEN 1 ELSE 0 END ) COUNT_C,
+    sum( CASE course WHEN 'Math' THEN 1 ELSE 0 END ) COUNT_M,
+    sum( CASE course WHEN 'English' THEN 1 ELSE 0 END ) COUNT_E 
+  FROM student 
+  GROUP BY class 
+) tmp;
+	
+class	SUM_C	SUM_M	SUM_E	AVG_C	  AVG_M	    AVG_E
+1	80	90	100	80.0000	  90.0000   100.0000
+2	160	80	0	80.0000	  80.0000	
+3	95	75	140	95.0000	  75.0000   70.0000
+							  
+-------------------------------------------------------------------------------------------------------------------------------------
+
+分析函数之rank
+Rank,ense_rank,ow_number函数为每条记录产生一个从1开始至N的自然数,的值可能小于等于记录的总数
+Row_number返回一个唯一的值,碰到相同数据时,名按照记录集中记录的顺序依次递增
+Dense_rank返回一个唯一的值,碰到相同数据时,时所有相同数据的排名都是一样的 
+Rank返回一个唯一的值,到相同的数据时,时所有相同数据的排名是一样的,时会在最后一条相同记录和下一条不同记录的排名之间空出排名
+空值null在排序时默认无限大,决办法是在order by加上nulls last
+
+create sequence sq_test;
+create table test(id number primary key,name varchar2(10),sal number);
+insert into test values(sq_test.nextval,'Jone',1000);
+insert into test values(sq_test.nextval,'Jone',100);
+insert into test values(sq_test.nextval,'Avatar',1000);
+insert into test values(sq_test.nextval,'Edison',null);
+insert into test values(sq_test.nextval,'Joker',1500);
+select id,name,sal,
+rank() over(order by name desc) RANK1,
+rank() over(partition by name order by sal desc) RANK2,
+rank() over(order by sal desc nulls last) RANK3,
+dense_rank() over(order by sal desc nulls last) DENSE_RANK,
+row_number() over(order by sal desc nulls last) ROW_NUMBER,
+sum(sal) over(order by sal desc nulls last) SUM
+from test;
+
+-------------------------------------------------------------------------------------------------------------------------------------
+
+按"火箭   2:0    红牛  2006-06-11"样式打印比赛结果
+create table m(
+    id int,
+    zid int,
+    kid int,
+    res varchar(10),
+    mtime date
+) charset utf8;
+insert into m values(1,1,2,'2:0','2006-05-21'),(2,3,2,'2:1','2006-06-21'),(3,1,3,'2:2','2006-06-11'),(4,2,1,'2:4','2006-07-01');
+create table t(
+    tid int,
+    tname varchar(10)
+) charset utf8;
+insert into t values(1,'申花'),(2,'红牛'),(3,'火箭');
+
+mysql> select * from m;
++------+------+------+------+------------+
+| id   | zid  | kid  | res  | mtime      |
++------+------+------+------+------------+
+|    1 |    1 |    2 | 2:0  | 2006-05-21 |
+|    2 |    3 |    2 | 2:1  | 2006-06-21 |
+|    3 |    1 |    3 | 2:2  | 2006-06-11 |
+|    4 |    2 |    1 | 2:4  | 2006-07-01 |
++------+------+------+------+------------+
+
+mysql> select * from t;
++------+-------+
+| tid  | tname |
++------+-------+
+|    1 | 申花  |
+|    2 | 红牛  |
+|    3 | 火箭  |
++------+-------+
+
+mysql> select t.tname,m.res,t1.tname,m.mtime from m join t on m.zid=t.tid join t t1 on m.kid=t1.tid;
++-------+------+-------+------------+
+| tname | res  | tname | mtime      |
++-------+------+-------+------------+
+| 红牛  | 2:4  | 申花  | 2006-07-01 |
+| 申花  | 2:0  | 红牛  | 2006-05-21 |
+| 火箭  | 2:1  | 红牛  | 2006-06-21 |
+| 申花  | 2:2  | 火箭  | 2006-06-11 |
++-------+------+-------+------------+
+
+-------------------------------------------------------------------------------------------------------------------------------------
+
+树状数据结构如何建表
+create table tree(
+    id int(10) not null auto_increment,
+    name varchar(32) not null default '',
+    url varchar(100) not null default '',
+    level tinyint(1) not null default 0, 
+    -- scene_id bit(20) not null comment '情景值ID,前8位是appId',  
+    parent_id int(10) not null default 0 comment '指向父id',
+    created_time datetime not null,
+    updated_time timestamp not null default current_timestamp on update current_timestamp,
+    primary key(id)
+) engine = innodb auto_increment = 1 default charset = utf8mb4 comment = '商品品类目录表';
+```
+
+```
+枚举核心id
+数据库自增id不要用于业务暴漏给用户(比如用户可以猜昨天的订单量,也不利于分表)
+mysql可以读写分离
+说明: 不建议使用text、blob这种可能特别大字段的数据类型,会影响表查询性能,一般用varchar(2000~4000),还是不够的话单独建表再用text/blob
+互联网项目不要使用外键,可通过程序保证数据完整性
+一般不需要给create_time索引,应为有自增id索引
+ip建议用无符号整型(uint32)存储
+utf8mb4是utf8的超集,有存储4字节例如表情符号时使用它
+MySQL事务是基于UNDO/REDO日志
+UNDO日志记录修改前状态,记录的是逻辑日志,如执行delete时会记录对应的insert,执行update时会记录一条相反的update,当执行rollback时可以从undo进行回滚
+REDO日志记录修改后状态,由重做日志缓冲和重做日志文件组成,前者在内存,后者在磁盘,COMMIT会把所有修改信息都存到该日志文件,用于刷新脏页到磁盘,实现事务持久性
+show variables like '%log_error%';  -- 查看错误日志,配置文件可配置路径
+分库分表,读写分离用mycat中间件
+
 
 联合索引
 观察key_len和Extra,group by和order by都可以利用联合索引
