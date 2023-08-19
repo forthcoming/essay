@@ -1,3 +1,15 @@
+### common
+
+```
+数据库自增id不要用于业务暴漏给用户(攻击者可以猜测昨天的订单量,不利于分表等)
+不建议使用text、blob这种可能特别大字段的数据类型,会影响表查询性能,一般用varchar(2000~4000),还不够的话单独建表再用text/blob
+互联网项目不要使用外键,可通过程序保证数据完整性
+一般不需要给create_time索引,应为有自增id索引
+ip建议用无符号整型(uint32)存储
+utf8mb4是utf8的超集,有存储4字节例如表情符号时使用它
+分库分表,读写分离用mycat中间件
+```
+
 ### login
 
 ```
@@ -273,6 +285,10 @@ SELECT * FROM topic PARTITION (p1); -- 只查看p1,要从多个分区获取行,�
 ### transaction
 
 ```
+事务是基于UNDO/REDO日志
+UNDO日志记录修改前状态,记录的是逻辑日志,如执行delete时会记录对应的insert,执行update时会记录一条相反的update,当执行rollback时可以从undo进行回滚
+REDO日志记录修改后状态,由重做日志缓冲和重做日志文件组成,前者在内存,后者在磁盘,COMMIT会把所有修改信息都存到该日志文件,用于刷新脏页到磁盘,实现事务持久性
+
 原子性:多步操作逻辑上不可分割,要么都成功,要么都不成功
 一致性:操作前后值的变化逻辑上成立
 隔离性:事务结束前不会影响到其他会话
@@ -441,6 +457,7 @@ drop index index_name on t_name;
 查询条件包含类型转换,如score为int类型下where score='98',或者字符串不加''    
 or两边都有索引时才会用上索引            
 like 'xx%'可以使用索引,like '%xx'不可以使用索引
+不满足索引最左匹配原则或最左匹配原则遇到范围查询,范围查询(>,<)右侧的列索引失效,可以改为>=,<=
 
 索引设计原则:
 针对数据量大,查询频繁的表建立索引
@@ -487,6 +504,178 @@ t_user(uid PK, uname, age, sex) innodb;
 update t_user set age=10 where uid=1;            -- 命中索引,行锁
 update t_user set age=10 where uid != 1;         -- 未命中索引,表锁(负向查询无法命中索引)
 update t_user set age=10 where name='shenjian';  -- 无索引,表锁
+```
+
+### 联合索引(可以被group by和order by使用)
+
+```sql
+create table idx(c1 char(1),c2 char(1),c3 char(1),c4 char(1),c5 char(1),key(c1,c2,c3,c4))engine innodb;
+insert into idx values('a','b','c','a','e'),('A','b','c','b','e'),('a','B','c','c','e');
+
+mysql> explain select * from idx where c1='a' and c2='b' and c4>'a' and c3='c'\G
+*************************** 1. row ***************************
+           id: 1
+  select_type: SIMPLE
+        table: idx
+   partitions: NULL
+         type: range # 从最好到最差的连接类型为const、eq_reg、ref(根据索引列直接定位到某些数据行)、range(根据索引做范围查询)、index和all
+possible_keys: c1
+          key: c1
+      key_len: 12
+          ref: NULL
+         rows: 2
+     filtered: 100.00
+        Extra: Using index condition
+        
+mysql> explain select * from idx where c1='a' and c2='b' and c4='a' order by c5\G
+*************************** 1. row ***************************
+           id: 1
+  select_type: SIMPLE
+        table: idx
+   partitions: NULL
+         type: ref
+possible_keys: c1
+          key: c1
+      key_len: 6
+          ref: const,const
+         rows: 3
+     filtered: 33.33
+        Extra: Using index condition; Using filesort
+                                                                             
+mysql> explain select * from idx where c1='a' and c4='a' order by c3\G
+*************************** 1. row ***************************
+           id: 1
+  select_type: SIMPLE
+        table: idx
+   partitions: NULL
+         type: ref
+possible_keys: c1
+          key: c1
+      key_len: 3
+          ref: const
+         rows: 3
+     filtered: 33.33
+        Extra: Using index condition; Using filesort  # 如果where字段跟order by字段不能使用联合索引的左前缀,则需要额外排序
+                                        
+mysql> explain select * from idx where c1='a' and c5='e' order by c2,c3\G
+*************************** 1. row ***************************
+           id: 1
+  select_type: SIMPLE
+        table: idx
+   partitions: NULL
+         type: ref
+possible_keys: c1
+          key: c1
+      key_len: 3
+          ref: const
+         rows: 3
+     filtered: 33.33
+        Extra: Using where    # 注意此处并没有Using filesort,也是利用索引的最左匹配原则
+        
+mysql> explain select * from idx where c1='a' and c5='e' order by c3,c2\G
+*************************** 1. row ***************************
+           id: 1
+  select_type: SIMPLE
+        table: idx
+   partitions: NULL
+         type: ref
+possible_keys: c1
+          key: c1
+      key_len: 3
+          ref: const
+         rows: 3
+     filtered: 33.33
+        Extra: Using where; Using filesort
+                                                
+mysql> explain select * from idx where c1='a' and c2='b' and c5='e' order by c3,c2\G  # 注意排序中的c2是常量
+*************************** 1. row ***************************
+           id: 1
+  select_type: SIMPLE
+        table: idx
+   partitions: NULL
+         type: ref
+possible_keys: c1
+          key: c1
+      key_len: 6
+          ref: const,const
+         rows: 3
+     filtered: 33.33
+        Extra: Using index condition; Using where
+
+mysql> explain select * from idx where c1='a' and c4='b' group by c2,c3\G
+*************************** 1. row ***************************
+           id: 1
+  select_type: SIMPLE
+        table: idx
+   partitions: NULL
+         type: ref
+possible_keys: c1
+          key: c1
+      key_len: 3
+          ref: const
+         rows: 3
+     filtered: 33.33
+        Extra: Using index condition
+
+mysql> explain select * from idx where c1='a' and c4='b' group by c3,c2\G
+*************************** 1. row ***************************
+           id: 1
+  select_type: SIMPLE
+        table: idx
+   partitions: NULL
+         type: ref
+possible_keys: c1
+          key: c1
+      key_len: 3
+          ref: const
+         rows: 3   # 估计扫描了多少行
+     filtered: 33.33
+        Extra: Using index condition; Using temporary   # Using filesort & Using temporary:看到这个的时候,查询需要优化了
+ 
+mysql> explain select * from idx where c1>'a' order by c1,c2\G
+*************************** 1. row ***************************
+           id: 1
+  select_type: SIMPLE
+        table: idx
+   partitions: NULL
+         type: range
+possible_keys: c1
+          key: c1
+      key_len: 3
+          ref: NULL
+         rows: 1
+     filtered: 100.00
+        Extra: Using index condition
+
+mysql> explain select * from idx where c1>'a' order by c2,c3\G
+*************************** 1. row ***************************
+           id: 1
+  select_type: SIMPLE
+        table: idx
+   partitions: NULL
+         type: range
+possible_keys: c1
+          key: c1
+      key_len: 3
+          ref: NULL
+         rows: 1
+     filtered: 100.00
+        Extra: Using index condition; Using filesort
+
+mysql> explain select * from idx where c1='a' order by c2,c3\G
+*************************** 1. row ***************************
+           id: 1
+  select_type: SIMPLE
+        table: idx
+   partitions: NULL
+         type: ref
+possible_keys: c1
+          key: c1
+      key_len: 3
+          ref: const
+         rows: 3
+     filtered: 100.00
+        Extra: NULL
 ```
 
 ### binlog
@@ -1010,200 +1199,5 @@ create table tree(
 ) engine = innodb auto_increment = 1 default charset = utf8mb4 comment = '商品品类目录表';
 ```
 
-```
-枚举核心id
-数据库自增id不要用于业务暴漏给用户(比如用户可以猜昨天的订单量,也不利于分表)
-mysql可以读写分离
-说明: 不建议使用text、blob这种可能特别大字段的数据类型,会影响表查询性能,一般用varchar(2000~4000),还是不够的话单独建表再用text/blob
-互联网项目不要使用外键,可通过程序保证数据完整性
-一般不需要给create_time索引,应为有自增id索引
-ip建议用无符号整型(uint32)存储
-utf8mb4是utf8的超集,有存储4字节例如表情符号时使用它
-MySQL事务是基于UNDO/REDO日志
-UNDO日志记录修改前状态,记录的是逻辑日志,如执行delete时会记录对应的insert,执行update时会记录一条相反的update,当执行rollback时可以从undo进行回滚
-REDO日志记录修改后状态,由重做日志缓冲和重做日志文件组成,前者在内存,后者在磁盘,COMMIT会把所有修改信息都存到该日志文件,用于刷新脏页到磁盘,实现事务持久性
-show variables like '%log_error%';  -- 查看错误日志,配置文件可配置路径
-分库分表,读写分离用mycat中间件
-
-
-联合索引
-观察key_len和Extra,group by和order by都可以利用联合索引
-最左匹配原则在遇到范围查询时,范围查询(>,<)右侧的列索引失效,可以改为>=,<=
-create table idx(
-c1 char(1) not null default '',
-c2 char(1) not null default '',
-c3 char(1) not null default '',
-c4 char(1) not null default '',
-c5 char(1) not null default '',
-key(c1,c2,c3,c4)
-)engine innodb charset utf8;
-insert into idx values('a','b','c','a','e'),('A','b','c','b','e'),('a','B','c','c','e');
-
-mysql> explain select * from idx where c1='a' and c2='b' and c4>'a' and c3='c'\G
-*************************** 1. row ***************************
-           id: 1
-  select_type: SIMPLE
-        table: idx
-   partitions: NULL
-         type: range # 从最好到最差的连接类型为const、eq_reg、ref(根据索引列直接定位到某些数据行)、range(根据索引做范围查询)、index和all
-possible_keys: c1
-          key: c1
-      key_len: 12
-          ref: NULL
-         rows: 2
-     filtered: 100.00
-        Extra: Using index condition
-        
-mysql> explain select * from idx where c1='a' and c2='b' and c4='a' order by c5\G
-*************************** 1. row ***************************
-           id: 1
-  select_type: SIMPLE
-        table: idx
-   partitions: NULL
-         type: ref
-possible_keys: c1
-          key: c1
-      key_len: 6
-          ref: const,const
-         rows: 3
-     filtered: 33.33
-        Extra: Using index condition; Using filesort
-                                                                             
-mysql> explain select * from idx where c1='a' and c4='a' order by c3\G
-*************************** 1. row ***************************
-           id: 1
-  select_type: SIMPLE
-        table: idx
-   partitions: NULL
-         type: ref
-possible_keys: c1
-          key: c1
-      key_len: 3
-          ref: const
-         rows: 3
-     filtered: 33.33
-        Extra: Using index condition; Using filesort  # 如果where字段跟order by字段不能使用联合索引的左前缀,则需要额外排序
-                                        
-mysql> explain select * from idx where c1='a' and c5='e' order by c2,c3\G
-*************************** 1. row ***************************
-           id: 1
-  select_type: SIMPLE
-        table: idx
-   partitions: NULL
-         type: ref
-possible_keys: c1
-          key: c1
-      key_len: 3
-          ref: const
-         rows: 3
-     filtered: 33.33
-        Extra: Using where    # 注意此处并没有Using filesort,也是利用索引的最左匹配原则
-        
-mysql> explain select * from idx where c1='a' and c5='e' order by c3,c2\G
-*************************** 1. row ***************************
-           id: 1
-  select_type: SIMPLE
-        table: idx
-   partitions: NULL
-         type: ref
-possible_keys: c1
-          key: c1
-      key_len: 3
-          ref: const
-         rows: 3
-     filtered: 33.33
-        Extra: Using where; Using filesort
-                                                
-mysql> explain select * from idx where c1='a' and c2='b' and c5='e' order by c3,c2\G  # 注意排序中的c2是常量
-*************************** 1. row ***************************
-           id: 1
-  select_type: SIMPLE
-        table: idx
-   partitions: NULL
-         type: ref
-possible_keys: c1
-          key: c1
-      key_len: 6
-          ref: const,const
-         rows: 3
-     filtered: 33.33
-        Extra: Using index condition; Using where
-        
-
-mysql> explain select * from idx where c1='a' and c4='b' group by c2,c3\G
-*************************** 1. row ***************************
-           id: 1
-  select_type: SIMPLE
-        table: idx
-   partitions: NULL
-         type: ref
-possible_keys: c1
-          key: c1
-      key_len: 3
-          ref: const
-         rows: 3
-     filtered: 33.33
-        Extra: Using index condition
-
-mysql> explain select * from idx where c1='a' and c4='b' group by c3,c2\G
-*************************** 1. row ***************************
-           id: 1
-  select_type: SIMPLE
-        table: idx
-   partitions: NULL
-         type: ref
-possible_keys: c1
-          key: c1
-      key_len: 3
-          ref: const
-         rows: 3   # 估计扫描了多少行
-     filtered: 33.33
-        Extra: Using index condition; Using temporary   # Using filesort & Using temporary:看到这个的时候,查询需要优化了
- 
-mysql> explain select * from idx where c1>'a' order by c1,c2\G
-*************************** 1. row ***************************
-           id: 1
-  select_type: SIMPLE
-        table: idx
-   partitions: NULL
-         type: range
-possible_keys: c1
-          key: c1
-      key_len: 3
-          ref: NULL
-         rows: 1
-     filtered: 100.00
-        Extra: Using index condition
-
-mysql> explain select * from idx where c1>'a' order by c2,c3\G
-*************************** 1. row ***************************
-           id: 1
-  select_type: SIMPLE
-        table: idx
-   partitions: NULL
-         type: range
-possible_keys: c1
-          key: c1
-      key_len: 3
-          ref: NULL
-         rows: 1
-     filtered: 100.00
-        Extra: Using index condition; Using filesort
-
-mysql> explain select * from idx where c1='a' order by c2,c3\G
-*************************** 1. row ***************************
-           id: 1
-  select_type: SIMPLE
-        table: idx
-   partitions: NULL
-         type: ref
-possible_keys: c1
-          key: c1
-      key_len: 3
-          ref: const
-         rows: 3
-     filtered: 100.00
-        Extra: NULL
-```
 
 
