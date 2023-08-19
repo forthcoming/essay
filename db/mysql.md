@@ -106,7 +106,7 @@ varbinary(N) //变长,字节最多为N,对于字母数字等没区别,但对于�
 date         // YYYY-MM-DD  如:2010-03-14, The supported range is '1000-01-01' to '9999-12-31'.
 time         // HH:MM:SS    如:19:26:32
 datetime     // YYYY-MM-DD HH:MM:SS 如:2010-03-14 19:26:32, 支持范围从'1000-01-01 00:00:00' 到 '9999-12-31 23:59:59'
-json         // column_name->'$.key_name'方式查询json
+json         // 自动验证存储列中的JSON文档,column_name->'$.key_name'方式查询json,内联路径运算符->>不包含内容两边引号和任何转义符
 ```
 
 ### trigger
@@ -172,7 +172,7 @@ explain sql;     // obtain information about table structure or query execution 
 ? int     //显示int的具体属性
 ? show    //显示show的语法
 \s        //查看当前用户的信息
-mysql -u[username] -p[password] -h[host] -P[port] -D[database]
+mysql -u[username] -p[password] -h[host] -P[port] -D[database] -e[execute]
 create database [dname];
 create table t_name like t1_name;  // 完全复制表结构(包括主键,分区等)
 insert into t_name(...,...,...) select ...,...,... from t1_name;
@@ -259,14 +259,15 @@ create table topic(
     update_time datetime not null default current_timestamp on update current_timestamp, # 如果update没有更新数据时update_time不会被更新
     title char(20) not null default ''
 )engine innodb charset utf8  
-# partition by hash( tid ) partitions 4  # 只能用数字类型,根据tid%4分区(默认名字p0,p1,p2,p3),可通过explain查看查询需要的分区
+# partition by hash(tid) partitions 4  # 只能用数字类型,根据tid%4分区(默认名字p0,p1,p2,p3),可通过explain查看查询需要的分区
 partition by range(tid)(
-    partition t0 values less than(1000),
-    partition t1 values less than(2000),
-    partition t2 values less than(maxvalue)
+    partition p0 values less than(1000),
+    partition p1 values less than(2000),
+    partition p2 values less than(maxvalue)
 )
 ALTER TABLE topic REMOVE PARTITIONING;
 ALTER TABLE topic partition by hash(tid) partitions 5;
+SELECT * FROM topic PARTITION (p1); -- 只查看p1,要从多个分区获取行,请以逗号分隔,比如(p1, p2)
 ```
 
 ### transaction
@@ -414,7 +415,8 @@ update test set name='TA' where _id=2;
 
 ```
 show index from table_name;
-create index index_name on t_name(... asc,.. desc,..);  # 默认升序
+create [fulltext] index index_name on t_name(... asc,.. desc,..) [invisible];  # 默认升序,不可见索引可以测试删除索引对查询性能的影响而无需进行破坏性更改
+索引可见性不影响索引维护,例如每次对表行进行更改时,索引都会继续更新,而唯一索引可以防止将重复项插入到列中,无论索引是可见还是不可见
 drop index index_name on t_name;
 索引优点: 提高数据检索能力,通过索引列对数据进行排序,降低数据排序成本,提高并发能力(锁相关)
 索引缺点: 占用额外空间,降低了表更新速度
@@ -433,7 +435,7 @@ like 'xx%'可以使用索引,like '%xx'不可以使用索引
 
 BTREE索引: 所有索引和数据都会出现在叶子结点,叶子结点形成有序双向链表,非叶子结点只存储索引;适宜范围查询;左前缀匹配;全值匹配
 HASH索引: 只有精确匹配(in,=)索引列的查询才有效,不支持范围查询,innodb,myisam支持自适应哈希索引,根据表使用情况自动生成哈希索引,无法人为指定
-FULLTEXT索引: 倒排索引,仅InnoDB和MyISAM存储引擎支持,且仅适用于CHAR、VARCHAR和TEXT列
+FULLTEXT索引: 倒排索引,存储单词列表,对于每个单词存储该单词出现的文档列表,仅InnoDB和MyISAM存储引擎支持,且仅适用于CHAR、VARCHAR和TEXT列
 
 聚集索引(Clustered index) & 非聚集索引
 聚集索引叶子结点存储了真实的数据,在一张表上最多只能创建一个聚集索引,因为真实数据的物理顺序只能有一种
@@ -492,8 +494,8 @@ show master status; # 查看最新一个binlog日志的名称及最后一个操�
 flush logs;         # 刷新日志,自此刻开始产生一个新的binlog日志文件(每当mysqld重启or在mysqldump备份数据时加-F选项都会执行该命令)
 reset master;       # 清空所有binlog日志
 show binlog events in '201810-08571-bin.000001' from pos limit m,n;  # 日志查询
-mysqlbinlog binlog-file   // 查看binlog
-mysqlbinlog --stop-position='120' binlog-file |mysql -uroot -p db_name   // 用binlog日志恢复数据,stop-position指定结束位置,-d指定只要某个数据库
+mysqlbinlog -s -d dbname binlog-file   // 查看binlog,-s显示简单格式,-d指定只列出指定数据库的操作
+mysqlbinlog --stop-position='120' binlog-file |mysql -uroot -p db_name   // 用binlog日志恢复数据,stop-position指定结束位置
 
 主从复制(slave执行查询操作,降低master访问压力,实时性要求高的数据仍需要从master查询)
 1. 主开启binlog
@@ -506,20 +508,20 @@ grant replication slave on *.* to 'repl'@'localhost';  # *.*代表所有数据�
 # reset master;
 show master status;
 4.从使用主创建的用户(repl),授权之前要登录一下授权账号repl,why?
-# reset slave;
-stop slave;
-change master to 
-master_host = 'localhost',
-master_user = 'repl',
-master_port = 3306,
-master_password = 'repl',
-master_log_file = 'binlog.000001',  # replacing the option values with the actual values relevant to your system
-master_log_pos = 155;
-start slave;
+# reset replica;
+stop replica;
+change replication source to 
+source_host='localhost',
+source_port='3306',
+source_user='repl',
+source_password='repl',
+source_log_file = 'binlog.000001',  # replacing the option values with the actual values relevant to your system
+source_log_pos = 155;
+start replica;
 5. 检查主从状态
-show slave status;     # 以下两项都为Yes才说明主从创建成功
-Slave_IO_Running:Yes   读主服务器binlog日志,并写入从服务器的中继日志中
-Slave_SQL_Running:Yes  执行中继日志
+show replica status;   # 以下两项都为Yes才说明主从创建成功
+Replica_IO_Running:Yes   读主服务器binlog日志,并写入从服务器的中继日志中
+Replica_SQL_Running:Yes  执行中继日志
 
 联合索引
 观察key_len和Extra,group by和order by都可以利用联合索引
