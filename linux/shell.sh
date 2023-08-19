@@ -207,34 +207,6 @@ rsync -a 源文件 user@目标IP:路径 # -a表示递归方式传输文件,并�
 1. apt install openssh-server
 2. /etc/init.d/ssh start
 ---------------------------------------------------------------------------------------------------------------------------------
-pip
-pip show flask  # 查看库安装信息(路径等)
-python -m pip install redis  # 在当前python环境下执行pip
-pip freeze > requirements.txt
-pip install -r requirements.txt
-pip install --proxy=http://127.0.0.1:8118 scrapy==1.4.0
-pip install --proxy=socks5://127.0.0.1:1080 scrapy==1.4.0
-pip install redis -i http://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com    # -i指定库的安装源
-pip uninstall
----------------------------------------------------------------------------------------------------------------------------------
-virtualenv
-pip install virtualenv
-virtualenv .sing_report
-source /data1/sing_report/.sing_report/bin/activate
-deactivate   # 退出虚拟环境
----------------------------------------------------------------------------------------------------------------------------------
-conda
-conda list  # 列出当前虚拟环境的所有安装包(包括conda和pip安装的包,这两个命令install作用差不多)
-conda create -n scrapy # 创建虚拟环境
-conda env list
-conda activate scrapy #激活
-# 进入到虚拟环境后,如果该环境没有python2,pip等之类包的话会自动识别到base虚拟环境中的包
-# 建议进入到新的虚拟环境后首先conda install python=2.7,或者直接在本环境下通过conda install安装python包
-conda deactivate #停用
-conda install -n scrapy python=3.6  # 也可以先进到对应虚拟环境,再conda install python=3.6
-conda install /root/Desktop/软件名
-conda remove -n scrapy --all
----------------------------------------------------------------------------------------------------------------------------------
 环境变量(~/.bashrc作用于当前用户,/etc/profile作用于所有用户,写错后可能导致系统登不进去,该文件还可以定义别名)
 REDIS=/root/redis/bin
 PYCHARM=/root/pycharm/bin
@@ -699,3 +671,129 @@ copy /b 1.jpg+2.rar 3.jpg  #内涵图制作
 3、要使用时，将文件格式后缀改为“rar”，然后解压；
 4、有这种方法还可以将txt格式文件变成jpg格式的图片，只要把命令中的“(y).rar”改为“(y).txt”即可
 5、其他格式之间的变换不能用此方法。
+
+
+1、如何过滤出已知当前目录下ansheng中的所有一级目录(提示:不包含ansheng目录下面目录的子目录及隐藏目录，即只能是一级目录)?
+方法1：ls显示长格式，然后再通过sed过滤出以dr开头的行并打印出来
+1. [root@ansheng ~]# ls -l ./ansheng | sed -n /^dr/p
+2. drwxr-xr-x 2 root root 4096 Apr 9 21:08 asgd
+3. drwxr-xr-x 2 root root 4096 Apr 9 21:08 ext
+4. drwxr-xr-x 2 root root 4096 Apr 9 21:08 ansheng
+5. drwxr-xr-x 2 root root 4096 Apr 9 21:08 test
+6. drwxr-xr-x 2 root root 4096 Apr 9 21:08 xings
+7. [root@ansheng ~]# ls -lF ./ansheng | sed -n '/\/$/p' ---> 过滤出以/结尾的
+8. drwxr-xr-x 2 root root 4096 Apr 9 21:08 asgd/
+9. drwxr-xr-x 2 root root 4096 Apr 9 21:08 ext/
+10. drwxr-xr-x 2 root root 4096 Apr 9 21:08 ansheng/
+11. drwxr-xr-x 2 root root 4096 Apr 9 21:08 test/
+12. drwxr-xr-x 2 root root 4096 Apr 9 21:08 xings/
+
+13.已知如下命令及结果：
+现在需要从文件中过滤出“ ansheng” 和“ 31333741” 字符串，请给出命令.
+解答：
+有逗号：I am ansheng, myqq is 31333741
+1. [ansheng@ansheng ~]$ awk '{print $3" "$6}' ansheng|sed s/,/" "/g
+2. anshengs 31333741
+方法4：
+1. [ansheng@ansheng ~]$ awk -F '[ ,]' '{print $3" "$6}' ansheng
+2. anshengs 31333741
+14、如何查看/etc/services 文件内容有多少行？
+方法2：
+1. [root@ansheng /]# cat -n /etc/services |tail -1
+2.  10774 iqobject 48619/udp # iqobject
+方法3：
+1. [root@ansheng /]# sed -n '$=' /etc/services
+2. 10774
+15、过滤出/etc/services 文件包含 3306 或 1521 两数据库端口的行的内容。
+解答：
+1. [root@ansheng /]# grep -E "3306|1521" /etc/services
+2. mysql 3306/tcp # MySQL
+3. mysql 3306/udp # MySQL
+4. ncube-lm 1521/tcp # nCube License Manager
+5. ncube-lm 1521/udp # nCube License Manager
+3、描述 linux shell 中单引号、双引号及不加引号的简单区别
+单引号：
+即将单引号内的内容原样输出，或者描述为单引号里面看到的是什么就会输出什么。
+双引号：
+把双引号内的内容输出出来；如果内容中有命令、变量等，会先把变量、命令解析出结果，然后在输出最终内容来。
+不加引号：
+不会将含有空格的字符串视为一个整体输出, 如果内容中有命令、变量等，会先把变量、命令解析出结果，然后在输出最终内容来，如果字符串中带有空格等特殊字符，则不能完整的输出，需要改加双引号，一般连续的字符串，数字，路径等可以用。
+5、描述 linux 下文件删除的原理
+当一个文件的I_link=0且没有进程占用的时候，这个文件就被删除了，还有一种情况就是被进程占用的情况下，当这个文件的I_link和I_count同时为0的时候这个文件才会被真正的删除。
+6、如何取得/ansheng 文件的权限对应的数字内容，如-rw-r–r– 为 644， 要求使用命令取得644 这样的数字。
+1. [root@ansheng ~]# stat /ansheng |awk -F "[(/]" 'NR==4{print $2}'
+2. 0644
+7、linux下通过 mkdir 命令创建一个新目录/ansheng/ett，它的硬链接数是多少，为什么？
+解答：
+1. [root@ansheng ~]# mkdir /ansheng/ett -p
+2. [root@ansheng ~]# ll -d /ansheng/ett/
+3. drwxr-xr-x. 2 root root 4096 Jan 11 06:02 /ansheng/ett/
+它的链接数是2，本身算一个链接，ett目录下的.为ett目录的又一个链接，所以链接数为2
+1. [root@ansheng ansheng]# ll -i
+2. total 4
+3. 1046536 drwxr-xr-x. 2 root root 4096 Jan 11 06:02 ett
+4. [root@ansheng ansheng]# ll -di ett/.
+5. 1046536 drwxr-xr-x. 2 root root 4096 Jan 11 06:02 ett/.
+8、请执行命令取出 linux 中 eth0 的 IP 地址(请用 cut，有能力者也可分别用 awk,sed 命令答)。
+解答：
+cut方法1：
+1. [root@ansheng ~]# ifconfig eth0|sed -n '2p'|cut -d ":" -f2|cut -d " " -f1
+2. 192.168.20.130
+awk方法2：
+1. [root@ansheng ~]# ifconfig eth0|awk 'NR==2'|awk -F ":" '{print $2}'|awk '{print $1}'
+2. 192.168.20.130
+Awk多分隔符方法3：
+1. [root@ansheng ~]# ifconfig eth0|awk 'NR==2'|awk -F "[: ]+" '{print $4}'
+2. 192.168.20.130
+Sed方法4：
+1. [root@ansheng ~]# ifconfig eth0|sed -n '/inet addr/p'|sed -r 's#^.*ddr:(.*)Bc.*$#\1#g'
+2. 192.168.20.130
+3. [root@ansheng ~]# ifconfig eth0|sed -n '/inet addr/p'|sed 's#^.*ddr:##g'|sed 's#B.*$##g'
+4. 192.168.20.130
+10、查找当前目录下所有文件，并把文件中的 www.ansheng.me 字符串替换成 www.abc.cc
+解答：
+1. [root@ansheng ~]# find ./ -type f|xargs sed -i 's#www\.ansheng\.me#www\.abc\.cc#g'
+
+
+1. 删除Windows字符文件每行结尾的”^M”
+2. $ find . -name "*.c" | xargs sed -i -e 's/^M$//'
+3. Windows上换行符是”\r\n”，Unix/Linux上是”\n”。所以Windows上的文件在Linux下打开时，每行结尾会显示一个特殊字符”^M”。该命令会将当前目录下所有”.c”文件的每行结尾特殊字符去掉。注：在终端上输入”^M”的方法是先按”Ctrl+V”再按”Ctrl+M”。
+另外，如果你在vim编辑器中要删除”^M”，你可以在命令模式下输入：
+4. :%s/^M$//g
+5. 批量修改后缀名
+    * 修改当前目录包括子目录下所有的文件
+    * $ find . -name "*.c" -exec echo "mv {} {}" \; | sed -e 's/\.c$/\.cpp/' | sh
+    * 将当前目录及其子目录下所有”.c”文件后缀名改为”.cpp”。
+    * 只修改当前目录，不包括子目录，命令可以简化为
+    * $ rename 's/\.c$/\.cpp/' *.c
+    * 把所有文件名改为大写
+    * $ rename 'y/a-z/A-Z/' *
+    * 批量修改文件名模式
+    * $ rename 's/pre_\d{2}(\d{3})\.c$/post_$1\.cpp/' *.c
+    * 这条命令会将所有类似于”pre_00123.c”的文件名改为”post_123.cpp”。
+1. 删除符合某个条件以外的所有文件
+2. $ rm -v !(*.iso|*.zip)
+
+
+
+sed
+sed '/north/p' datafile                      # 命令p是打印命令,默认情况下是打印所有输入行；选项-n是用于取消默认的打印操作。
+sed  -n '/north/p' datafile                  # 打印datafile中含有north模式的行，只打印匹配到的行。
+sed  '3,$d' datafile                         # 删除从第3行到最后一行的内容。
+sed  's/west/north/g' datafile               # 所有行中的west替换成north.若无g,则每行的第一个west被替换。
+sed  's/[0-9][0-9]$/&.5/' datafile           # & 它代表在查找串中匹配到的内容，这个例子中，所有两位数结尾的行后面都被加上.5
+sed  -n 's/\(Mar\)got/\1ianne/p' datafile    # 包含在圆括号里的模式Mar作为标签1 保存于特定的寄存器中。替换串可通过\1引用它。则Margot被替换成Marianne。
+sed 's#3#88#g' datafile                      # 可以设置新的分隔符为#
+sed -n '/west/,/east/p' datafile             # 打印west行 到 east行之间的所有行
+sed -e '1,3d' -e 's/Mar/Apr/' datafile       # -e多重编辑,先删除1~3行，然后进行替换。
+sed '/Suan/r newfile ' datafile              # r命令是读取指定文件。如果再文件datafile 的某一行匹配到Suan，就在该行后面读入文件newfile的内容。
+sed -n '/north/w newfile' datafile           # w命令是写命令，将匹配的行写入newfile文件中。
+sed '/north/a\ooooooooooooo' datafile        # 匹配north的下一行追加一串ooooo字符。
+sed '/north/i\ooooooooooooo' datafile        # 匹配north的前一行插入一串ooooo字符。
+sed '/north/c\ooooooooooooo' datafile        # 匹配north行，将ooooo替换该行。
+sed '/north/{n; s/AM/PM/;}' datafile         # n 命令表示下一条命令。sed使用该命令获取输入文件的下一行，并将其读入到模式缓冲区中，任何sed命令都将应用到匹配行的下一行上。此处命令的含义是：匹配到含有north后，将输入行下移一行 然后将下一行文本中的AM替换成PM。可以认为n命令是跳跃一行。
+sed '1,3y/abc/ABC/' datafile                 # y 命令是一对一转换，此处是将1~3行中a->A b->B c->C转换。
+sed '5q' datafile                            # 打印完第五行只后，q命令让sed程序退出.
+sed '/Lew/{ s/Lew/John/ ; q;} ' datafile     # 在某行匹配到模式 Lewis时，s表示先用John替换Lewis，然后q命令让sed程序退出。
+sed -e '/north/h' -e '$G'  datafile          # 在匹配到north行时,将该行复制到暂存缓冲区中，然后再匹配最后一行后取出暂存缓冲区的内容追加在文件尾部。
+sed -n '/a/ {n;p}' test.log                  # 打印出符合开头是a的记录的下一行
