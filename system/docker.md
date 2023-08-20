@@ -1,3 +1,4 @@
+### docker命令
 ```shell
 docker pull image_name[:tag] # 拉镜像,如果不指定tag,默认值是latest
 docker images [-a|--no-trunc]  # 查看本地镜像列表,-a显示所有镜像(默认隐藏中间镜像),--no-trunc意思是不要截断输出
@@ -8,11 +9,16 @@ docker commit [-a 'author'|-m 'the first image'] container_id image_name[:tag] #
 docker login # 登陆
 docker push yourname/image_name[:tag] # 推送本地镜像到远程仓库,需提前用docker login账户创建好仓库
 docker tag old_image_name[:tag] yourname/image_name[:tag] # 给原镜像打标签,产生的新镜像跟之前的镜像是同一个image_id
+docker build -t image_name[:tag] [-f dir/Dockerfile] .  # 构建镜像,不指定-f则默认为当前目录下名为Dockerfile的文件
+docker network ls   # 容器默认使用的是桥接网络
+docker network create my_net  # 默认创建的是桥接网络
+docker history [--no-trunc] image_name[:tag] # 查看镜像构建过程
 
 docker ps [-a] # 查看正在运行的容器(也可以查看容器的映射端口),-a查看所有容器
-docker top [container_name|container_id]  # 查看容器负载情况
+docker top [container_name|container_id]  # 查看容器负载情况(pid并非容器内进程的pid)
 docker rm [-f] container_name|container_id  # 删除已经停止的容器,-f强制删除容器
 docker start container_name|container_id # 启动已经停止的容器
+docker restart container_name|container_id # 重启正在运行的容器
 docker stop container_name|container_id # 停止正在运行的容器
 docker attach container_name|container_id  # 进入正在运行的容器终端
 docker exec container_name|container_id cmd  # 在运行中的容器中启动新进程,在容器环境执行命令并显示
@@ -35,38 +41,32 @@ docker run image_id  # 运行本地镜像,如果镜像不存在,会先去dockerh
 -m: 以bytes为单位容器最大内存
 -w: 容器工作目录,即进入时的目录,相当于执行cd操作,一般设置为安装软件目录,他会覆盖dockerfile中的WORKDIR
 docker run -p 80:80 -v /usr/local/data:/container/data --name=test centos echo 'Hello'
-docker run --network my_net --name test_net -d redis # 使用自定义网桥,容器之间可通过容器名互连,默认的bridge只能通过ip互连,互连前提是位于同一个网络
+docker run --network my_net -d redis # 使用自定义网桥,容器之间可通过容器名互连,默认的bridge只能通过ip互连,互连前提是位于同一个网络
 docker run -v /conf:/etc/redis redis redis-server /etc/redis/redis.conf  
 docker run -it centos /bin/bash
-docker build -t myos:first .  # 构建自己的Dockerfile
-docker build -t name:tag -f dir/Dockerfile .  # 构建镜像
-docker history --no-trunc test # 查看容器构建过程
-docker network ls   # 容器默认使用的是桥接网络
-docker network create my_net  # 默认创建的是桥接网络
 ```
 
+### Dockerfile
 ```shell
-[root@local Desktop]# docker ps
-CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS              PORTS                    NAMES
-9c730600518f        redis               "/entrypoint.sh /bin/"   About an hour ago   Up About an hour    0.0.0.0:1234->6379/tcp   cocky_leavitt
-[root@local Desktop]# docker top cocky_leavitt
-UID                 PID                 PPID                C                   STIME               TTY                 TIME                CMD
-root                17567               6181                0                   10:48               pts/2               00:00:00            /bin/bash
-root                17775               17567               0                   10:51               ?                   00:00:04            redis-server *:6379
-[root@local Desktop]# docker exec cocky_leavitt ps -ef
-UID        PID  PPID  C STIME TTY          TIME CMD
-root         1     0  0 02:48 ?        00:00:00 /bin/bash
-root        18     1  0 02:51 ?        00:00:04 redis-server *:6379
-root        37     0  0 03:51 ?        00:00:00 ps -ef
-[root@local Desktop]# ps -ef|grep redis
-UID        PID  PPID  C STIME TTY          TIME CMD
-root     17775 17567  0 10:51 ?        00:00:04 redis-server *:6379
-root     18662 18590  0 11:51 pts/0    00:00:00 grep --color=auto redis
-[root@local Desktop]# netstat -anp|grep 1234
-Proto Recv-Q Send-Q Local Address           Foreign Address         State       PID/Program name
-tcp6       0      0 :::6666                 :::*                    LISTEN      6181/docker
-tcp6       0      0 :::1234                 :::*                    LISTEN      17562/docker-proxy
-[root@local Desktop]# netstat -anp|grep redis
+# 以#开头的行视为注释,除非该行是有效的解析器指令,行中其他任何位置的#标记都被视为参数
+# Dockerfile指令按照从上到下顺序执行,每条指令都会创建一个新的镜像层并对镜像进行提交
+# 指定基础镜像,Dockerfile必须以FROM指令开头
+from ubuntu:latest  
+# 将元数据添加到图像中,通过docker image inspect查看,一个图像可以有多个标签,可以在一行上指定多个标签
+label author="akatsuki" mail="1234567890@qq.com"
+# 构建容器时运行的命令 
+run apt-get update   
+run apt-get install -y nginx && mkdir ~/fuck
+# 将环境变量＜key＞设置为值＜value＞,该值将在构建阶段的所有后续指令的环境中,并且可以在许多指令中内联替换
+env PATH=/fuck
+# 为Dockerfile中的任何RUN、CMD、ENTRYPOINT、COPY和ADD指令设置工作目录
+workdir $PATH/test
+# 创建一个具有指定名称的装载点,自动与本机某个目录管理,可通过docker image inspect查看
+volume $PATH
+# 复制宿主机文件到容器中
+copy test.py ~/fuck/door.txt
+# 镜像启动时运行的命令,一个Dockerfile中只能有一条CMD指令,如果用户指定了镜像运行的参数,则会覆盖CMD指令
+cmd ["python"]  
 ```
 
 ```
@@ -77,59 +77,26 @@ docker0是docker虚拟出来的一个网桥,镜像产生的容器IP位于该网�
 [root@local Desktop]# ifconfig docker 192.168.9.100 netmask 255.255.255.0
 构建Dockerfile或者docker pull拉下来的叫镜像, 运行中的镜像叫容器,同一个镜像可以实例化多个容器
 容器ip跟宿主机不一样,但容器内访问外部服务用的ip是宿主机ip
-apt-get update    
-apt-get install vim
 ```
 
-```pycon
-# 可以是任何一个存在的镜像(类似套娃)
+```shell
 # Alpine Linux is much smaller than most distribution base images (~5MB), and thus leads to much slimmer images in general.
 # The main caveat to note is that it does use musl libc instead of glibc and friends, so software will often run into issues depending on the depth of their libc requirements/assumptions. 
 FROM python:3.9-alpine   
-
 ENV REDIS_DOWNLOAD_URL http://download.redis.io/releases/redis-6.2.4.tar.gz
 RUN apk upgrade; \
     wget -O redis.tar.gz "$REDIS_DOWNLOAD_URL"; \
     mkdir -p /usr/src/redis; \
     tar -xzf redis.tar.gz -C /usr/src/redis --strip-components=1; \
     rm redis.tar.gz;
-
-# The CMD directive specifies the default command to run when starting a container from this image.
 CMD ["python"]  
-
 
 #RUN mkdir /data && chown redis:redis /data
 #VOLUME /data
 #WORKDIR /data
-
 #COPY docker-entrypoint.sh /usr/local/bin/
 #ENTRYPOINT ["docker-entrypoint.sh"]
-
 #EXPOSE 6379
 #CMD ["redis-server"] 
 ```
 
-
-```pycon
-from ubuntu:14.04
-maintainer akatsuki 212956978@qq.com
-run apt-get install -y nginx && mkdir ~/fuck
-#复制宿主机文件到容器中
-copy test.py ~/fuck/door.txt
-#指定的端口会在容器运行时显示出来
-expose 80 3306
-```
-
-```pycon
-FROM centos6-base
-MAINTAINER zhou_mfk <zhou_mfk@163.com>
-RUN ssh-keygen -q -N "" -t dsa -f /etc/ssh/ssh_host_dsa_key
-RUN ssh-keygen -q -N "" -t rsa -f /etc/ssh/ssh_host_rsa_key
-RUN sed -ri 's/session    required     pam_loginuid.so/#session    required     pam_loginuid.so/g' /etc/pam.d/sshd
-RUN mkdir -p /root/.ssh && chown root.root /root && chmod 700 /root/.ssh
-EXPOSE 22
-RUN echo 'root:redhat' | chpasswd
-RUN yum install tar gzip gcc vim wget -y
-ENV LANG en_US.UTF-8
-CMD /usr/sbin/sshd -D
-```
