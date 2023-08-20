@@ -1,9 +1,13 @@
 ```shell
-docker pull image_name[:tag] # 拉镜像
+docker pull image_name[:tag] # 拉镜像,如果不指定tag,默认值是latest
 docker images [-a|--no-trunc]  # 查看本地镜像列表,-a显示所有镜像(默认隐藏中间镜像),--no-trunc意思是不要截断输出
 docker search [--no-trunc] nginx  # 搜索docker hub中的镜像
 docker system df # 查看镜像,容器,数据卷占用空间
 docker rmi [-f] image_id|image_name[:tag] # 删除镜像,如果镜像对应的容器正在运行则无法删除,需先stop再-f强制删除
+docker commit [-a 'author'|-m 'the first image'] container_id image_name[:tag] # 保存已经更改的容器为新镜像
+docker login # 登陆
+docker push yourname/image_name[:tag] # 推送本地镜像到远程仓库,需提前用docker login账户创建好仓库
+docker tag old_image_name[:tag] yourname/image_name[:tag] # 给原镜像打标签,产生的新镜像跟之前的镜像是同一个image_id
 
 docker ps [-a] # 查看正在运行的容器(也可以查看容器的映射端口),-a查看所有容器
 docker top [container_name|container_id]  # 查看容器负载情况
@@ -13,11 +17,11 @@ docker stop container_name|container_id # 停止正在运行的容器
 docker attach container_name|container_id  # 进入正在运行的容器终端
 docker exec container_name|container_id cmd  # 在运行中的容器中启动新进程,在容器环境执行命令并显示
 docker kill container_name|container_id # 强制停止容器
-docker logs [-tf] container_name|container_id   # 查看容器控制台输出日志,-f参考linux的tail,-t显示时间戳
+docker logs [-tf] container_name|container_id # 查看容器控制台输出日志,-f参考linux的tail,-t显示时间戳
 docker inspect image_id|container_id  # 查看镜像或容器的详细信息
 docker inspect -f {{.NetworkSettings.IPAddress}} container_id  # 查看容器ip,通用模板是{{.aa.bb.cc}}
 docker cp container_name|container_id:container_path source_path # 拷贝容器中的文件到本机
-ctrl+p & ctrl+q  # 退出容器
+ctrl+p & ctrl+q # 退出容器
 exit # 退出容器并停止容器
 
 docker run image_id  # 运行本地镜像,如果镜像不存在,会先去dockerhub拉取镜像
@@ -36,16 +40,7 @@ docker run -v /conf:/etc/redis redis redis-server /etc/redis/redis.conf
 docker run -it centos /bin/bash
 docker build -t myos:first .  # 构建自己的Dockerfile
 docker build -t name:tag -f dir/Dockerfile .  # 构建镜像
-docker history --no-trunc test     #查看容器构建过程
-docker login
-docker tag ubuntu:14.04 ooxxme/myubuntu:last  #给原镜像打标签，产生的新镜像跟之前的镜像是同一个ID
-docker tag redis YOUR-USER-NAME/redis:latest   # rename, If you don’t specify a tag, Docker will use a tag called latest. 需提前在dockerhub创建好仓库
-docker push yourname/imagename     # 必须以自己的名字开头
-docker push akatsuki404/all-in-one:tagname
-docker commit [-a 'Author'|-m 'the first image'] 8d93082a9ce1 ubuntu:myubuntu # 保存已经更改的容器为新镜像
-docker save ubuntu:myubuntu > myubuntu.tar # 保存的文件名可以不以.tar结尾，仅仅是个后缀名而已
-docker load < myubuntu.tar # 等价于上一句
-docker import myubuntu.tar # 导入官方的原生镜像
+docker history --no-trunc test # 查看容器构建过程
 docker network ls   # 容器默认使用的是桥接网络
 docker network create my_net  # 默认创建的是桥接网络
 构建Dockerfile或者docker pull拉下来的叫镜像, 运行中的镜像叫容器,同一个镜像可以实例化多个容器
@@ -82,4 +77,6 @@ docker默认是允许container互通,通过-icc=false关闭互通,一旦关闭�
 docker0是docker虚拟出来的一个网桥,镜像产生的容器IP位于该网段,容器只有启动了,才会查看到他的IP
 [root@local Desktop]# brctl addbr docker   #给docker自定义一个虚拟网桥（重启会失效）
 [root@local Desktop]# ifconfig docker 192.168.9.100 netmask 255.255.255.0
+apt-get update    
+apt-get install vim
 ```
