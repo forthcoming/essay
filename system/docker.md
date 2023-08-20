@@ -30,7 +30,7 @@ docker run image_id  # 运行本地镜像,如果镜像不存在,会先去dockerh
 -i: 以交互模式运行容器(通常与-t同时使用)
 -t: 为容器分配一个终端
 -p: 宿主机:容器端口映射,可通过宿主机ip:port访问容器指定port程序
--v: 宿主机:容器目录映射,容器目录不存在会创建,存在则覆盖,改动本机或容器,则另一端目录内容也会改变
+-v: 宿主机:容器目录映射,目录不存在会创建,存在则覆盖,改动本机或容器,则另一端目录内容也会改变
 --rm: 容器退出时自动删除
 -m: 以bytes为单位容器最大内存
 -w: 容器工作目录,即进入时的目录,相当于执行cd操作,一般设置为安装软件目录,他会覆盖dockerfile中的WORKDIR
@@ -43,8 +43,6 @@ docker build -t name:tag -f dir/Dockerfile .  # 构建镜像
 docker history --no-trunc test # 查看容器构建过程
 docker network ls   # 容器默认使用的是桥接网络
 docker network create my_net  # 默认创建的是桥接网络
-构建Dockerfile或者docker pull拉下来的叫镜像, 运行中的镜像叫容器,同一个镜像可以实例化多个容器
-容器ip跟宿主机不一样,但容器内访问外部服务用的ip是宿主机ip
 ```
 
 ```shell
@@ -77,6 +75,61 @@ docker默认是允许container互通,通过-icc=false关闭互通,一旦关闭�
 docker0是docker虚拟出来的一个网桥,镜像产生的容器IP位于该网段,容器只有启动了,才会查看到他的IP
 [root@local Desktop]# brctl addbr docker   #给docker自定义一个虚拟网桥（重启会失效）
 [root@local Desktop]# ifconfig docker 192.168.9.100 netmask 255.255.255.0
+构建Dockerfile或者docker pull拉下来的叫镜像, 运行中的镜像叫容器,同一个镜像可以实例化多个容器
+容器ip跟宿主机不一样,但容器内访问外部服务用的ip是宿主机ip
 apt-get update    
 apt-get install vim
+```
+
+```pycon
+# 可以是任何一个存在的镜像(类似套娃)
+# Alpine Linux is much smaller than most distribution base images (~5MB), and thus leads to much slimmer images in general.
+# The main caveat to note is that it does use musl libc instead of glibc and friends, so software will often run into issues depending on the depth of their libc requirements/assumptions. 
+FROM python:3.9-alpine   
+
+ENV REDIS_DOWNLOAD_URL http://download.redis.io/releases/redis-6.2.4.tar.gz
+RUN apk upgrade; \
+    wget -O redis.tar.gz "$REDIS_DOWNLOAD_URL"; \
+    mkdir -p /usr/src/redis; \
+    tar -xzf redis.tar.gz -C /usr/src/redis --strip-components=1; \
+    rm redis.tar.gz;
+
+# The CMD directive specifies the default command to run when starting a container from this image.
+CMD ["python"]  
+
+
+#RUN mkdir /data && chown redis:redis /data
+#VOLUME /data
+#WORKDIR /data
+
+#COPY docker-entrypoint.sh /usr/local/bin/
+#ENTRYPOINT ["docker-entrypoint.sh"]
+
+#EXPOSE 6379
+#CMD ["redis-server"] 
+```
+
+
+```pycon
+from ubuntu:14.04
+maintainer akatsuki 212956978@qq.com
+run apt-get install -y nginx && mkdir ~/fuck
+#复制宿主机文件到容器中
+copy test.py ~/fuck/door.txt
+#指定的端口会在容器运行时显示出来
+expose 80 3306
+```
+
+```pycon
+FROM centos6-base
+MAINTAINER zhou_mfk <zhou_mfk@163.com>
+RUN ssh-keygen -q -N "" -t dsa -f /etc/ssh/ssh_host_dsa_key
+RUN ssh-keygen -q -N "" -t rsa -f /etc/ssh/ssh_host_rsa_key
+RUN sed -ri 's/session    required     pam_loginuid.so/#session    required     pam_loginuid.so/g' /etc/pam.d/sshd
+RUN mkdir -p /root/.ssh && chown root.root /root && chmod 700 /root/.ssh
+EXPOSE 22
+RUN echo 'root:redhat' | chpasswd
+RUN yum install tar gzip gcc vim wget -y
+ENV LANG en_US.UTF-8
+CMD /usr/sbin/sshd -D
 ```
