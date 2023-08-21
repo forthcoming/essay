@@ -10,8 +10,8 @@ docker login # 登陆
 docker push yourname/image_name[:tag] # 推送本地镜像到远程仓库,需提前用docker login账户创建好仓库
 docker tag old_image_name[:tag] yourname/image_name[:tag] # 给原镜像打标签,产生的新镜像跟之前的镜像是同一个image_id
 docker build -t image_name[:tag] [-f dir/Dockerfile] .  # 构建镜像,不指定-f则默认为当前目录下名为Dockerfile的文件
-docker network ls   # 容器默认使用的是桥接网络
-docker network create my_net  # 默认创建的是桥接网络
+docker network ls   # 查看docker网络模式,容器默认使用桥接网络
+docker network create network_name  # 默认创建的是桥接网络
 docker history [--no-trunc] image_name[:tag] # 查看镜像构建过程
 
 docker ps [-a] # 查看正在运行的容器(也可以查看容器的映射端口),-a查看所有容器
@@ -40,8 +40,9 @@ docker run image_id  # 运行本地镜像,如果镜像不存在,会先去dockerh
 --rm: 容器退出时自动删除
 -m: 以bytes为单位容器最大内存
 -w: 容器工作目录,即进入时的目录,相当于执行cd操作,一般设置为安装软件目录,他会覆盖dockerfile中的WORKDIR
+--network: 使用自定义网桥,容器之间可通过容器名互连,默认的bridge只能通过ip互连,互连前提是位于同一个网络
 docker run -p 80:80 -v /usr/local/data:/container/data --name=test centos echo 'Hello'
-docker run --network my_net -d redis # 使用自定义网桥,容器之间可通过容器名互连,默认的bridge只能通过ip互连,互连前提是位于同一个网络
+docker run --network my_net -d redis 
 docker run -v /conf:/etc/redis redis redis-server /etc/redis/redis.conf  
 docker run -it centos /bin/bash
 ```
@@ -69,34 +70,39 @@ copy test.py ~/fuck/door.txt
 cmd ["python"]  
 ```
 
+### docker-compose
+```yaml
+services:
+  web:
+    image: ktv_room
+    container_name: room
+    depends_on:
+      - redis
+  redis:
+    image: redis:latest
+    container_name: avatar
+    volumes:
+      - /app/data:/data
+    networks: 
+      - my_net  # docker自动创建
+    ports: 
+      - 3306:3306
+    command: redis-server /etc/redis/redis.conf
+```
+
 ```
 curl -fsSL https://get.docker.com | sh    # 安装docker
 docker默认是允许container互通,通过-icc=false关闭互通,一旦关闭了互通,只能通过-link name:alias命令连接指定container
 docker0是docker虚拟出来的一个网桥,镜像产生的容器IP位于该网段,容器只有启动了,才会查看到他的IP
-[root@local Desktop]# brctl addbr docker   #给docker自定义一个虚拟网桥（重启会失效）
 [root@local Desktop]# ifconfig docker 192.168.9.100 netmask 255.255.255.0
 构建Dockerfile或者docker pull拉下来的叫镜像, 运行中的镜像叫容器,同一个镜像可以实例化多个容器
 容器ip跟宿主机不一样,但容器内访问外部服务用的ip是宿主机ip
+docker建议每个容器只运行一个服务
+
+docker-compose up [-d] # 启动所有docker-compose服务,-d后台运行
+docker-compose down # 停止并删除容器,网络,卷,镜像
+docker-compose ps # 查看当前docker-compose运行的所有容器
 ```
 
-```shell
-# Alpine Linux is much smaller than most distribution base images (~5MB), and thus leads to much slimmer images in general.
-# The main caveat to note is that it does use musl libc instead of glibc and friends, so software will often run into issues depending on the depth of their libc requirements/assumptions. 
-FROM python:3.9-alpine   
-ENV REDIS_DOWNLOAD_URL http://download.redis.io/releases/redis-6.2.4.tar.gz
-RUN apk upgrade; \
-    wget -O redis.tar.gz "$REDIS_DOWNLOAD_URL"; \
-    mkdir -p /usr/src/redis; \
-    tar -xzf redis.tar.gz -C /usr/src/redis --strip-components=1; \
-    rm redis.tar.gz;
-CMD ["python"]  
 
-#RUN mkdir /data && chown redis:redis /data
-#VOLUME /data
-#WORKDIR /data
-#COPY docker-entrypoint.sh /usr/local/bin/
-#ENTRYPOINT ["docker-entrypoint.sh"]
-#EXPOSE 6379
-#CMD ["redis-server"] 
-```
 
