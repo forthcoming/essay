@@ -8,6 +8,7 @@ mongodb默认按_id升序输出,so最先插入的数据会靠前展示
 ```
 
 ### mongo监控
+
 ```
 mongostat -h 10.1.140.179:27017
 导出数据
@@ -69,6 +70,7 @@ client.close()
 ```
 
 ### CRUD
+
 ```javascript
 db.user.distinct(field,{depth:'A'});   // 查询depth为A的所有不重复field
 db.user.find({b:null});  // b不存在或者b=null,pymongo用None表示
@@ -114,6 +116,7 @@ db.user.updateMany({slug: 'avatar'},{$set: { item: 2 },$setOnInsert: {slug:'akat
 ```
 
 ### index
+
 ```javascript
 相同索引只创建一次
 sort要跟索引完全保持一致,sort多个字段就要建立复合索引,这要求字段个数,顺序完全一致,注意asc和desc必须跟索引完全一致或完全相反,否则索引会失效
@@ -165,6 +168,7 @@ db.restaurants.find( { cuisine: "Italian" } );
 ```
 
 ### geo
+
 ```javascript
 db.places.insertMany([
     {
@@ -197,6 +201,7 @@ db.places.find( //前提是被查询字段已经建立2dsphere索引,returns who
 ```
 
 ### cursor
+
 ```javascript
 var name='user';
 var cursor=db[name].find({age:{$exists: true}});
@@ -226,6 +231,7 @@ while not done:  # 防止游标超时
 ```
 
 ### aggregate
+
 ```javascript
 db.user.aggregate([
     {
@@ -295,6 +301,7 @@ db.inventory.aggregate( [ { $unwind : "$sizes" } ] )
 ```
 
 ### example
+
 ```javascript
 use Atlas;  // shell中需要
 
@@ -330,4 +337,242 @@ for(let name of name_en){
         }
     }
 }
+```
+
+### MapReduce(支持分布式操作)
+
+```javascript
+db.user.mapReduce(
+    function(){  // map
+        // for(var idx=0;idx<this._id.length;++idx){
+            var key={id:this.id,name:this.name};
+            var value={
+                count:1,
+                score:this.score,
+            };
+            emit(key,value);
+        // }
+    },
+    function(key,values){  // reduce
+        var reducedVal={count:0,score:0};
+        for(let value of values){
+            reducedVal.count+=value.count;  // 注意count计算方式
+            reducedVal.score+=value.score;
+        }
+        return reducedVal
+    },
+    {
+        out:{inline:1}, 
+        // out: {merge: 'results'},
+        query:{id:{$ne:2}},
+        finalize:function (key, reducedVal) {  // 计算平均数等操作只能放在此处执行
+            reducedVal.avg = reducedVal.score/reducedVal.count;
+            return reducedVal;
+        }
+    }
+).find()
+
+/*
+map:
+The map function is responsible for transforming each input document into zero or more documents. It can access the variables defined in the scope parameter
+In the map function, reference the current document as this within the function
+The map function should not access the database for any reason.
+The map function may optionally call emit(key,value) any number of times to create an output document associating key with value.
+
+
+reduce:
+The reduce function should not access the database, even to perform read operations.
+The reduce function should not affect the outside system.
+MongoDB will not call the reduce function for a key that has only a single value. The values argument is an array whose elements are the value objects that are “mapped” to the key.
+MongoDB can invoke the reduce function more than once for the same key. In this case, the previous output from the reduce function for that key will become one of the input values to the next reduce function invocation for that key.
+The reduce function can access the variables defined in the scope parameter.
+The inputs to reduce must not be larger than half of MongoDB’s maximum BSON document size. This requirement may be violated when large documents are returned and then joined together in subsequent reduce steps.
+
+
+Because it is possible to invoke the reduce function more than once for the same key, the following properties need to be true:
+the type of the return object must be identical to the type of the value emitted by the map function.
+
+
+the reduce function must be associative. The following statement must be true:
+reduce(key, [ C, reduce(key, [ A, B ]) ] ) == reduce( key, [ C, A, B ] )
+
+
+the reduce function must be idempotent. Ensure that the following statement is true:
+reduce( key, [ reduce(key, valuesArray) ] ) == reduce( key, valuesArray )
+
+
+the reduce function should be commutative: that is, the order of the elements in the valuesArray should not affect the output of the reduce function, so that the following statement is true:
+reduce( key, [ A, B ] ) == reduce( key, [ B, A ] )
+
+
+query:
+Specifies the selection criteria using query operators for determining the documents input to the map function
+
+
+out:
+out: { <action>: <collectionName> [, db: <dbName>] }
+<action>: Specify one of the following actions:
+replace
+Replace the contents of the <collectionName> if the collection with the <collectionName> exists.
+merge
+Merge the new result with the existing result if the output collection already exists. If an existing document has the same key as the new result, overwrite that existing document.
+reduce
+Merge the new result with the existing result if the output collection already exists.
+If an existing document has the same key as the new result, apply the reduce function to both the new and the existing documents and overwrite the existing document with the result.
+db
+Optional. The name of the database that you want the map-reduce operation to write its output. By default this will be the same database as the input collection.
+
+sort:
+Sorts the input documents. This option is useful for optimization. For example, specify the sort key to be the same as the emit key so that there are fewer reduce operations.
+The sort key must be in an existing index for this collection.
+
+limit:
+Specifies a maximum number of documents for the input into the map function.
+
+scope:
+Specifies global variables that are accessible in the map, reduce and finalize functions.
+
+finalize:
+The finalize function receives as its arguments a key value and the reducedValue from the reduce function. Be aware that:
+The finalize function should not access the database for any reason.
+The finalize function should be pure, or have no impact outside of the function (i.e. side effects.)
+The finalize function can access the variables defined in the scope parameter.
+*/
+
+
+db.image_match_result_jewellery.mapReduce(
+    function(){
+        if(this.b_id>this.c_id){
+            [this.b_id,this.c_id]=[this.c_id,this.b_id];
+        }
+        var key={b_id:this.b_id,c_id:this.c_id};
+        var value={
+            match_num:1,
+            hash_diff:this.hash_diff,
+            b_id:this.b_id,
+            c_id:this.c_id
+        };
+        emit(key,value);
+    },
+    function(key,values){
+        var reducedVal={
+            match_num:0,
+            hash_diff:Number.POSITIVE_INFINITY,
+            b_id:values[0].b_id,
+            c_id:values[0].c_id
+        };
+        for(let value of values){
+            reducedVal.match_num+=value.match_num;
+            if(reducedVal.hash_diff>value.hash_diff){
+                reducedVal.hash_diff=value.hash_diff
+            }
+        }
+        return reducedVal
+    },
+    {
+        out: {reduce: 'results',nonAtomic:false},
+        scope:{
+            date:(function(){
+                var convert=s=>s < 10 ? '0' + s : s;
+                var myDate = new Date();
+                var year = myDate.getFullYear();
+                var month = myDate.getMonth() + 1;
+                var date = myDate.getDate();
+                var h = myDate.getHours();
+                var m = myDate.getMinutes();
+                var s = myDate.getSeconds();
+                return `${year}-${convert(month)}-${convert(date)} ${h}:${convert(m)}:${convert(s)}`;
+            })(),  // 只会执行一次
+        },
+        query:{'$or':[{'added_to_item_match':{'$exists':false}},{'added_to_item_match':false}]},
+        sort:{b_id:1,c_id:-1},
+        finalize:function (key, reducedVal) {
+            reducedVal.sim_score = reducedVal.hash_diff/reducedVal.match_num;
+            reducedVal.date=this.date;
+            return reducedVal;
+        }
+    }
+)
+```
+
+```python
+from datetime import datetime
+
+from bson.code import Code
+from bson.son import SON
+from pymongo import MongoClient
+
+client = MongoClient('mongodb://192.168.105.20:27017')
+db = client['Atlas']
+image_match = db['image_match_result_jewellery']
+
+mapper = Code('''
+    function(){
+        if(this.b_id>this.c_id){
+            [this.b_id,this.c_id]=[this.c_id,this.b_id];
+        }
+        var key={b_id:this.b_id,c_id:this.c_id};
+        var value={
+            match_num:1,
+            hash_diff:this.hash_diff,
+            b_id:this.b_id,
+            c_id:this.c_id,
+            b_url:this.b_url,
+            c_url:this.c_url
+        };
+        emit(key,value);
+    }
+''')
+
+reducer = Code('''
+    function(key,values){
+        var reducedVal={
+            match_num:0,
+            hash_diff:Number.POSITIVE_INFINITY,
+            b_id:values[0].b_id,
+            c_id:values[0].c_id,
+        };
+        for(let value of values){
+            reducedVal.match_num+=value.match_num;
+            if(reducedVal.hash_diff>value.hash_diff){
+                reducedVal.hash_diff=value.hash_diff;               
+                reducedVal.hash_diff=value.hash_diff;
+                reducedVal.hash_diff=value.hash_diff;
+            }
+        }
+        return reducedVal
+    }
+''')
+
+finalize = Code('''
+    function(key, reducedVal) {
+        reducedVal.sim_score = reducedVal.hash_diff/reducedVal.match_num;
+        reducedVal.updated_at=this.updated_at;
+        return reducedVal;
+    }
+''')
+
+result = image_match.map_reduce(
+    mapper,
+    reducer,
+    out=SON([("reduce", "results"), ("db", 'Atlas')]),
+    query={'$or': [{'added_to_item_match': {'$exists': False}}, {'added_to_item_match': False}]},
+    # perform incremental Map-Reduce
+    sort=SON([('b_id', -1), ('c_id', 1)]),
+    finalize=finalize,
+    scope={'updated_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')},  # 只执行一次
+    limit=500000,
+    full_response=True,
+)
+print(result)
+client.close()
+
+# During the operation, map-reduce takes the following locks:
+# The read phase takes a read lock. It yields every 100 documents.
+# The insert into the temporary collection takes a write lock for a single write.
+# If the output collection does not exist, the creation of the output collection takes a write lock.
+# If the output collection exists, then the output actions (i.e. merge, replace, reduce) take a write lock. This write lock is global, and blocks all operations on the mongod instance.
+# NOTE
+# The final write lock during post-processing makes the results appear atomically. However, output actions merge and reduce may take minutes to process.
+# For the merge and reduce, the nonAtomic flag is available, which releases the lock between writing each output document. See the db.collection.mapReduce() reference for more information.
 ```

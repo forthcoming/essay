@@ -92,11 +92,9 @@ services:
 
 ```
 curl -fsSL https://get.docker.com | sh    # 安装docker
-docker默认是允许container互通,通过-icc=false关闭互通,一旦关闭了互通,只能通过-link name:alias命令连接指定container
 docker0是docker虚拟出来的一个网桥,镜像产生的容器IP位于该网段,容器只有启动了,才会查看到他的IP
-[root@local Desktop]# ifconfig docker 192.168.9.100 netmask 255.255.255.0
 构建Dockerfile或者docker pull拉下来的叫镜像, 运行中的镜像叫容器,同一个镜像可以实例化多个容器
-容器ip跟宿主机不一样,但容器内访问外部服务用的ip是宿主机ip
+容器内访问外部服务用的ip是宿主机ip
 docker建议每个容器只运行一个服务
 
 docker-compose up [-d] # 启动所有docker-compose服务,-d后台运行
