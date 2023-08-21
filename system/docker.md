@@ -1,3 +1,12 @@
+### common
+```
+curl -fsSL https://get.docker.com | sh  # 安装docker
+docker0是docker虚拟出来的一个网桥,镜像产生的容器IP位于该网段,苹果电脑下无法创建docker0网桥,所以宿主机无法ping通容器
+构建Dockerfile或者docker pull拉下来的叫镜像, 运行中的镜像叫容器,同一个镜像可以实例化多个容器
+容器内访问外部服务用的ip是宿主机ip
+docker建议每个容器只运行一个服务
+```
+
 ### docker命令
 ```shell
 docker pull image_name[:tag] # 拉镜像,如果不指定tag,默认值是latest
@@ -13,6 +22,10 @@ docker build -t image_name[:tag] [-f dir/Dockerfile] .  # 构建镜像,不指定
 docker network ls   # 查看docker网络模式,容器默认使用桥接网络
 docker network create network_name  # 默认创建的是桥接网络
 docker history [--no-trunc] image_name[:tag] # 查看镜像构建过程
+docker compose up [-d] # 启动所有compose服务,-d后台运行
+docker compose down # 停止并删除容器,网络,卷,镜像
+docker compose ps # 查看当前compose运行的所有容器
+docker compose config # 校验并输出解析后的compose.yaml配置文件
 
 docker ps [-a] # 查看正在运行的容器(也可以查看容器的映射端口),-a查看所有容器
 docker top [container_name|container_id]  # 查看容器负载情况(pid并非容器内进程的pid)
@@ -25,7 +38,7 @@ docker exec container_name|container_id cmd  # 在运行中的容器中启动新
 docker kill container_name|container_id # 强制停止容器
 docker logs [-tf] container_name|container_id # 查看容器控制台输出日志,-f参考linux的tail,-t显示时间戳
 docker inspect image_id|container_id  # 查看镜像或容器的详细信息
-docker inspect -f {{.NetworkSettings.IPAddress}} container_id  # 查看容器ip,通用模板是{{.aa.bb.cc}}
+docker inspect -f {{.NetworkSettings.IPAddress}} container_id  # 查看容器ip(只有启动的容器才分配IP),通用模板是{{.aa.bb.cc}}
 docker cp container_name|container_id:container_path source_path # 拷贝容器中的文件到本机
 ctrl+p & ctrl+q # 退出容器
 exit # 退出容器并停止容器
@@ -56,8 +69,8 @@ from ubuntu:latest
 # 将元数据添加到图像中,通过docker image inspect查看,一个图像可以有多个标签,可以在一行上指定多个标签
 label author="akatsuki" mail="1234567890@qq.com"
 # 构建容器时运行的命令 
-run apt-get update   
-run apt-get install -y nginx && mkdir ~/fuck
+run apt update   
+run apt install -y iputils-ping && mkdir ~/fuck
 # 将环境变量＜key＞设置为值＜value＞,该值将在构建阶段的所有后续指令的环境中,并且可以在许多指令中内联替换
 env PATH=/fuck
 # 为Dockerfile中的任何RUN、CMD、ENTRYPOINT、COPY和ADD指令设置工作目录
@@ -70,12 +83,14 @@ copy test.py ~/fuck/door.txt
 cmd ["python"]  
 ```
 
-### docker-compose
+### compose.yaml
 ```yaml
 services:
   web:
     image: ktv_room
     container_name: room
+    networks: 
+      - my_net 
     depends_on:
       - redis
   redis:
@@ -84,23 +99,15 @@ services:
     volumes:
       - /app/data:/data
     networks: 
-      - my_net  # docker自动创建
+      - my_net 
     ports: 
-      - 3306:3306
+      - "3306:3306"  # HOST:CONTAINER应始终指定为带引号的字符串,以避免与yaml base-60 float发生冲突
     command: redis-server /etc/redis/redis.conf
+networks:
+  my_net:
+    driver: bridge  # 默认就是bridge  
 ```
 
-```
-curl -fsSL https://get.docker.com | sh    # 安装docker
-docker0是docker虚拟出来的一个网桥,镜像产生的容器IP位于该网段,容器只有启动了,才会查看到他的IP
-构建Dockerfile或者docker pull拉下来的叫镜像, 运行中的镜像叫容器,同一个镜像可以实例化多个容器
-容器内访问外部服务用的ip是宿主机ip
-docker建议每个容器只运行一个服务
-
-docker-compose up [-d] # 启动所有docker-compose服务,-d后台运行
-docker-compose down # 停止并删除容器,网络,卷,镜像
-docker-compose ps # 查看当前docker-compose运行的所有容器
-```
 
 
 
