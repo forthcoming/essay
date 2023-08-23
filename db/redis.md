@@ -767,6 +767,17 @@ int aeProcessEvents(aeEventLoop *eventLoop,int flags){
 
 ![Image](source/redis网络模型.png)
 
+### 主从同步原理
+
+```
+replication_id: 数据集标记,ID一致说明是同一数据集,每个master都有唯一ID,replica会继承master的ID
+offset: 偏移量,记录master在repl_backlog(环状数组)中的最新数据位置,replica完成同步时也会记录当前同步的offset,比较两者offset判断是否需要更新
+replica第一次同步是全量同步,根据replication_id判断是否是第一次同步
+由于repl_backlog大小有上限,如果replica落后过多(如停掉一段时间),当master的offset再次追上replica时,则无法基于log做增量同步,只能再次全量同步
+```
+
+![Image](source/redis主从同步.png)
+
 ### RESP协议(参考: https://github.com/redis/redis-py/blob/master/redis/_parsers/resp3.py)
 
 ```python
