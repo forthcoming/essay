@@ -313,8 +313,8 @@ serializable(可串行化): 写加写锁,读加读锁,当出现读写锁冲突�
 幻读: 在A事务中,第一次查询某条记录没有,接着在B事务中插入了该记录并提交,然后在A事务中更新这条记录时成功,并且再次读取这条记录时能读到
 MVCC和间隙锁可以解决大部分幻读问题
 
-事务的隔离性是由锁和MVCC来实现,隔离级别的隔离性越低,并发能力就越强,MySQL的默认隔离级别为repeatable read
-并发事务中如果在更改同一条数据,那么先改的会成功,后改的会被阻塞,直到先改的事务提交后才能修改成功,可以理解为加了写锁
+事务的隔离性是由锁和MVCC来实现,隔离级别越低,并发能力就越强,MySQL的默认隔离级别为repeatable read
+并发事务中如果更改同一条数据,那么先改的会成功,后改的会被阻塞,直到先改的事务提交后才能修改成功,可以理解为加了写锁
 
 对于InnoDB,绝大部分sql语句(个别语句如建表等除外)都会自动开启事务,sql执行完事务自动COMMIT,所以不能rollback
 show variables like "%autocommit%";  # mysql默认是on
@@ -502,7 +502,7 @@ select cnarea.* from cnarea_2023 join (select id from cnarea limit 700000,10) x 
 行锁对提高并发帮助很大;事务对数据一致性帮助很大
 t_user(uid PK, uname, age, sex) innodb;
 update t_user set age=10 where uid=1;            -- 命中索引,行锁
-update t_user set age=10 where uid != 1;         -- 未命中索引,表锁(负向查询无法命中索引)
+update t_user set age=10 where uid != 1;         -- 未命中索引,表锁(反向查询无法命中索引)
 update t_user set age=10 where name='shenjian';  -- 无索引,表锁
 ```
 
@@ -678,12 +678,12 @@ possible_keys: c1
         Extra: NULL
 ```
 
-### binlog
+### binlog(类似于redis的aof)
 
 ```
-binlog记录了所有数据定义语言语句和数据操纵语言语句,但不包括数据查询(select show),配置文件可以配置binlog文件过期自动删除
+binlog记录了所有数据定义语言语句和数据操纵语言语句,与数据库文件在同目录中,但不包括数据查询(select show),配置文件可以配置binlog文件过期自动删除
 binlog.index记录了当前数据库所有的binlog文件名
-使用场景(binlog日志与数据库文件在同目录中): 主从复制; 使用mysqlbinlog工具恢复数据
+使用场景: 主从复制; 使用mysqlbinlog工具恢复数据
 show master logs;   # 查看所有binlog日志列表
 show master status; # 查看最新一个binlog日志的名称及最后一个操作事件的Position
 flush logs;         # 刷新日志,自此刻开始产生一个新的binlog日志文件(每当mysqld重启or在mysqldump备份数据时加-F选项都会执行该命令)
@@ -696,7 +696,7 @@ mysqlbinlog --stop-position='120' binlog-file |mysql -uroot -p db_name   // 用b
 ### 主从复制
 
 ```
-主从复制指在主开启binlog后,从服务器I/O线程读取binlog并写入从的中继日志,接者从服务器SQL线程执行中继日志来达到数据一致目的
+主从复制指在主开启binlog后,从服务器I/O线程读取binlog并写入从的中继日志,接着从服务器SQL线程执行中继日志来达到数据一致目的
 一台主库可同时向多台从库进行复制,从库同时也可以作为其他从服务器的主库,例如实现双主双从(由两个一主一丛构成,双主之间相互复制,实现高可用)
 中继日志充当缓冲(类似生产者消费者),这样主不必等待从执行完成就可以发送下一个binlog,中继日志格式与binlog文件相同,可以使用mysqlbinlog进行读取
 show variables like '%relay%'; 查看relay所有相关参数,relay-bin.index记录了当前数据库所有的relay-bin文件名
