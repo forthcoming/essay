@@ -129,7 +129,7 @@ sort uid by not-exists-key get user_info_*->level get user_info_*->name
 ### connection
 
 ```
-ping #测试服务器是否可用
+ping: 测试服务器是否可用
 select 0|1|2...: 从0到15编号,可从配置文件修改,所有数据库保留在同一个RDB/AOF文件中,集群无法使用
 实际项目中数据库应该用于分隔属于同一应用的不同键,而不是为多个不相关的应用使用单个Redis实例
 client id:  返回当前连接的ID,不重复且单调递增,ID大说明后来新建的连接
@@ -187,7 +187,7 @@ flushdb: 清空当前数据库的所有数据
 flushall: 清空所有数据库数据
 
 config get parameter [parameter ...]: 读取正在运行的服务器的配置参数,支持通配符
-CONFIG SET parameter value [parameter value ...]: 在运行时重新配置服务器,并在下一条命令执行时生效
+config set parameter value [parameter value ...]: 在运行时重新配置服务器,并在下一条命令执行时生效
 config rewrite: 重写服务器启动时使用的redis.conf文件,即更新CONFIG SET命令
 
 dbsize: 当前数据库未过期key的数量
@@ -1045,7 +1045,7 @@ MIGRATE一旦收到OK,其自己的数据集中的旧key将被删除,从客户端
 
 MOVED重定向:
 客户端可以将查询发送到任意节点,如果哈希槽由节点提供,则处理查询,否则向客户端回复-MOVED 3999 127.0.0.1:6381
-客户端收到MOVED错误后,根据返回信息重定向到正确节点,还应该使用CLUSTER ShardS命令刷新整个客户端集群布局
+客户端收到MOVED错误后,根据返回信息重定向到正确节点,还应该使用CLUSTER SHARDS命令刷新整个客户端集群布局
 ```
 
 ### rebalance(平衡集群中各个节点的slot数量)
