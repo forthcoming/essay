@@ -1,7 +1,7 @@
 ### generic
 
 ```
-OBJECT IDLETIME key: 返回自上次访问key以来的时间(单位秒),仅当maxmemory-policy设置为LFU策略之一时该命令才可用
+OBJECT IDLETIME key: 返回自上次访问key以来的时间(单位秒),仅当maxmemory-policy未设置为LFU策略之一时该命令才可用
 OBJECT FREQ key: 返回key的对数访问频率计数器,仅当maxmemory-policy设置为LFU策略之一时该命令才可用
 OBJECT ENCODING key: 返回key对象的内部编码
 string: 64位有符号整数为int编码,44个字节以内(object head与sds是一段连续空间,只需申请一次内存,效率更高)为embstr编码,其余为raw编码
