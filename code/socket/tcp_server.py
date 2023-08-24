@@ -72,21 +72,37 @@ int epoll_wait(  // 检测rdlist列表是否为空,不为空则返回就绪的fd
 1. 定长消息 2. 消息头中包含消息的长度信息 3. 指定结束符如\n
 
 TCP和UDP是两种常用的传输层协议,用于网络数据传输
-TCP是面向连接的协议,数据传输前必须先建立连接,通过三次握手来实现,提供可靠的数据顺序传输,如网页浏览、文件传输和电子邮件
+TCP是面向连接的协议,数据传输前必须先建立连接,提供可靠的数据顺序传输,如网页浏览、文件传输和电子邮件
 UDP是无连接的协议,数据传输前不需要建立连接,数据传输不保证顺序和可靠性,使得UDP比TCP更加轻量级和快速
 对于某些实时性和速度要求高、同时能容忍少量数据丢失的应用,如实时视频和音频通话、在线游戏等
+TCP是全双工,三次握手和四次挥手既可以由客户端发起,也可以由服务端发起
+
+SYN(synchronization): 请求建立连接,三次握手中用到
+FIN(finish): 请求关闭连接,对应端口仍处于开放状态,可以接收后续数据,四次挥手中用到
+ACK(acknowledgment): 确认接受,三次握手和四次分手中用到
 
 三次握手
 1. client首先发送SYN报文和随机产生一个值seq=X给server,此时client进入SYN_SENT状态,等待server端确认
 2. server收到client发过来的SYN包后知道client请求建立连接,将产生一个SYN+ACK=X+1包和随机产生的seq=Y发送给client以确认连接请求,此时server进入SYN_RCVD状态
 3. client收到server的SYN+ACK包,向server发送确认包ACK=Y+1,此包发送完毕,client和server进入ESTABLISHED(TCP连接成功)状态
 第三次握手就是让server确认client可用,避免无效等待,应为第二次握手可能是因为网络延迟某个已关闭的client发出
+
+四次挥手:
+1. client发出FIN包请求关闭连接,进入FIN_WAIT_1状态
+2. server收到FIN包,发送ACK包,进入CLOSE_WAIT状态,client收到ACK包后进入FIN_WAIT_2状态,此时server还可以发送未发送数据,client还可以接收数据
+3. server发送完数据后,发送一个FIN包,进入LAST_ACK状态
+4. client收到FIN包后,发送ACK包,进入TIME_WAIT状态,超时等待(一般为1min)结束后关闭连接,server收到ACK包后进入CLOSED状态,关闭连接
+TIME_WAIT是为了保证server能收到ACK包,如果没收到,server会重发送FIN包,处于TIME_WAIT的的client收到FIN包后再次发送ACK包并刷新TIME_WAIT时间
+大量TIME_WAIT会占用内存和端口资源,高并发下服务器出现这种情况,可通过调整等待时间,SO_REUSEADDR端口复用,短连接改长连接等方式解决
+握手其实是四个阶段,只不过第2,3阶段合并成2阶段,挥手2阶段后服务端可能还会发送数据,所以不能合并
 """
 
 
 class BlockingIO:  # 阻塞IO
     def __init__(self, ip='127.0.0.1', port=9999):
         self.server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # AF_INET指使用IPv4协议,SOCK_STREAM指使用TCP协议
+        # SO_REUSEADDR标志告诉内核将处于TIME_WAIT状态的本地套接字重新使用,而不必等到固有的超时到期
+        self.server_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.server_sock.bind((ip, port))  # 监听端口,0.0.0.0表示绑定到所有的网络地址
         self.server_sock.listen(5)  # 调用listen()方法开始监听端口,传入的参数指定等待连接的最大数量
 

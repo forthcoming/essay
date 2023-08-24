@@ -170,10 +170,6 @@ client kill: 杀死某个连接 client kill addr 127.0.0.1:43501
 ### server management
 
 ```
-REPLICAOF host port: 做host port的从服务器(数据清空,复制新主内容),一个master可以有多个slave,master挂掉后slave会升级为master
-默认情况下副本将忽略最大内存,这意味着key的驱逐将由主服务器处理,将DEL命令发送到副本作为主服务器端驱逐的key,此行为可确保主从保持一致
-REPLICAOF no one:变成主服务器(原数据不丢失,一般用于主服失败后)
-
 ACL LIST: 显示服务器中活跃的ACL规则,每一行有一个不同的用户
 ACL CAT [category]: 如果不带参数将显示可用的ACL类别,如果给出类别将显示指定类别中所有Redis命令
 ACL DELUSER username [username ...]: 删除所有指定的ACL用户,并终止所有通过该用户认证的连接
@@ -770,10 +766,16 @@ int aeProcessEvents(aeEventLoop *eventLoop,int flags){
 ### 主从同步原理
 
 ```
-replication_id: 数据集标记,ID一致说明是同一数据集,每个master都有唯一ID,replica会继承master的ID
-offset: 偏移量,记录master在repl_backlog(环状数组)中的最新数据位置,replica完成同步时也会记录当前同步的offset,比较两者offset判断是否需要更新
-replica第一次同步是全量同步,根据replication_id判断是否是第一次同步
-由于repl_backlog大小有上限,如果replica落后过多(如停掉一段时间),当master的offset再次追上replica时,则无法基于log做增量同步,只能再次全量同步
+REPLICAOF host port: 做host port的从服务器(数据清空,复制新主内容),一个主节点可以有多个从节点,主节点挂掉后从节点会升级为主节点
+REPLICAOF no one:变成主服务器(原数据不丢失,一般用于主服失败后)
+PSYNC replicationid offset: 从节点执行
+replicationid: 数据集标记,ID一致说明是同一数据集,每个master都有唯一ID,replica会继承master的ID,每次主节点重启或副本升级为主节点时都会生成一个新ID
+offset: 偏移量,记录master在backlog(环状数组)中的最新数据位置,replica完成同步时也会记录当前同步的offset,比较两者offset判断是否需要更新
+当一个实例在故障转移后晋升为master时,它仍然能够与旧master的副本执行部分重新同步
+replica第一次同步是全量同步,根据replicationid判断是否是第一次同步
+由于backlog大小有上限,如果replica落后过多(如停掉一段时间),当master的offset再次追上replica时,则无法基于log做增量同步,只能再次全量同步
+默认情况下副本将忽略最大内存,这意味着key的驱逐将由主服务器处理,将DEL命令发送到副本作为主服务器端驱逐的key,此行为可确保主从保持一致
+副本集默认只读,由配置参数replica-read-only控制
 ```
 
 ![Image](source/redis主从同步.png)
