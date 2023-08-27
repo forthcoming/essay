@@ -320,7 +320,7 @@ SELECT * FROM topic PARTITION (p1); -- 只查看p1,要从多个分区获取行,�
 binlog所有引擎都可以使用
 binlog记录了所有数据定义语言语句和数据操纵语言语句,与数据库文件在同目录中,但不包括数据查询(select show),配置文件可以配置binlog文件过期自动删除
 binlog.index记录了当前数据库所有的binlog文件名
-binlog记录先存到binlog cache,当大小超过binlog_cache_size或事务提交的时候,把cache里记录写到binlog文件中并清空cache
+binlog记录先存到binlog cache,当大小超过binlog_cache_size时会暂存磁盘,事务提交时把cache和磁盘记录写到binlog文件并清空cache
 使用场景: 主从复制; 使用mysqlbinlog工具恢复数据
 show master logs;   # 查看所有binlog日志列表
 show master status; # 查看最新一个binlog日志的名称及最后一个操作事件的Position
@@ -461,6 +461,13 @@ XA事务: 基于两阶段提交(2PC)
 提交阶段: 如果TM收到了RM的失败消息,直接给每个RM发送回滚消息;否则发送提交消息
 场景: 跨数据库的银行转账; 微服务中的订单,库存,余额系统等
 不足: 需要所有参与者互相等待,并发低
+
+binlog和redo日志通过2PC机制保证一致性
+1. 将XID(内部XA事务的ID)写入到redo日志,同时将redo日志对应的事务状态设置为prepare并持久化到磁盘(innodb_flush_log_at_trx_commit = 1)
+2. 把XID写入到binlog,然后将binlog持久化到磁盘(sync_binlog = 1)
+3. 调用引擎的提交事务接口,将redo日志状态设置为commit
+mysql重启时,先扫描redo日志,如果是commit状态,直接根据redo日志恢复数据,如果是prepare状态,会判断redo日志中的XID是否存在于binlog
+如果没找到XID,说明binlog还没刷盘,则回滚事务,否则redo日志和binlog都已完成刷盘,则提交事务
 ```
 
 ### 多版本控制(MVCC)
