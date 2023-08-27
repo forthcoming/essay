@@ -6,6 +6,14 @@ docker0是docker虚拟出来的一个网桥,镜像产生的容器IP位于该网�
 容器内访问外部服务用的ip是宿主机ip
 docker建议每个容器只运行一个服务
 每个虚拟机都是独立的环境,容器共享操作系统,占用资源更少
+docker desktop在engine设置页面添加"registry-mirrors": ["https://registry.docker-cn.com","http://hub-mirror.c.163.com"]镜像源
+centos系统修改如下:
+vim /etc/docker/daemon.json
+{
+  "registry-mirrors": ["https://registry.docker-cn.com"]
+}
+sudo systemctl daemon-reload 
+sudo systemctl restart docker
 ```
 
 ### docker命令
@@ -38,8 +46,7 @@ docker attach container_name|container_id  # 进入正在运行的容器终端
 docker exec container_name|container_id cmd  # 在运行中的容器中启动新进程,在容器环境执行命令并显示
 docker kill container_name|container_id # 强制停止容器
 docker logs [-tf] container_name|container_id # 查看容器控制台输出日志,-f参考linux的tail,-t显示时间戳
-docker inspect image_id|container_id  # 查看镜像或容器的详细信息
-docker inspect -f {{.NetworkSettings.IPAddress}} container_id  # 查看容器ip(只有启动的容器才分配IP),通用模板是{{.aa.bb.cc}}
+docker inspect image_id|container_id  # 查看镜像或容器的详细信息,只有启动的容器才分配IP,IP保存在IPAddress字段
 docker cp container_name|container_id:container_path source_path # 拷贝容器中的文件到本机
 ctrl+p & ctrl+q # 退出容器
 exit # 退出容器并停止容器
@@ -73,6 +80,7 @@ label author="akatsuki" mail="1234567890@qq.com"
 run apt update   
 run apt install -y iputils-ping && mkdir ~/fuck
 # 将环境变量＜key＞设置为值＜value＞,该值将在构建阶段的所有后续指令的环境中,并且可以在许多指令中内联替换
+# ARG创建的变量只在镜像构建过程中可见,ENV创建的变量不仅能在构建镜像的过程中使用,在容器运行时也能够以环境变量的形式被应用程序使用
 env PATH=/fuck
 # 为Dockerfile中的任何RUN、CMD、ENTRYPOINT、COPY和ADD指令设置工作目录
 workdir $PATH/test
