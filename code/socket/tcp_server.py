@@ -95,6 +95,12 @@ ACK(acknowledgment): 确认接受,三次握手和四次分手中用到
 TIME_WAIT是为了保证server能收到ACK包,如果没收到,server会重发送FIN包,处于TIME_WAIT的的client收到FIN包后再次发送ACK包并刷新TIME_WAIT时间
 大量TIME_WAIT会占用内存和端口资源,高并发下服务器出现这种情况,可通过调整等待时间,SO_REUSEADDR端口复用,短连接改长连接等方式解决
 握手其实是四个阶段,只不过第2,3阶段合并成2阶段,挥手2阶段后服务端可能还会发送数据,所以不能合并
+
+TCP如何保证安全有效传输?
+1. 三次握手+四次挥手
+2. 发送报文包含[序列号,长度,数据内容],服务端收到数据后回复确认ACK=序列号+长度=下一个包起始序列号
+3. 当报文发出后在一定时间内未收到接收方确认,发送方就会进行重传,当接收方收到重复数据(通过序列号)时就将其丢掉,重新发送ACK
+4. 每个报文段都会添加一个头部校验和(参见checksum),发送方和接收方验证校验和是否相同,以检测数据在传输过程中是否损坏或者被篡改,校验不过会进行重传
 """
 
 
@@ -170,9 +176,24 @@ class IOMultiplexing:  # IO多路复用
             client_sock.close()
 
 
+def checksum(data):
+    length = len(data)
+    if length & 1:
+        data += b'\x00'  # Pad with zero if the length is odd,填充字节只是为了计算校验和,不用传送
+    total = 0
+    for i in range(0, length, 2):
+        total += data[i] << 8 | data[i + 1]
+        if total > 0xFFFF:
+            total = (total & 0xFFFF) + 1
+    return ~total & 0xFFFF
+
+
 if __name__ == "__main__":
-    blocking_io = BlockingIO()
-    blocking_io.start()
+    # blocking_io = BlockingIO()
+    # blocking_io.start()
 
     # io_multiplexing = IOMultiplexing()
     # io_multiplexing.start()
+
+    tcp_header_and_data = b'\x45\x00\x00\x28\x00\x00\x40\x00\x40\x06\x00\x00\xc0\xa8\x01\x01\xc0\xa8\x01\x02\x14'
+    print("Calculated Checksum:", checksum(tcp_header_and_data))
