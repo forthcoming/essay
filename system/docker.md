@@ -6,12 +6,11 @@ docker0是docker虚拟出来的一个网桥,镜像产生的容器IP位于该网�
 容器内访问外部服务用的ip是宿主机ip
 docker建议每个容器只运行一个服务
 每个虚拟机都是独立的环境,容器共享操作系统,占用资源更少
-docker desktop在engine设置页面添加"registry-mirrors": ["https://registry.docker-cn.com","http://hub-mirror.c.163.com"]镜像源
+mac系统docker desktop在engine设置页面新增:
+"registry-mirrors": ["https://yxzrazem.mirror.aliyuncs.com","http://hub-mirror.c.163.com"]
 centos系统修改如下:
 vim /etc/docker/daemon.json
-{
-  "registry-mirrors": ["https://registry.docker-cn.com"]
-}
+"registry-mirrors": ["https://yxzrazem.mirror.aliyuncs.com",http://hub-mirror.c.163.com"]
 sudo systemctl daemon-reload 
 sudo systemctl restart docker
 ```
