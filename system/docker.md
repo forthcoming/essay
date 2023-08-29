@@ -11,12 +11,12 @@ mac系统docker desktop在engine设置页面新增:
 centos系统修改如下:
 vim /etc/docker/daemon.json
 "registry-mirrors": ["https://yxzrazem.mirror.aliyuncs.com","http://hub-mirror.c.163.com"]
-sudo systemctl daemon-reload 
 sudo systemctl restart docker
 ```
 
 ### docker命令
 ```shell
+docker info # 查看docker相关信息
 docker pull image_name[:tag] # 拉镜像,如果不指定tag,默认值是latest
 docker images [-a|--no-trunc]  # 查看本地镜像列表,-a显示所有镜像(默认隐藏中间镜像),--no-trunc意思是不要截断输出
 docker search [--no-trunc] nginx  # 搜索docker hub中的镜像
