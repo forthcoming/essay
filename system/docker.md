@@ -10,7 +10,7 @@ mac系统docker desktop在engine设置页面新增:
 "registry-mirrors": ["https://yxzrazem.mirror.aliyuncs.com","http://hub-mirror.c.163.com"]
 centos系统修改如下:
 vim /etc/docker/daemon.json
-"registry-mirrors": ["https://yxzrazem.mirror.aliyuncs.com",http://hub-mirror.c.163.com"]
+"registry-mirrors": ["https://yxzrazem.mirror.aliyuncs.com","http://hub-mirror.c.163.com"]
 sudo systemctl daemon-reload 
 sudo systemctl restart docker
 ```
@@ -60,7 +60,7 @@ docker run image_id  # 运行本地镜像,如果镜像不存在,会先去dockerh
 --rm: 容器退出时自动删除
 -m: 以bytes为单位容器最大内存
 -w: 容器工作目录,即进入时的目录,相当于执行cd操作,一般设置为安装软件目录,他会覆盖dockerfile中的WORKDIR
---network: 使用自定义网桥,容器之间可通过容器名互连,默认的bridge只能通过ip互连,互连前提是位于同一个网络
+--network: 使用自定义网桥,容器之间可通过容器名互通,默认的bridge只能通过ip互通,互通前提是位于同一个网络,不同网桥间不互通
 docker run -p 80:80 -v /usr/local/data:/container/data --name=test centos echo 'Hello'
 docker run --network my_net -d redis 
 docker run -v /conf:/etc/redis redis redis-server /etc/redis/redis.conf  
