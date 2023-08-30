@@ -19,11 +19,13 @@ KubeProxy: 负责提供集群内部服务发现和负载均衡
 ContainerRuntime: 负责节点上容器的各种操作
 
 先安装好minikube和kubectl
-minikube start --image-mirror-country='cn'
+minikube start -n 3 --image-mirror-country='cn'  # -n指定集群节点个数
 minikube dashboard  # 查看控制面板
+minikube status
 minikube stop
-minikube node list  # 查看节点列表
+minikube delete # 删除本地的k8s集群
 minikube ssh -n minikube # 登录节点,-n要ssh访问的节点，默认为主控制平面(建议修改docker镜像源,否则kubectl run无法拉取镜像)
+minikube cp file node_name:path  # 将本地机文件拷贝到指定节点目录
 
 kubectl api-versions # 查看所有的对象版本号
 kubectl api-resources # 查看所有的对象
