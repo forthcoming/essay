@@ -38,7 +38,7 @@ kubectl top node|pod  # 查看资源使用详情(前提是启用metrics-server�
 kubectl create ns dev # 创建名为dev的命名空间
 kubectl delete ns dev  # 删除命名空间dev及其下所有pod
 kubectl run nginx --image=nginx:alpine -n dev # 在dev(默认为default)命名空间下运行名为nginx的pod,k8s会自动拉取并运行
-kubectl get pod|hpa|node|deploy|svc -o wide [--v=9] -w # 查看对象信息,-o显示详细信息,--v=9会显示详细的http请求,-w开启实时监控
+kubectl get pod|hpa|node|deploy|svc|ep|cj -o wide [--v=9] -w # 查看对象信息,-o显示详细信息,--v=9会显示详细的http请求,-w开启实时监控
 kubectl describe pod nginx -n dev # pod相关描述,通过最后的Events描述可以看到pod构建的各个细节
 kubectl delete pod --all --force  # 强制删除所有pod
 kubectl logs -f pod_name -c container_name # 查看pod运行日志
@@ -62,19 +62,18 @@ metadata:
   namespace: dev
 spec:
   selector:
-    matchLabels: # 选择Pod模板下的所有Pod
-      run: nginx
-  type: ClusterIP # 默认值,k8s自动分配虚拟IP,只能在集群内部访问服务
-#  type: NodePort # 将Service通过指定Node上的端口暴露给外部,可以在集群外部访问服务
+    run: nginx
+#  type: ClusterIP # 默认值,k8s自动分配虚拟IP,只能在集群内部访问服务
+  type: NodePort # 将Service通过指定Node上的端口暴露给外部,可以在集群外部访问服务,此模式仍然保留type: ClusterIP功能
 #  type: LoadBalancer # 使用外接负载均衡器完成到服务的负载分发,此模式需要外部云环境支持
 #  type: ExternalName # 把集群外部的服务引入集群内部,直接使用
-  clusterIP: 
+#  externalName: www.baidu.com # type: ExternalName下有效
   sessionAffinity: ClientIP # ClientIP相同IP访问的是同一个pod,None则忽略IP执行轮训
   ports:
     - protocol: TCP
-      port:
-      targetPort:
-      nodePort: 
+      port: 81  # Service端口  
+      targetPort: 80  # Pod端口
+      nodePort: 30000 # 映射关系nodePort -> port -> targetPort,指定绑定的node端口,端口有效范围是[30000,32767],type: NodePort下生效
              
 ---
 
@@ -151,7 +150,7 @@ metadata:
 spec:
   completions: 4 # Job需要成功运行Pod的次数,默认为1
   parallelism: 2 # Job在任意时刻并发运行Pod的数量,默认为1
-  activeDeadlineSeconds: 120 # Job可运行的最长时间,超时未结束系统将尝试终止
+  activeDeadlineSeconds: 120 # Job可运行的最长时间(所有Pod的构建和执行时间),超时未结束系统将尝试终止
   backoffLimit: 6 # Job失败后最多重试次数,默认为6
   template: # Pod模板
     metadata:
@@ -252,6 +251,7 @@ Service可以看做一组同类Pod对外的访问接口,应用可以方便的实
 DaemonSet可以保证集群中的每个节点上运行一个副本,适用于日志收集,节点监控等,会根据集群节点数量动态增加删除Pod
 Job负责批量处理短暂的一次性任务
 CronJob可以在特定时间反复运行Job任务
+Endpoint存储在Etcd中,用来记录一个Service对应的所有Pod访问地址,它是根据Service配置中的selector描述产生的
 
 YAML是JSON的超集,支持整数、浮点数、布尔、字符串、数组和对象等数据类型,大小写敏感,任何合法的JSON文档也都是YAML文档
 使用空白与缩进表示层次
