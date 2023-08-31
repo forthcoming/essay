@@ -653,7 +653,7 @@ redis-server --daemonize yes   # 启动时指定相关配置参数
 ### 安装redis到/usr/local/redis目录
 
 ```shell
-wget wget https://download.redis.io/redis-stable.tar.gz
+curl https://download.redis.io/redis-stable.tar.gz -o redis-stable.tar.gz
 tar xzf redis-stable.tar.gz
 cd redis-stable
 make PREFIX=/opt/redis install #安装到指定目录中(没该目录则会自动创建)

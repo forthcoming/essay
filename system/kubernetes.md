@@ -19,28 +19,33 @@ KubeProxy: 负责提供集群内部服务发现和负载均衡
 ContainerRuntime: 负责节点上容器的各种操作
 
 先安装好minikube和kubectl
-minikube start -n 3 --image-mirror-country='cn'  # -n指定集群节点个数
+minikube start -n 3 --image-mirror-country='cn' --image-repository='registry.cn-hangzhou.aliyuncs.com/google_containers'
 minikube dashboard  # 查看控制面板
 minikube status
 minikube stop
 minikube delete # 删除本地的k8s集群
 minikube ssh -n minikube # 登录节点,-n要ssh访问的节点，默认为主控制平面(建议修改docker镜像源,否则kubectl run无法拉取镜像)
 minikube cp file node_name:path  # 将本地机文件拷贝到指定节点目录
+minikube addons enable metrics-server # 开启指定插件
 
-kubectl api-versions # 查看所有的对象版本号
-kubectl api-resources # 查看所有的对象
+kubectl api-resources # 查看所有对象信息
 kubectl explain pod # 查看对象字段的yaml文档
 kubectl get node  # 查看节点信息
 kubectl exec pod_name -c container_name -it -- /bin/sh  # 进入Pod指定容器内部执行命令
 kubectl cp file pod_name:pod_path  # 将主机文件拷贝到pod指定目录
+kubectl top node|pod  # 查看资源使用详情(前提是启用metrics-server功能)
 
 kubectl create ns dev # 创建名为dev的命名空间
 kubectl delete ns dev  # 删除命名空间dev及其下所有pod
 kubectl run nginx --image=nginx:alpine -n dev # 在dev(默认为default)命名空间下运行名为nginx的pod,k8s会自动拉取并运行
-kubectl get pod -o wide [--v=9] # 查看pod,-o显示详细信息,--v=9会显示详细的http请求
+kubectl get pod|hpa|node|deploy|svc -o wide [--v=9] -w # 查看对象信息,-o显示详细信息,--v=9会显示详细的http请求,-w开启实时监控
 kubectl describe pod nginx -n dev # pod相关描述,通过最后的Events描述可以看到pod构建的各个细节
 kubectl delete pod --all --force  # 强制删除所有pod
 kubectl logs -f pod_name -c container_name # 查看pod运行日志
+kubectl edit deploy deploy_name  # 动态集群扩缩(replicas),动态镜像更新,每一个新版本都会新建一个ReplicaSet
+kubectl rollout history deploy deploy_name # 查看历史发布版本
+kubectl rollout undo deploy deploy_name --to-revision=1 # 回退到指定版本,默认回退到上个版本
+kubectl rollout pause|resume deploy deploy_name  # 暂停继续发版,金丝雀发版
 
 ```yaml
 apiVersion: v1
@@ -51,12 +56,20 @@ metadata:
 ---
 
 apiVersion: apps/v1
-kind: Deployment
+kind: Deployment  # 简写为deploy
 metadata:
   name: deploy-nginx
   namespace: dev
 spec:
   replicas: 3
+  revisionHistoryLimit: 10 # 保留的历史版本,默认是10,方便版本回退
+  progressDeadlineSeconds: 600 # 部署超时时间,默认600
+  strategy: # 镜像更新策略
+#    type: Recreate # 创建新Pod前会先杀掉所有已存在的Pod
+    type: RollingUpdate # 滚动更新,杀死一部分Pod就更新一部分,即同时存在2个版本的Pod
+    rollingUpdate:
+      maxUnavailable: 25% # 用来指定升级过程中不可用Pod最大数量,默认25%
+      maxSurge: 25% # 用来指定升级过程中不可用Pod最大数量,默认25%
   selector:
     matchLabels: # 选择Pod模板下的所有Pod
       run: nginx
@@ -68,6 +81,89 @@ spec:
       containers:
         - name: nginx-container
           image: nginx:alpine
+  
+---
+
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler  # 简写为hpa
+metadata:
+  name: hpa-nginx
+  namespace: dev
+spec:
+  minReplicas: 1
+  maxReplicas: 6
+  targetCPUUtilizationPercentage: 3 # CPU使用率
+  scaleTargetRef: # 关联要控制的pod信息
+    apiVersion: apps/v1
+    kind: Deployment
+    name: deploy-nginx
+  
+---
+
+apiVersion: apps/v1
+kind: DaemonSet  # 简写为ds
+metadata:
+  name: ds-hello-world
+  namespace: dev
+spec:
+  selector:
+    matchLabels: 
+      run: hello-world
+  template: # Pod模板
+    metadata:
+      labels:
+        run: hello-world
+    spec:
+      containers:
+        - name: hello-world-container
+          image: hello-world   
+          
+---
+
+apiVersion: batch/v1
+kind: Job  
+metadata:
+  name: job-busybox
+  namespace: dev
+spec:
+  completions: 4 # Job需要成功运行Pod的次数,默认为1
+  parallelism: 2 # Job在任意时刻并发运行Pod的数量,默认为1
+  activeDeadlineSeconds: 120 # Job可运行的最长时间,超时未结束系统将尝试终止
+  backoffLimit: 6 # Job失败后最多重试次数,默认为6
+  template: # Pod模板
+    metadata:
+    spec:
+      restartPolicy: Never # 只能是Never和OnFailure,Pod出现故障时,前者会增加失败次数,后者不增加失败次数
+      containers:
+        - name: busybox-container
+          image: busybox   
+          command: ["/bin/sh","-c","for i in 5 4 3 2 1; do echo $1; sleep 2; done"]
+
+---
+
+apiVersion: batch/v1
+kind: CronJob  # 简写为cj
+metadata:
+  name: cj-busybox
+  namespace: dev
+spec:
+  schedule: "* * * * *" # cron格式,参考Linux的crontab
+  concurrencyPolicy: Allow # Allow允许Job并发运行,Forbid禁止并发运行(如果上一次运行未完成则跳过本次运行),Replace用新Job替换正在运行的Job
+  failedJobsHistoryLimit: 1 # 失败任务保留的最大历史记录数,默认为1
+  successfulJobsHistoryLimit: 3 # 成功任务保留的最大历史记录数(执行Job后状态为Completed的Pod个数),默认为3
+  jobTemplate: # Job模板
+    metadata: 
+    spec:
+      completions: 1
+      parallelism: 1
+      activeDeadlineSeconds: 120
+      template: # Pod模板
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: busybox-container
+              image: busybox   
+              command: ["/bin/sh","-c","for i in 5 4 3 2 1; do echo $1; sleep 2; done"]
 
 ---
 
@@ -130,6 +226,9 @@ name in (v1,v2)选择所有Label中key=name且value=v1或value=v2的对象; name
 kubectl get pod -l "version=3.0" -n dev # 查询指定标签的pod
 
 Service可以看做一组同类Pod对外的访问接口,应用可以方便的实现服务发现和负载均衡
+DaemonSet可以保证集群中的每个节点上运行一个副本,适用于日志收集,节点监控等,会根据集群节点数量动态增加删除Pod
+Job负责批量处理短暂的一次性任务
+CronJob可以在特定时间反复运行Job任务
 
 YAML是JSON的超集,支持整数、浮点数、布尔、字符串、数组和对象等数据类型,大小写敏感,任何合法的JSON文档也都是YAML文档
 使用空白与缩进表示层次
