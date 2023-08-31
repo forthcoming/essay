@@ -26,7 +26,8 @@ minikube stop
 minikube delete # 删除本地的k8s集群
 minikube ssh -n minikube # 登录节点,-n要ssh访问的节点，默认为主控制平面(建议修改docker镜像源,否则kubectl run无法拉取镜像)
 minikube cp file node_name:path  # 将本地机文件拷贝到指定节点目录
-minikube addons enable metrics-server # 开启指定插件
+minikube addons enable metrics-server # 在kube-system命名空间下开启hpa
+minikube addons enable ingress # 在ingress-nginx命名空间下开启ingress
 
 kubectl api-resources # 查看所有对象信息
 kubectl explain pod # 查看对象字段的yaml文档
@@ -55,6 +56,34 @@ metadata:
 
 ---
 
+apiVersion: networking.k8s.io/v1
+kind: Ingress  # 简写为ing
+metadata:
+  name: ing-nginx
+  namespace: dev
+spec:
+  tls:  # 加上这部分代表https请求
+    - hosts:
+        - nginx.local.com
+#      生成证书
+#      openssl req -x509 -sha256 -nodes -days 365 -newkey rsa:2048 -keyout tls.key -out tls.crt
+#      创建密钥
+#      kubectl create secret tls tls-secret --key tls.key --cert tls.crt
+      secretName: tls-secret # 名字需要与创建密钥名一致
+  rules:  # 可以定义多个路由规则,Service的type为ClusterIP即可(NodePort也行)
+    - host: nginx.local.com  # 通过该域名访问nginx,可以在本地机/etc/hosts文件添加 集群节点ip nginx.local.com 模拟
+      http:  # nginx.local.com -> svc-nginx:81
+        paths:
+          - path: /  
+            pathType: Exact # Exact完全匹配URL路径并区分大小写,Prefix基于由/分隔的URL路径前缀匹配且区分大小写
+            backend:
+              service:
+                name: svc-nginx  # Service对象的name
+                port:
+                  name:  # Service对象的port名,跟下面的number二选一即可
+                  number: 81  # Service对象的port号      
+---
+
 apiVersion: v1
 kind: Service  # 简写为svc
 metadata:
@@ -64,7 +93,7 @@ spec:
   selector:
     run: nginx
 #  type: ClusterIP # 默认值,k8s自动分配虚拟IP,只能在集群内部访问服务
-  type: NodePort # 将Service通过指定Node上的端口暴露给外部,可以在集群外部访问服务,此模式仍然保留type: ClusterIP功能
+  type: NodePort # 将Service通过指定Node上的端口暴露给外部,在集群外部可通过任意节点ip:nodePort访问服务,此模式仍然保留type: ClusterIP功能
 #  type: LoadBalancer # 使用外接负载均衡器完成到服务的负载分发,此模式需要外部云环境支持
 #  type: ExternalName # 把集群外部的服务引入集群内部,直接使用
 #  externalName: www.baidu.com # type: ExternalName下有效
