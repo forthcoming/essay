@@ -55,13 +55,36 @@ metadata:
 
 ---
 
+apiVersion: v1
+kind: Service  # 简写为svc
+metadata:
+  name: svc-nginx
+  namespace: dev
+spec:
+  selector:
+    matchLabels: # 选择Pod模板下的所有Pod
+      run: nginx
+  type: ClusterIP # 默认值,k8s自动分配虚拟IP,只能在集群内部访问服务
+#  type: NodePort # 将Service通过指定Node上的端口暴露给外部,可以在集群外部访问服务
+#  type: LoadBalancer # 使用外接负载均衡器完成到服务的负载分发,此模式需要外部云环境支持
+#  type: ExternalName # 把集群外部的服务引入集群内部,直接使用
+  clusterIP: 
+  sessionAffinity: ClientIP # ClientIP相同IP访问的是同一个pod,None则忽略IP执行轮训
+  ports:
+    - protocol: TCP
+      port:
+      targetPort:
+      nodePort: 
+             
+---
+
 apiVersion: apps/v1
 kind: Deployment  # 简写为deploy
 metadata:
   name: deploy-nginx
   namespace: dev
 spec:
-  replicas: 3
+  replicas: 4
   revisionHistoryLimit: 10 # 保留的历史版本,默认是10,方便版本回退
   progressDeadlineSeconds: 600 # 部署超时时间,默认600
   strategy: # 镜像更新策略
