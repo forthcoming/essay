@@ -23,6 +23,7 @@ minikube start -n 3 --image-mirror-country='cn' --image-repository='registry.cn-
 minikube dashboard  # 查看控制面板
 minikube status
 minikube stop
+minikube node add # 集群中新增节点
 minikube delete # 删除本地的k8s集群
 minikube ssh -n minikube # 登录节点,-n要ssh访问的节点，默认为主控制平面(建议修改docker镜像源,否则kubectl run无法拉取镜像)
 minikube cp file node_name:path  # 将本地机文件拷贝到指定节点目录
@@ -32,6 +33,7 @@ minikube addons enable ingress # 在ingress-nginx命名空间下开启ingress
 kubectl api-resources # 查看所有对象信息
 kubectl explain pod # 查看对象字段的yaml文档
 kubectl get node  # 查看节点信息
+kubectl get all # 查看(default命名空间)所有对象信息
 kubectl exec pod_name -c container_name -it -- /bin/sh  # 进入Pod指定容器内部执行命令
 kubectl cp file pod_name:pod_path  # 将主机文件拷贝到pod指定目录
 kubectl top node|pod  # 查看资源使用详情(前提是启用metrics-server功能)
@@ -41,7 +43,7 @@ kubectl delete ns dev  # 删除命名空间dev及其下所有pod
 kubectl run nginx --image=nginx:alpine -n dev # 在dev(默认为default)命名空间下运行名为nginx的pod,k8s会自动拉取并运行
 kubectl get pod|hpa|node|deploy|svc|ep|cj -o wide [--v=9] -w # 查看对象信息,-o显示详细信息,--v=9会显示详细的http请求,-w开启实时监控
 kubectl describe pod nginx -n dev # pod相关描述,通过最后的Events描述可以看到pod构建的各个细节
-kubectl delete pod --all --force  # 强制删除所有pod
+kubectl delete pod --all --force  # 强制删除所有pod,避免阻塞等待
 kubectl logs -f pod_name -c container_name # 查看pod运行日志
 kubectl edit deploy deploy_name  # 动态集群扩缩(replicas),动态镜像更新,每一个新版本都会新建一个ReplicaSet
 kubectl rollout history deploy deploy_name # 查看历史发布版本
@@ -92,7 +94,7 @@ metadata:
 spec:
   selector:
     run: nginx
-#  type: ClusterIP # 默认值,k8s自动分配虚拟IP,只能在集群内部访问服务
+#  type: ClusterIP # 默认值,k8s自动分配虚拟IP,只能在集群内部访问服务,集群内节点通过ClusterIP:port访问服务,集群内Pod通过name:port访问服务
   type: NodePort # 将Service通过指定Node上的端口暴露给外部,在集群外部可通过任意节点ip:nodePort访问服务,此模式仍然保留type: ClusterIP功能
 #  type: LoadBalancer # 使用外接负载均衡器完成到服务的负载分发,此模式需要外部云环境支持
 #  type: ExternalName # 把集群外部的服务引入集群内部,直接使用
@@ -230,10 +232,13 @@ spec:
   containers:
     - name: python-container
       image: python:alpine
-      imagePullPolicy: Always # Always用远程,Never用本地(不是节点本地),IfNotPresent优先用本地再远程
+      imagePullPolicy: IfNotPresent # Always用远程,Never用本地(不是节点本地),IfNotPresent优先用本地再远程
       command: ["/bin/sh"] # 如果在配置文件中设置了容器启动时要执行的命令及其参数,容器镜像中自带的命令与参数将会被覆盖而不再执行
       args: ["-c", "while true; do echo hello; sleep 5;done"] # 如果配置文件中只是设置了参数,却没有设置其对应的命令,那么容器镜像中自带的命令会使用该新参数作为其执行时的参数
       env: # 容器环境变量列表 
+      volumeMounts: 
+        - name: logs-volume  # 必须与volumes.name一致
+          mountPath: /avatar  # 推荐写一个不存在的目录,k8s会自动创建
       resources:
         limits: # 限制容器运行时最大占用资源,当资源超过最大限制时会重启
           cpu: 2 # 最多2核
@@ -243,8 +248,50 @@ spec:
           memory: "10Mi"
     - name: redis-container
       image: redis:alpine
+      volumeMounts: 
+        - name: logs-volume  
+          mountPath: /neos  # 推荐写一个不存在的目录,k8s会自动创建
+      livenessProbe: 
+        initialDelaySeconds: # 容器启动后等待多少秒执行第一次探测
+        timeoutSeconds: # 探测超时时间,默认一秒
+        periodSeconds: # 执行探测的频率,默认10秒
+        failureThreshold: # 连续探测失败多少次才被认定为失败,默认3
+        successThreshold: # 连续探测成功多少次才被认定为成功,默认1
+#        exec: 
+#          command: ['bin/cat','/hello.txt']
+        tcpSocket:
+          port: 6379  
+#        httpGet:  # 访问http://127.0.0.1:80/hello
+#          scheme: HTTP
+#          host: 127.0.0.1
+#          port: 80
+#          path: /hello
+        
+  volumes: 
+    - name: logs-volume
+      configMap:
+        name: cm-config # 必须与ConfigMap名字一致
+#      emptyDir: {}
+#      hostPath:
+#        path: /home/docker
+#        type: DirectoryOrCreate  # 目录不存在就先创建再使用,存在则直接使用,还支持Directory|File|FileOrCreate
+#      nfs: 
+#        server: 192.168.2.2 # nfs服务器地址
+#        path: /data # 共享文件路径
+  
   nodeName:  # 将Pod调度到指定的Node节点上,还可以根据nodeSelector指定节点
   restartPolicy: Always # Always容器失效时重启(默认),OnFailure容器终止运行且退出码不为0时重启, Never不重启容器,每个容器重启间隔阶梯形增长
+
+---
+
+apiVersion: v1
+kind: ConfigMap   # 简写为cm
+metadata:
+  name: cm-config
+  namespace: dev
+data:  # key映射成文件,value映射成文件内容,如果更新了ConfigMap值,挂载目录也会动态更新
+  user: oracle
+  age: '12'  # 注意
 ```
 kubectl apply -f nginx.yaml  # 创建或更新
 kubectl delete -f nginx.yaml
@@ -269,7 +316,7 @@ kube-proxy-nr6wg                   1/1     Running   4 (7h22m ago)   8h
 kube-scheduler-minikube            1/1     Running   4 (7h22m ago)   8h
 storage-provisioner                1/1     Running   14 (32m ago)    8h
 
-Label用于给某个对象定义标识,Label Selector用于查询和筛选拥有某些标签的资源,可以使用多个组合查询
+Label用于给某个对象定义标识,Label Selector用于查询和筛选拥有某些标签的资源,可以使用","分割多个组合查询,相当于and
 基于等式的Label Selector: 
 name=avatar选择所有Label中key=name且value=avatar的对象; name!=avatar选择所有Label中key=name且value!=avatar的对象
 基于集合的Label Selector: 
@@ -281,6 +328,21 @@ DaemonSet可以保证集群中的每个节点上运行一个副本,适用于日�
 Job负责批量处理短暂的一次性任务
 CronJob可以在特定时间反复运行Job任务
 Endpoint存储在Etcd中,用来记录一个Service对应的所有Pod访问地址,它是根据Service配置中的selector描述产生的
+Volume是Pod中能被多个容器访问的共享目录,定义在Pod上,k8s通过Volume实现同一个Pod中不同容器间数据共享和数据持久化存储
+Volume生命周期不与Pod中单个容器生命周期相关,容器终止或重启时Volume数据不丢失,Volume常见类型如下:
+EmptyDir: 创建Pod时创建,初始内容为空,Pod销毁时EmptyDir中数据也被删除
+HostPath: 将节点中一个实际目录挂在到Pod中,Pod销毁时数据依旧存在节点上,缺点是Pod挂掉后可能会在其他节点新建Pod,导致数据失效
+NFS: 网络文件存储系统,所有Pod数据都存储到这个上面
+ConfigMap: 存储配置信息的存储卷
+Secret: 用法与ConfigMap类似,存储敏感信息
+
+容器探测用于检测容器中应用是否正常工作,k8s提供2种探针实现容器探测
+liveness probes: 存活性探针,用于检测应用实例当前是否处于正常运行状态,如果不是,k8s会重启容器,由Pod的重启策略restartPolicy决定
+readiness probes: 就绪性探针,用于检测应用实例当前是否可以接受请求,如果不能,k8s不会转发流量
+探针支持以下三种方式
+Exec: 在容器内执行一次命令,如果命令执行退出码为0,则认为程序正常
+TCPSocket: 尝试访问一个用户容器端口,如果能建立连接,则认为程序正常
+HTTPGet: 调用容器内web应用的url,如果返回状态码在200-399之间,则认为程序正常
 
 YAML是JSON的超集,支持整数、浮点数、布尔、字符串、数组和对象等数据类型,大小写敏感,任何合法的JSON文档也都是YAML文档
 使用空白与缩进表示层次
