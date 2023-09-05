@@ -19,7 +19,7 @@ KubeProxy: 负责提供集群内部服务发现和负载均衡
 ContainerRuntime: 负责节点上容器的各种操作
 
 先安装好minikube和kubectl
-minikube start -n 3 --image-mirror-country='cn' --image-repository='registry.cn-hangzhou.aliyuncs.com/google_containers'
+minikube start --image-mirror-country='cn' --image-repository='registry.cn-hangzhou.aliyuncs.com/google_containers'
 minikube dashboard  # 查看控制面板
 minikube status
 minikube stop
@@ -30,6 +30,7 @@ minikube cp file node_name:path  # 将本地机文件拷贝到指定节点目录
 minikube addons enable metrics-server # 在kube-system命名空间下开启hpa
 minikube addons enable ingress # 在ingress-nginx命名空间下开启ingress
 
+kubectl port-forward pod/name local_port:container_port  # 将容器内应用端口映射到本机端口(调试用)
 kubectl api-resources # 查看所有对象信息
 kubectl explain pod # 查看对象字段的yaml文档
 kubectl get node  # 查看节点信息
@@ -37,15 +38,14 @@ kubectl get all # 查看(default命名空间)所有对象信息
 kubectl exec pod_name -c container_name -it -- /bin/sh  # 进入Pod指定容器内部执行命令
 kubectl cp file pod_name:pod_path  # 将主机文件拷贝到pod指定目录
 kubectl top node|pod  # 查看资源使用详情(前提是启用metrics-server功能)
-
 kubectl create ns dev # 创建名为dev的命名空间
 kubectl delete ns dev  # 删除命名空间dev及其下所有pod
 kubectl run nginx --image=nginx:alpine -n dev # 在dev(默认为default)命名空间下运行名为nginx的pod,k8s会自动拉取并运行
-kubectl get pod|hpa|node|deploy|svc|ep|cj -o wide [--v=9] -w # 查看对象信息,-o显示详细信息,--v=9会显示详细的http请求,-w开启实时监控
+kubectl get pod|hpa|node|deploy|svc|ep|cj -o wide [--v=9] -w -A # 查看对象信息,-o显示详细信息,--v=9会显示详细的http请求,-w开启实时监控,-A查看所有命名空间
 kubectl describe pod nginx -n dev # pod相关描述,通过最后的Events描述可以看到pod构建的各个细节
 kubectl delete pod --all --force  # 强制删除所有pod,避免阻塞等待
 kubectl logs -f pod_name -c container_name # 查看pod运行日志
-kubectl edit deploy deploy_name  # 动态集群扩缩(replicas),动态镜像更新,每一个新版本都会新建一个ReplicaSet
+kubectl edit deploy deploy_name  # 动态集群扩缩(replicas),动态镜像更新,动态自愈,每一个新版本都会新建一个ReplicaSet
 kubectl rollout history deploy deploy_name # 查看历史发布版本
 kubectl rollout undo deploy deploy_name --to-revision=1 # 回退到指定版本,默认回退到上个版本
 kubectl rollout pause|resume deploy deploy_name  # 暂停继续发版,金丝雀发版
@@ -114,7 +114,7 @@ metadata:
   name: deploy-nginx
   namespace: dev
 spec:
-  replicas: 4
+  replicas: 3
   revisionHistoryLimit: 10 # 保留的历史版本,默认是10,方便版本回退
   progressDeadlineSeconds: 600 # 部署超时时间,默认600
   strategy: # 镜像更新策略
@@ -296,6 +296,54 @@ data:  # key映射成文件,value映射成文件内容,如果更新了ConfigMap�
 kubectl apply -f nginx.yaml  # 创建或更新
 kubectl delete -f nginx.yaml
 
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mysql-single
+  labels:
+    app: mysql
+spec:
+  containers:
+    - name: mysql-container
+      image: mysql
+      env:
+        - name: MYSQL_ROOT_PASSWORD
+          value: "123456"
+      volumeMounts:
+        - mountPath: /var/lib/mysql
+          name: data-volume
+        - mountPath: /etc/mysql/conf.d
+          name: config-volume
+          readOnly: true
+  volumes:
+    - name: config-volume
+      configMap:
+        name: mysql-config
+    - name: data-volume
+      hostPath:
+        path: /mysql/data
+        type: DirectoryOrCreate
+
+---
+
+apiVersion: v1
+kind: ConfigMap  
+metadata:
+  name: mysql-config
+data: 
+  mysql.cnf: |
+    [mysqld]
+    bind-address = 127.0.0.1   
+    datadir=/var/lib/mysql                      
+    character_set_server=utf8mb4                       
+    socket =/tmp/mysql.sock
+        
+    [client]
+    socket =/tmp/mysql.sock                                
+```
+
+
 不同的namespace下pod无法相互访问,不同的namespace可以限制其占用的资源(如cpu,内存)
 k8s集群启动时会默认创建几个namespace
 kubectl get ns
@@ -348,6 +396,7 @@ YAML是JSON的超集,支持整数、浮点数、布尔、字符串、数组和�
 使用空白与缩进表示层次
 使用 # 书写注释
 使用 - 开头表示数组
+使用 | 表示多行文本块
 使用 : 表示对象,格式与JSON基本相同,但Key不需要双引号
 使用 --- 在一个文件里分隔多个YAML对象
 表示对象的 : 和表示数组的 - 后面都必须有空格
