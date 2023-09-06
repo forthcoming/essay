@@ -1,4 +1,5 @@
 ### common
+
 ```
 curl -fsSL https://get.docker.com | sh  # 安装docker
 docker0是docker虚拟出来的一个网桥,镜像产生的容器IP位于该网段,苹果电脑下无法创建docker0网桥,所以宿主机无法ping通容器
@@ -15,6 +16,7 @@ sudo systemctl restart docker
 ```
 
 ### docker命令
+
 ```shell
 docker info # 查看docker相关信息
 docker pull image_name[:tag] # 拉镜像,如果不指定tag,默认值是latest
@@ -30,10 +32,12 @@ docker build -t image_name[:tag] [-f dir/Dockerfile] .  # 构建镜像,不指定
 docker network ls   # 查看docker网络模式,容器默认使用桥接网络
 docker network create network_name  # 默认创建的是桥接网络
 docker history [--no-trunc] image_name[:tag] # 查看镜像构建过程
-docker compose up [-d] # 启动所有compose服务,-d后台运行
+docker compose up [-d] # 启动所有compose服务,-d后台运行,前提是当前目录存在compose.yaml文件
 docker compose down # 停止并删除容器,网络,卷,镜像
 docker compose ps # 查看当前compose运行的所有容器
 docker compose config # 校验并输出解析后的compose.yaml配置文件
+docker save/load image_name # 保存加载镜像
+docker export/import container_name # 导出导入容器
 
 docker ps [-a] # 查看正在运行的容器(也可以查看容器的映射端口),-a查看所有容器
 docker top [container_name|container_id]  # 查看容器负载情况(pid并非容器内进程的pid)
@@ -68,6 +72,7 @@ docker run -it centos /bin/sh
 ```
 
 ### Dockerfile
+
 ```shell
 # 以#开头的行视为注释,除非该行是有效的解析器指令,行中其他任何位置的#标记都被视为参数
 # Dockerfile指令按照从上到下顺序执行,每条指令都会创建一个新的镜像层并对镜像进行提交
@@ -92,25 +97,30 @@ cmd ["python"]
 ```
 
 ### compose.yaml
+
 ```yaml
 services:
   web:
     image: ktv_room
     container_name: room
-    networks: 
-      - my_net 
-    depends_on:
+    networks:
+      - my_net
+    depends_on: # 只能保证容器启动和销毁顺序,不能确保依赖的容器是否ready
       - redis
   redis:
     image: redis:latest
     container_name: avatar
+    environment:
+      - nickname=akatsuki
     volumes:
       - /app/data:/data
-    networks: 
-      - my_net 
-    ports: 
+    networks:
+      - my_net
+    ports:
       - "3306:3306"  # HOST:CONTAINER应始终指定为带引号的字符串,以避免与yaml base-60 float发生冲突
-    command: redis-server /etc/redis/redis.conf
+    command:
+      - redis-server
+      - /etc/redis/redis.conf
 networks:
   my_net:
     driver: bridge  # 默认就是bridge  
