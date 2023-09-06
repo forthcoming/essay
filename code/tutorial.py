@@ -566,6 +566,9 @@ def open_tutorial():
             print(line)
 
     with open('log1') as file1, open('log2') as file2:  # 同时打开多个
+        # read: 按指定大小读取文件内容,以字符串形式返回
+        # readline: 一次读取一行,以字符串形式返回
+        # readlines: 将文件的所有行读取为一个列表,每一行作为列表中的一个元素
         print(list(file1))  # 等价于file1.readlines()
         file2.seek(33)
         print(file2.tell())

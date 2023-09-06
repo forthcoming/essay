@@ -8,6 +8,7 @@
 ip建议用无符号整型(uint32)存储
 utf8mb4是utf8的超集,有存储4字节例如表情符号时使用它
 分库分表,读写分离用mycat中间件
+where查询中如何字段类型不匹配,会尝试类型转换,转换不了直接返回空数据,不报错
 
 客户端 -> 连接器 -> 解析器(词法分析,语法分析) -> 预处理器 -> 优化器 -> 执行器
 连接器: 身份校验; 传输语句
@@ -231,7 +232,7 @@ show events;  // 查看定时任务
 show create table t_name;
 show create database db_name;	
 select now(),SUBDATE(now(),INTERVAL 1 MINUTE),SUBDATE(now(),INTERVAL -1 MINUTE) from dual; -- 2019-07-29 18:00:59 | 2019-07-29 17:59:59 | 2019-07-29 18:01:59
-alter table t_name add name varchar(255) not null default avatar; // add之后的列名语法和创建表时的列声明一样
+alter table t_name add name char(9); // add之后的列名语法和创建表时的列声明一样
 alter table t_name add (column_1,column_2);  // 同时新增多列
 alter table t_name change 旧列名 新列名 列类型 列参数
 alter table t_name drop column column_name;
@@ -579,12 +580,12 @@ drop index index_name on t_name;
 索引优点: 提高数据检索能力,通过索引列对数据进行排序,降低数据排序成本,提高并发能力(锁相关)
 索引缺点: 占用额外空间,降低了表更新速度
 索引失效情况:
+优化器估计使用索引将需要访问表中很大比例的行,相当于选择性很低,表扫描可能会更快,因此索引失效,但如果这样的查询使用LIMIT只检索某些行则会使用索引
 查询条件使用函数或者表达式
-查询条件包含类型转换,如score为int类型下where score='98',或者字符串不加''    
+查询条件包含类型转换,部分情况会失效,如score为char类型下where score=98,如score为int类型下where score='a98'也会用索引('98a'会被转化为98)   
 or两边都有索引时才会用上索引            
 like 'xx%'可以使用索引,like '%xx'且非覆盖索引查询不可以使用索引
 不满足索引最左匹配原则或最左匹配原则遇到范围查询,范围查询(>,<)右侧的列索引失效,可以改为>=,<=
-!=反向查询不会用索引,优化器估计使用索引将需要访问表中很大比例的行,相当于选择性很低,表扫描可能会更快,但如果这样的查询使用LIMIT只检索某些行则会使用索引
 
 索引设计原则:
 针对数据量大,查询频繁的表建立索引
@@ -639,6 +640,17 @@ update t_user set age=10 where uid=1;            -- 命中索引,行锁
 update t_user set age=10 where uid != 1;         -- 未命中索引,表锁
 update t_user set age=10 where name='shenjian';  -- 无索引,表锁
 ```
+
+### online DDL
+
+```
+refer: https://dev.mysql.com/doc/refman/8.1/en/innodb-online-ddl-operations.html
+DDL(Data Definition Languages): 数据库定义语句; DML(Data Manipulation Language): 数据操纵语句
+```
+
+![Image](source/Online_DDL_Support_for_Primary_Key_Operations.png)
+![Image](source/Online_DDL_Support_for_Index_Operations.png)
+![Image](source/Online_DDL_Support_for_Column_Operations.png)
 
 ### 联合索引(可以被group by和order by使用)
 
