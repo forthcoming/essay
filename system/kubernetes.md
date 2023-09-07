@@ -41,7 +41,7 @@ kubectl top node|pod  # 查看资源使用详情(前提是启用metrics-server�
 kubectl create ns dev # 创建名为dev的命名空间
 kubectl delete ns dev  # 删除命名空间dev及其下所有pod
 kubectl run nginx --image=nginx:alpine -n dev # 在dev(默认为default)命名空间下运行名为nginx的pod,k8s会自动拉取并运行
-kubectl get pod|hpa|node|deploy|svc|ep|cj -o wide [--v=9] -w -A # 查看对象信息,-o显示详细信息,--v=9会显示详细的http请求,-w开启实时监控,-A查看所有命名空间
+kubectl get pod|hpa|node|deploy|svc|ep|cj -o wide [--v=9] -w -A --show-labels # 查看对象信息,-o显示详细信息,--v=9会显示详细的http请求,-w开启实时监控,-A查看所有命名空间
 kubectl describe pod nginx -n dev # pod相关描述,通过最后的Events描述可以看到pod构建的各个细节
 kubectl delete pod --all --force  # 强制删除所有pod,避免阻塞等待
 kubectl logs -f pod_name -c container_name # 查看pod运行日志
@@ -369,13 +369,16 @@ Label用于给某个对象定义标识,Label Selector用于查询和筛选拥有
 name=avatar选择所有Label中key=name且value=avatar的对象; name!=avatar选择所有Label中key=name且value!=avatar的对象
 基于集合的Label Selector: 
 name in (v1,v2)选择所有Label中key=name且value=v1或value=v2的对象; name not in (v1,v2)选择所有Label中key=name且value!=v1且value!=v2的对象
-kubectl get pod -l "version=3.0" -n dev # 查询指定标签的pod
+kubectl get pod -l version=3.0 -n dev # 查询指定标签的pod
 
 Service可以看做一组同类Pod对外的访问接口,应用可以方便的实现服务发现和负载均衡
 DaemonSet可以保证集群中的每个节点上运行一个副本,适用于日志收集,节点监控等,会根据集群节点数量动态增加删除Pod
 Job负责批量处理短暂的一次性任务
 CronJob可以在特定时间反复运行Job任务
 Endpoint存储在Etcd中,用来记录一个Service对应的所有Pod访问地址,它是根据Service配置中的selector描述产生的
+ResourceQuota限制命名空间中所有Pod|CronJob等的运行总数、内存请求总量、内存限制总量、CPU请求总量、CPU限制总量
+LimitRange限制命名空间中单个Pod的内存请求总量、内存限制总量、CPU请求总量、CPU限制总量
+
 Volume是Pod中能被多个容器访问的共享目录,定义在Pod上,k8s通过Volume实现同一个Pod中不同容器间数据共享和数据持久化存储
 Volume生命周期不与Pod中单个容器生命周期相关,容器终止或重启时Volume数据不丢失,Volume常见类型如下:
 EmptyDir: 创建Pod时创建,初始内容为空,Pod销毁时EmptyDir中数据也被删除
