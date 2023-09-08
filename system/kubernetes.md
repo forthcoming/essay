@@ -41,7 +41,7 @@ kubectl top node|pod  # 查看资源使用详情(前提是启用metrics-server�
 kubectl create ns dev # 创建名为dev的命名空间
 kubectl delete ns dev  # 删除命名空间dev及其下所有pod
 kubectl run nginx --image=nginx:alpine -n dev # 在dev(默认为default)命名空间下运行名为nginx的pod,k8s会自动拉取并运行
-kubectl get pod|hpa|node|deploy|svc|ep|cj -o wide [--v=9] -w -A --show-labels # 查看对象信息,-o显示详细信息,--v=9会显示详细的http请求,-w开启实时监控,-A查看所有命名空间
+kubectl get pod|hpa|node|deploy|svc|ep|cj -o wide [--v=9] -w -A --show-labels  # 查看对象信息,-o显示详细信息,--v=9会显示详细的http请求,-w开启实时监控,-A查看所有命名空间
 kubectl describe pod nginx -n dev # pod相关描述,通过最后的Events描述可以看到pod构建的各个细节
 kubectl delete pod --all --force  # 强制删除所有pod,避免阻塞等待
 kubectl logs -f pod_name -c container_name # 查看pod运行日志
@@ -244,7 +244,7 @@ spec:
           cpu: 2 # 最多2核
           memory: "10Gi" # 最大内存
         requests: # 设置容器需要的最小资源, 低于限制容器将无法启动
-          cpu: 1
+          cpu: 0.5
           memory: "10Mi"
     - name: redis-container
       image: redis:alpine
@@ -262,6 +262,9 @@ spec:
         tcpSocket:
           port: 6379  
 #        httpGet:  # 访问http://127.0.0.1:80/hello
+#          httpHeaders:
+#            - name: Accept
+#              value: application/json
 #          scheme: HTTP
 #          host: 127.0.0.1
 #          port: 80
@@ -378,6 +381,7 @@ CronJob可以在特定时间反复运行Job任务
 Endpoint存储在Etcd中,用来记录一个Service对应的所有Pod访问地址,它是根据Service配置中的selector描述产生的
 ResourceQuota限制命名空间中所有Pod|CronJob等的运行总数、内存请求总量、内存限制总量、CPU请求总量、CPU限制总量
 LimitRange限制命名空间中单个Pod的内存请求总量、内存限制总量、CPU请求总量、CPU限制总量
+服务质量类(QoS class)包括Guaranteed,Burstable,BestEffort,k8s在Node资源不足时使用QoS类来就驱逐Pod作出决定
 
 Volume是Pod中能被多个容器访问的共享目录,定义在Pod上,k8s通过Volume实现同一个Pod中不同容器间数据共享和数据持久化存储
 Volume生命周期不与Pod中单个容器生命周期相关,容器终止或重启时Volume数据不丢失,Volume常见类型如下:
@@ -388,8 +392,10 @@ ConfigMap: 存储配置信息的存储卷
 Secret: 用法与ConfigMap类似,存储敏感信息
 
 容器探测用于检测容器中应用是否正常工作,k8s提供2种探针实现容器探测
-liveness probes: 存活性探针,用于检测应用实例当前是否处于正常运行状态,如果不是,k8s会重启容器,由Pod的重启策略restartPolicy决定
-readiness probes: 就绪性探针,用于检测应用实例当前是否可以接受请求,如果不能,k8s不会转发流量
+livenessProbe: 存活性探针,用于检测应用实例当前是否处于正常运行状态,如果不是,k8s会重启容器,由Pod的重启策略restartPolicy决定
+startupProbe: 启动探针,应用有最多t=failureThreshold * periodSeconds的时间来完成其启动过程
+一旦启动探测成功一次,存活探测任务就会接管对容器的探测,如果启动探测一直没成功,容器会在t秒后被杀死,并且根据restartPolicy来执行进一步处置
+readinessProbe: 就绪性探针,用于检测应用实例当前是否可以接受请求,如果不能,k8s不会转发流量但不会重启容器,就绪探针在容器的整个生命周期中保持运行状态
 探针支持以下三种方式
 Exec: 在容器内执行一次命令,如果命令执行退出码为0,则认为程序正常
 TCPSocket: 尝试访问一个用户容器端口,如果能建立连接,则认为程序正常
