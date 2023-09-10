@@ -46,16 +46,29 @@ kubectl describe pod nginx -n dev # pod相关描述,通过最后的Events描述�
 kubectl delete pod --all --force  # 强制删除所有pod,避免阻塞等待
 kubectl logs -f pod_name -c container_name # 查看pod运行日志
 kubectl edit deploy deploy_name  # 动态集群扩缩(replicas),动态镜像更新,动态自愈,每一个新版本都会新建一个ReplicaSet
+kubectl edit ingress ingress_name 
 kubectl rollout history deploy|ds name # 查看历史发布版本
 kubectl rollout undo deploy|ds name --to-revision=1 # 回退到指定版本,默认回退到上个版本
 kubectl rollout pause|resume deploy|ds name  # 暂停继续发版,金丝雀发版
-kubectl label node node_name kkk=vvv  # 给节点打标签
+kubectl label node|pod name kkk=vvv  # 给对象打标签
 
 ```yaml
 apiVersion: v1
 kind: Namespace
 metadata:
   name: dev
+
+---
+
+apiVersion: v1
+kind: Secret
+type: kubernetes.io/tls
+metadata:
+  name: tls-secret
+  namespace: dev
+data: # base64编码
+  tls.crt: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUNsakNDQVg0Q0NRQzhrUHI4enNoZi9EQU5CZ2txaGtpRzl3MEJBUXNGQURBTk1Rc3dDUVlEVlFRR0V3SmoKYmpBZUZ3MHlNekE1TVRBeE1EQTRNemRhRncweU5EQTVNRGt4TURBNE16ZGFNQTB4Q3pBSkJnTlZCQVlUQW1OdQpNSUlCSWpBTkJna3Foa2lHOXcwQkFRRUZBQU9DQVE4QU1JSUJDZ0tDQVFFQTBDUnlsQm1sUk9HUG5HZVBjL1BSCmk2cVBkVmdzYWUxdE42R0RUMktWTkhUVHFSMUkyOUIrTm9MNGlFOGJaUlp5ZTJtWGdsaEJBODhlZjJsS0o1N3UKdnJudDJFeHR0MHBpcGFNYk93a3Nrd1ZoOUpyQ0tkMDFzd3R5ZkpGdE9pRE4rNmMxOUhFRzdXazJJVEdjOWFkOQo0SEJ0ZnRtODNKc0RGUFlmdkVWRmxnaDV1ZlQydHNCL2VVMytONHFTYncybjExY3huSjdlZGY1OU5uVUFqRzNNCmljamNWdllidDh0WHUxbko4d3FQWjFCMDNDbWZYbW1Va3hkSEpTUkp4NTdvQitYV3U0UGloa2ZwSyt3bEhlelkKV3lDMmhlcWZpelRqUjYzeDM2R2piZXVBZmRLdkYxYnk4anR4dVRxQWVMUUFTZ0VBU2VkeW1UQTVUT05lbjRxTwp6d0lEQVFBQk1BMEdDU3FHU0liM0RRRUJDd1VBQTRJQkFRQmUwVE55WVpzWXlBWlN3TFgwNVhhVXU5VlYxSjdLCktpaEUyc2ZMVlRrZVFDUnpkVVBSQm5CaXRjRnlZSDVRN0h3REdtL2NUMGtPZmM3TElJc3loaEJKemhpMVY2SGIKUElMODlUN2g1NDFOcmRpNTlFWlBWRXFOd1hNSnNlSjAxWlYrckJIaldURDQ1MWJ6OEpUN0Z1T1lPWGN4NGtDdQpVcWkyWVBTandnR3BZbFZoQnB0VHVRMGI4VGhCRVR6L2pBTFZSdHFWSllqYVVrazgwSlpxQTJsalBBaUVmZFhKCkNHdU0rUmNTdDFVeURzT2drT3BlS2Q5cUJPclROS2VwRmhJZms4cSt2VEJHMm9xZWUrVmNFQXJUT2JlSUJQRHAKcldvR1Q5RHRqREJDWFFHa3J4aWJRWFo0VzBJOXVhbnRkVEdaaUUyWlZrWGtkcE5BeU9vZTg1eHMKLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo=
+  tls.key: LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JSUV2UUlCQURBTkJna3Foa2lHOXcwQkFRRUZBQVNDQktjd2dnU2pBZ0VBQW9JQkFRRFFKSEtVR2FWRTRZK2MKWjQ5ejg5R0xxbzkxV0N4cDdXMDNvWU5QWXBVMGROT3BIVWpiMEg0Mmd2aUlUeHRsRm5KN2FaZUNXRUVEeng1LwphVW9ubnU2K3VlM1lURzIzU21LbG94czdDU3lUQldIMG1zSXAzVFd6QzNKOGtXMDZJTTM3cHpYMGNRYnRhVFloCk1aejFwMzNnY0cxKzJiemNtd01VOWgrOFJVV1dDSG01OVBhMndIOTVUZjQzaXBKdkRhZlhWekdjbnQ1MS9uMDIKZFFDTWJjeUp5TnhXOWh1M3kxZTdXY256Q285blVIVGNLWjllYVpTVEYwY2xKRW5IbnVnSDVkYTdnK0tHUitrcgo3Q1VkN05oYklMYUY2cCtMTk9OSHJmSGZvYU50NjRCOTBxOFhWdkx5TzNHNU9vQjR0QUJLQVFCSjUzS1pNRGxNCjQxNmZpbzdQQWdNQkFBRUNnZ0VBQlFsOHhGekNoU0k0U1g2d0dBeEVlKzdLdmZvK1NPbjRCS3FoOU4vYjRJTWIKUkRKek91Nld2MWI0RU1ScFUwN3h3azdSM2RPbzd5Q3FDa2RRQmhsd2lha1NPblBQQytwKzdLYy8xM1BuWWo5MQpHV2hOWHBuOTNMRmdPZWVERHk4UURSRUUyeitJL1dIWWI0RTEzVFFLZGM0Q3VGa29tdVlkY3ZwcDFqS085b3grCnZzL1hwNnJxYit1cmtNTXZYY3hxTWk3NVlTTzEzdEl1Vzg5S3JIbHU3WDhnOUN5dHIzSGQrQnNXUG1BYm9VRncKZS9HZ0hpamNBY1l0TlJYektzb2VhSUR2OHNUdkRuMndzTGkxcHdRVnR3UEVSVnZTQjdiVkU4dGN6SGZSNDZsagp0enFObGZyQkQzZW0vbHl4V1JvTTQ4czhxVTVNa1ZETklramtpZzc4VVFLQmdRRDdvTC9YS3R0Q1FsRUlocDNtCnFzMUpPekJxcE1Fb3BST3BvWURMMURUZ3NYWlNyVlp4L2lTSWY4WnBNTlpEeDdQcWFxcTgxOTE0emNFZElnekEKWkVwVHVLcGQ1bHhkNzZLYzFaVjhVZjBjYUlWbmFkQ2tDNWczQXlKNHk4VHdjdmppWUdyY3NPWDhVU1hiOGpnUQo4S1Q2QkdTVTc0SFN3VDFIR0hJalFDeHBVd0tCZ1FEVHdrWFZzdDE1Y3JHQWI1ZS9UTmR6MGQvVGlrQ25ocWpICm80bVlncDI5TlVsdEN5MFZOTGhXTFlZVjh6ZUYxYXhtdFpnT0pFQTN3Unc0VmQ4QVpCZGZSQW9Cd2ZjZlVIamgKYW5OVWxXdm5XZjZJRVc3NzVYeERQNkdtOGpCQXlMUVhFd2dpWCs0Tk1QTDM2ZXphYTJ5bElIYzRsUDc4am5KagpxZkk2a3NZSkZRS0JnRXR1THRRVGx0TFFDbmFoMUNmWHY5NWFEZk9LSEJWUkZ3bmN6ajFNQ2VYcGpPelA1WUFhCmpWMFY0S2FiNno4NldHYkhQeE9KS20wU1VQZW93MlhSS3E3YVJzZ0xURmtrZ3Z5ODBpa0ljdlhYSjFhTzArcTUKUnhJR3NJakJuUEh2cFVoSFd3RjVUaGhMUXl3aCtraXB1dXJ2OGk3cmRXRjJhQ1l0MzlsTlhZTGRBb0dCQUlzcwp0dnRCcUlCR21sVEFneXFPMVZmZ3kwdmNKS3cyTzcyaVJTL0FRTzMzRk1BZlJVMFhya090ZmQvMVR6dWQrTVkwCmViQnBzTzh6ODFrdlR2YVIwaTZocURZSmhtTEZYLzAvR25ld0VSQW52THN2UWhNNmU1WXpQd3BiU00xN1c2bUMKcjZqd0JhUVQxTXlOcVViUXJjSkZlVFh0N3p5TVhyQVVKUWpNS0c0VkFvR0FmNzN1VHBrNmFOYnh1SjEzc2ZxWQpCNjhQMmFHektzMEVZOS83cmJWRCthZXQ0RWNiVFhFd3pNQ255WDM5enl2QkJxWG9JbkZxUlMvZDlLZlRZOEE4CmxtS0hJTGZuM2pqeWMrMEM1S2RvTy9KUktxR2pWajEvVUhzT2xSMUFJTW5CQVpiZVV4WCtrOHhHamVHRjdyL0oKWktQTnZUZjd4VXlrMi9UV3pYVnFZREE9Ci0tLS0tRU5EIFBSSVZBVEUgS0VZLS0tLS0K
 
 ---
 
@@ -69,9 +82,9 @@ spec:
     - hosts:
         - nginx.local.com
 #      生成证书
-#      openssl req -x509 -sha256 -nodes -days 365 -newkey rsa:2048 -keyout tls.key -out tls.crt
+#      openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout tls.key -out tls.crt
 #      创建密钥
-#      kubectl create secret tls tls-secret --key tls.key --cert tls.crt
+#      kubectl create secret tls tls-secret --key tls.key --cert tls.crt  # 创建name=tls-secret的secret
       secretName: tls-secret # 名字需要与创建密钥名一致
   rules:  # 可以定义多个路由规则,Service的type为ClusterIP即可(NodePort也行)
     - host: nginx.local.com  # 通过该域名访问nginx,可以在本地机/etc/hosts文件添加 集群节点ip nginx.local.com 模拟
@@ -275,7 +288,8 @@ spec:
         successThreshold: # 连续探测成功多少次才被认定为成功,默认1
 #        exec: 
 #          command: ['bin/cat','/hello.txt']
-        tcpSocket:
+        tcpSocket: 
+          host: # 默认是pod ip 
           port: 6379  
 #        httpGet:  # 访问http://127.0.0.1:80/hello
 #          httpHeaders:
@@ -301,7 +315,7 @@ spec:
   nodeName:  # 将Pod调度到指定的Node节点上
   nodeSelector: # 将Pod调度到标签ssd=true的节点上
 #    ssd: "true"
-  restartPolicy: Always # Always容器失效时重启(默认),OnFailure容器终止运行且退出码不为0时重启, Never不重启容器,每个容器重启间隔阶梯形增长
+  restartPolicy: Always # Always容器失效时重启(默认),OnFailure容器终止运行且退出码不为0时重启,Never不重启容器,每个容器重启间隔阶梯形增长
 
 ---
 
@@ -388,9 +402,10 @@ storage-provisioner                1/1     Running   14 (32m ago)    8h
 
 Label用于给某个对象定义标识,Label Selector用于查询和筛选拥有某些标签的资源,可以使用","分割多个组合查询,相当于and
 基于等式的Label Selector: 
-name=avatar选择所有Label中key=name且value=avatar的对象; name!=avatar选择所有Label中key=name且value!=avatar的对象
+name=avatar选择所有Label中key=name且value=avatar的对象; name!=avatar选择所有Label中key=name且value!=avatar,或没有key=name标签的对象
 基于集合的Label Selector: 
-name in (v1,v2)选择所有Label中key=name且value=v1或value=v2的对象; name not in (v1,v2)选择所有Label中key=name且value!=v1且value!=v2的对象
+name in (v1,v2)选择所有Label中key=name且value=v1或value=v2的对象; name notin (v1,v2)选择所有Label中key=name且value!=v1且value!=v2的对象
+partition选择所有包含了有partition标签的资源,没有校验它的值; !partition选择所有没有partition标签的资源,没有校验它的值
 kubectl get pod -l version=3.0 -n dev # 查询指定标签的pod
 
 Service可以看做一组同类Pod对外的访问接口,应用可以方便的实现服务发现和负载均衡
@@ -400,7 +415,7 @@ CronJob可以在特定时间反复运行Job任务
 Endpoint存储在Etcd中,用来记录一个Service对应的所有Pod访问地址,它是根据Service配置中的selector描述产生的
 ResourceQuota限制命名空间中所有Pod|CronJob等的运行总数、内存请求总量、内存限制总量、CPU请求总量、CPU限制总量
 LimitRange限制命名空间中单个Pod的内存请求总量、内存限制总量、CPU请求总量、CPU限制总量
-服务质量类(QoS class)包括Guaranteed,Burstable,BestEffort,k8s在Node资源不足时使用QoS类来就驱逐Pod作出决定
+服务质量类(QoS class),当Node没有足够可用资源时按照BestEffort > Burstable > Guaranteed优先级驱逐Pod
 
 Volume是Pod中能被多个容器访问的共享目录,定义在Pod上,k8s通过Volume实现同一个Pod中不同容器间数据共享和数据持久化存储
 Volume生命周期不与Pod中单个容器生命周期相关,容器终止或重启时Volume数据不丢失,Volume常见类型如下:
@@ -412,8 +427,8 @@ Secret: 用法与ConfigMap类似,存储敏感信息
 
 容器探测用于检测容器中应用是否正常工作,k8s提供2种探针实现容器探测
 livenessProbe: 存活性探针,用于检测应用实例当前是否处于正常运行状态,如果不是,k8s会重启容器,由Pod的重启策略restartPolicy决定
-startupProbe: 启动探针,应用有最多t=failureThreshold * periodSeconds的时间来完成其启动过程
-一旦启动探测成功一次,存活探测任务就会接管对容器的探测,如果启动探测一直没成功,容器会在t秒后被杀死,并且根据restartPolicy来执行进一步处置
+startupProbe: 启动探针,应用有最多t=failureThreshold * periodSeconds的时间来完成其启动过程,此探针成功前会禁用所有其他探针
+启动探测成功后其他探测任务就会接管对容器的探测,如果启动探测一直没成功,容器会在t秒后被杀死,并且根据restartPolicy来执行进一步处置
 readinessProbe: 就绪性探针,用于检测应用实例当前是否可以接受请求,如果不能,k8s不会转发流量但不会重启容器,就绪探针在容器的整个生命周期中保持运行状态
 探针支持以下三种方式
 Exec: 在容器内执行一次命令,如果命令执行退出码为0,则认为程序正常
