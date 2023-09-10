@@ -46,7 +46,7 @@ kubectl describe pod nginx -n dev # pod相关描述,通过最后的Events描述�
 kubectl delete pod --all --force  # 强制删除所有pod,避免阻塞等待
 kubectl logs -f pod_name -c container_name # 查看pod运行日志
 kubectl edit deploy deploy_name  # 动态集群扩缩(replicas),动态镜像更新,动态自愈,每一个新版本都会新建一个ReplicaSet
-kubectl edit ingress ingress_name 
+kubectl edit ingress ingress_name # 相当于kubectl get ing my-ing -o yaml > ing.yaml && vi ing.yaml && kubectl apply -f ing.yaml
 kubectl rollout history deploy|ds name # 查看历史发布版本
 kubectl rollout undo deploy|ds name --to-revision=1 # 回退到指定版本,默认回退到上个版本
 kubectl rollout pause|resume deploy|ds name  # 暂停继续发版,金丝雀发版
@@ -304,7 +304,8 @@ spec:
     - name: logs-volume
       configMap:
         name: cm-config # 必须与ConfigMap名字一致
-#      emptyDir: {}
+#      emptyDir:
+#        sizeLimit: 500Mi
 #      hostPath:
 #        path: /home/docker
 #        type: DirectoryOrCreate  # 目录不存在就先创建再使用,存在则直接使用,还支持Directory|File|FileOrCreate
@@ -328,9 +329,10 @@ data:  # key映射成文件,value映射成文件内容,如果更新了ConfigMap�
   user: oracle
   age: '12'  # 注意
 ```
-kubectl apply -f nginx.yaml  # 创建或更新,yaml文件可以是在线文件 
+kubectl apply -f nginx.yaml  # 创建或更新 
 kubectl delete -f nginx.yaml
 kubectl get -f nginx.yaml -o yaml
+kubectl replace -f https://k8s.io/examples/application/nginx/nginx-deployment.yaml --force # 删除并重新创建资源
 
 ```yaml
 apiVersion: v1
