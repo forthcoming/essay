@@ -29,26 +29,27 @@ minikube ssh -n minikube # 登录节点,-n要ssh访问的节点，默认为主�
 minikube cp file node_name:path  # 将本地机文件拷贝到指定节点目录
 minikube addons enable metrics-server # 在kube-system命名空间下开启hpa
 minikube addons enable ingress # 在ingress-nginx命名空间下开启ingress
-
-kubectl port-forward pod/name local_port:container_port  # 将容器内应用端口映射到本机端口(调试用)
+kubectl cordon|uncordon node_name # 标记node节点为不可调度|可以调度
+kubectl port-forward pod_name local_port:container_port  # 将容器内应用端口映射到本机端口(调试用)
+kubectl exec pod_name -c container_name -it -- /bin/sh  # 进入Pod指定容器内部执行命令
 kubectl api-resources # 查看所有对象信息
 kubectl explain pod # 查看对象字段的yaml文档
 kubectl get node  # 查看节点信息
 kubectl get all # 查看(default命名空间)所有对象信息
-kubectl exec pod_name -c container_name -it -- /bin/sh  # 进入Pod指定容器内部执行命令
-kubectl cp file pod_name:pod_path  # 将主机文件拷贝到pod指定目录
+kubectl cp file pod_name:pod_path -c container_name # 将主机文件和目录复制到容器中或从容器中复制出来,方向是从左到右
 kubectl top node|pod  # 查看资源使用详情(前提是启用metrics-server功能)
 kubectl create ns dev # 创建名为dev的命名空间
 kubectl delete ns dev  # 删除命名空间dev及其下所有pod
 kubectl run nginx --image=nginx:alpine -n dev # 在dev(默认为default)命名空间下运行名为nginx的pod,k8s会自动拉取并运行
-kubectl get pod|hpa|node|deploy|svc|ep|cj -o wide [--v=9] -w -A --show-labels  # 查看对象信息,-o显示详细信息,--v=9会显示详细的http请求,-w开启实时监控,-A查看所有命名空间
+kubectl get pod|hpa|node|deploy|svc|ep|cj -o wide|yaml [--v=9] -w -A --show-labels  # 查看对象信息,-o显示详细信息,--v=9会显示详细的http请求,-w开启实时监控,-A查看所有命名空间
 kubectl describe pod nginx -n dev # pod相关描述,通过最后的Events描述可以看到pod构建的各个细节
 kubectl delete pod --all --force  # 强制删除所有pod,避免阻塞等待
 kubectl logs -f pod_name -c container_name # 查看pod运行日志
 kubectl edit deploy deploy_name  # 动态集群扩缩(replicas),动态镜像更新,动态自愈,每一个新版本都会新建一个ReplicaSet
-kubectl rollout history deploy deploy_name # 查看历史发布版本
-kubectl rollout undo deploy deploy_name --to-revision=1 # 回退到指定版本,默认回退到上个版本
-kubectl rollout pause|resume deploy deploy_name  # 暂停继续发版,金丝雀发版
+kubectl rollout history deploy|ds name # 查看历史发布版本
+kubectl rollout undo deploy|ds name --to-revision=1 # 回退到指定版本,默认回退到上个版本
+kubectl rollout pause|resume deploy|ds name  # 暂停继续发版,金丝雀发版
+kubectl label node node_name kkk=vvv  # 给节点打标签
 
 ```yaml
 apiVersion: v1
@@ -145,12 +146,18 @@ metadata:
 spec:
   minReplicas: 1
   maxReplicas: 6
-  targetCPUUtilizationPercentage: 3 # CPU使用率
   scaleTargetRef: # 关联要控制的pod信息
     apiVersion: apps/v1
     kind: Deployment
     name: deploy-nginx
-  
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 50
+        
 ---
 
 apiVersion: apps/v1
@@ -162,6 +169,10 @@ spec:
   selector:
     matchLabels: 
       run: hello-world
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
   template: # Pod模板
     metadata:
       labels:
@@ -229,13 +240,18 @@ metadata:
     version: "3.0"
     env: test
 spec:
+  hostAliases: # 往/etc/hosts文件追加127.0.0.1 foo.local bar.local,同一个Pod下容器共享IP,所以放在containers同级定义
+    - ip: "127.0.0.1"
+      hostnames:
+        - "foo.local"
+        - "bar.local"
   containers:
     - name: python-container
       image: python:alpine
       imagePullPolicy: IfNotPresent # Always用远程,Never用本地(不是节点本地),IfNotPresent优先用本地再远程
       command: ["/bin/sh"] # 如果在配置文件中设置了容器启动时要执行的命令及其参数,容器镜像中自带的命令与参数将会被覆盖而不再执行
       args: ["-c", "while true; do echo hello; sleep 5;done"] # 如果配置文件中只是设置了参数,却没有设置其对应的命令,那么容器镜像中自带的命令会使用该新参数作为其执行时的参数
-      env: # 容器环境变量列表 
+      env: # 容器环境变量列表,将覆盖容器镜像中指定的所有环境变量,可以在配置的其他地方使用
       volumeMounts: 
         - name: logs-volume  # 必须与volumes.name一致
           mountPath: /avatar  # 推荐写一个不存在的目录,k8s会自动创建
@@ -282,7 +298,9 @@ spec:
 #        server: 192.168.2.2 # nfs服务器地址
 #        path: /data # 共享文件路径
   
-  nodeName:  # 将Pod调度到指定的Node节点上,还可以根据nodeSelector指定节点
+  nodeName:  # 将Pod调度到指定的Node节点上
+  nodeSelector: # 将Pod调度到标签ssd=true的节点上
+#    ssd: "true"
   restartPolicy: Always # Always容器失效时重启(默认),OnFailure容器终止运行且退出码不为0时重启, Never不重启容器,每个容器重启间隔阶梯形增长
 
 ---
@@ -296,8 +314,9 @@ data:  # key映射成文件,value映射成文件内容,如果更新了ConfigMap�
   user: oracle
   age: '12'  # 注意
 ```
-kubectl apply -f nginx.yaml  # 创建或更新
+kubectl apply -f nginx.yaml  # 创建或更新,yaml文件可以是在线文件 
 kubectl delete -f nginx.yaml
+kubectl get -f nginx.yaml -o yaml
 
 ```yaml
 apiVersion: v1
