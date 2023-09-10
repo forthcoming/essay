@@ -1,3 +1,5 @@
+### 简介
+```
 k8s是容器编排技术提供以下功能
 1. 自我修复: 一旦某个容器崩溃,能在秒级启动新容器
 2. 弹性伸缩: 可以根据需求,自动对集群中正在运行的容器数量进行调整
@@ -17,8 +19,95 @@ node: 集群数据平面,负责为容器提供运行环境,组件如下
 Kubelet: 负责维护容器生命周期,即通过控制docker,来创建,更新,销毁容器
 KubeProxy: 负责提供集群内部服务发现和负载均衡
 ContainerRuntime: 负责节点上容器的各种操作
+```
 
-先安装好minikube和kubectl
+### yaml用法
+```
+YAML是JSON的超集,支持整数、浮点数、布尔、字符串、数组和对象等数据类型,大小写敏感,任何合法的JSON文档也都是YAML文档
+使用空白与缩进表示层次
+使用 # 书写注释
+使用 - 开头表示数组
+使用 | 表示多行文本块
+使用 : 表示对象,格式与JSON基本相同,但Key不需要双引号
+使用 --- 在一个文件里分隔多个YAML对象
+表示对象的 : 和表示数组的 - 后面都必须有空格
+```
+
+### namespace
+```
+不同的namespace下pod无法相互访问,不同的namespace可以限制其占用的资源(如cpu,内存)
+k8s集群启动时会默认创建几个namespace
+kubectl get ns
+default          # 所有未指定namespace的对象都会被分配在该命名空间下 
+kube-node-lease  # 集群节点间的心跳维护
+kube-public      # 该明明空间下的对象可以被所有人访问
+kube-system      # 所有k8s创建的对象存储在该命名空间
+```
+
+### pod
+```
+pod是k8s管理的最小单元,容器必须存在于pod中,一个pod可以有多个容器
+k8s集群启动后集群中各个组件是以pod方式运行在kube-system命名空间下
+kubectl get pod -n kube-system
+NAME                               READY   STATUS    RESTARTS        AGE
+coredns-65dcc469f7-m527w           1/1     Running   5 (3h31m ago)   8h
+etcd-minikube                      1/1     Running   4 (7h22m ago)   8h
+kube-apiserver-minikube            1/1     Running   5 (3h31m ago)   8h
+kube-controller-manager-minikube   1/1     Running   5 (7h22m ago)   8h
+kube-proxy-nr6wg                   1/1     Running   4 (7h22m ago)   8h
+kube-scheduler-minikube            1/1     Running   4 (7h22m ago)   8h
+storage-provisioner                1/1     Running   14 (32m ago)    8h
+```
+
+### 探测器
+```
+容器探测用于检测容器中应用是否正常工作,k8s提供2种探针实现容器探测
+livenessProbe: 存活性探针,用于检测应用实例当前是否处于正常运行状态,如果不是,k8s会重启容器,由Pod的重启策略restartPolicy决定
+startupProbe: 启动探针,应用有最多t=failureThreshold * periodSeconds的时间来完成其启动过程,此探针成功前会禁用所有其他探针
+启动探测成功后其他探测任务就会接管对容器的探测,如果启动探测一直没成功,容器会在t秒后被杀死,并且根据restartPolicy来执行进一步处置
+readinessProbe: 就绪性探针,用于检测应用实例当前是否可以接受请求,如果不能,k8s不会转发流量但不会重启容器,就绪探针在容器的整个生命周期中保持运行状态
+探针支持以下三种方式
+Exec: 在容器内执行一次命令,如果命令执行退出码为0,则认为程序正常
+TCPSocket: 尝试访问一个用户容器端口,如果能建立连接,则认为程序正常
+HTTPGet: 调用容器内web应用的url,如果返回状态码在200-399之间,则认为程序正常
+```
+
+### label
+```
+Label用于给某个对象定义标识,Label Selector用于查询和筛选拥有某些标签的资源,可以使用","分割多个组合查询,相当于and
+基于等式的Label Selector: 
+name=avatar选择所有Label中key=name且value=avatar的对象; name!=avatar选择所有Label中key=name且value!=avatar,或没有key=name标签的对象
+基于集合的Label Selector: 
+name in (v1,v2)选择所有Label中key=name且value=v1或value=v2的对象; name notin (v1,v2)选择所有Label中key=name且value!=v1且value!=v2的对象
+partition选择所有包含了有partition标签的资源,没有校验它的值; !partition选择所有没有partition标签的资源,没有校验它的值
+kubectl get pod -l version=3.0 -n dev # 查询指定标签的pod
+```
+
+### volume
+```
+Volume是Pod中能被多个容器访问的共享目录,定义在Pod上,k8s通过Volume实现同一个Pod中不同容器间数据共享和数据持久化存储
+Volume生命周期不与Pod中单个容器生命周期相关,容器终止或重启时Volume数据不丢失,Volume常见类型如下:
+EmptyDir: 创建Pod时创建,初始内容为空,Pod销毁时EmptyDir中数据也被删除
+HostPath: 将节点中一个实际目录挂在到Pod中,Pod销毁时数据依旧存在节点上,缺点是Pod挂掉后可能会在其他节点新建Pod,导致数据失效
+NFS: 网络文件存储系统,所有Pod数据都存储到这个上面
+ConfigMap: 存储配置信息的存储卷
+Secret: 用法与ConfigMap类似,存储敏感信息
+```
+
+### 其他对象
+```
+Service可以看做一组同类Pod对外的访问接口,应用可以方便的实现服务发现和负载均衡
+DaemonSet可以保证集群中的每个节点上运行一个副本,适用于日志收集,节点监控等,会根据集群节点数量动态增加删除Pod
+Job负责批量处理短暂的一次性任务
+CronJob可以在特定时间反复运行Job任务
+Endpoint存储在Etcd中,用来记录一个Service对应的所有Pod访问地址,它是根据Service配置中的selector描述产生的
+ResourceQuota限制命名空间中所有Pod|CronJob等的运行总数、内存请求总量、内存限制总量、CPU请求总量、CPU限制总量
+LimitRange限制命名空间中单个Pod的内存请求总量、内存限制总量、CPU请求总量、CPU限制总量
+服务质量类(QoS class),当Node没有足够可用资源时按照BestEffort > Burstable > Guaranteed优先级驱逐Pod
+```
+
+# 常用命令(先安装好minikube和kubectl)
+```shell
 minikube start --image-mirror-country='cn' --image-repository='registry.cn-hangzhou.aliyuncs.com/google_containers'
 minikube dashboard  # 查看控制面板
 minikube status
@@ -29,6 +118,7 @@ minikube ssh -n minikube # 登录节点,-n要ssh访问的节点，默认为主�
 minikube cp file node_name:path  # 将本地机文件拷贝到指定节点目录
 minikube addons enable metrics-server # 在kube-system命名空间下开启hpa
 minikube addons enable ingress # 在ingress-nginx命名空间下开启ingress
+
 kubectl cordon|uncordon node_name # 标记node节点为不可调度|可以调度
 kubectl port-forward pod_name local_port:container_port  # 将容器内应用端口映射到本机端口(调试用)
 kubectl exec pod_name -c container_name -it -- /bin/sh  # 进入Pod指定容器内部执行命令
@@ -51,7 +141,13 @@ kubectl rollout history deploy|ds name # 查看历史发布版本
 kubectl rollout undo deploy|ds name --to-revision=1 # 回退到指定版本,默认回退到上个版本
 kubectl rollout pause|resume deploy|ds name  # 暂停继续发版,金丝雀发版
 kubectl label node|pod name kkk=vvv  # 给对象打标签
+kubectl apply -f nginx.yaml  # 创建或更新 
+kubectl delete -f nginx.yaml
+kubectl get -f nginx.yaml -o yaml
+kubectl replace -f https://k8s.io/examples/application/nginx/nginx-deployment.yaml --force # 删除并重新创建资源
+```
 
+### 资源配置样例
 ```yaml
 apiVersion: v1
 kind: Namespace
@@ -329,11 +425,8 @@ data:  # key映射成文件,value映射成文件内容,如果更新了ConfigMap�
   user: oracle
   age: '12'  # 注意
 ```
-kubectl apply -f nginx.yaml  # 创建或更新 
-kubectl delete -f nginx.yaml
-kubectl get -f nginx.yaml -o yaml
-kubectl replace -f https://k8s.io/examples/application/nginx/nginx-deployment.yaml --force # 删除并重新创建资源
 
+### mysql部署
 ```yaml
 apiVersion: v1
 kind: Pod
@@ -382,66 +475,5 @@ data:
 ```
 
 
-不同的namespace下pod无法相互访问,不同的namespace可以限制其占用的资源(如cpu,内存)
-k8s集群启动时会默认创建几个namespace
-kubectl get ns
-default          # 所有未指定namespace的对象都会被分配在该命名空间下 
-kube-node-lease  # 集群节点间的心跳维护
-kube-public      # 该明明空间下的对象可以被所有人访问
-kube-system      # 所有k8s创建的对象存储在该命名空间   
 
-pod是k8s管理的最小单元,容器必须存在于pod中,一个pod可以有多个容器
-k8s集群启动后集群中各个组件是以pod方式运行在kube-system命名空间下
-kubectl get pod -n kube-system
-NAME                               READY   STATUS    RESTARTS        AGE
-coredns-65dcc469f7-m527w           1/1     Running   5 (3h31m ago)   8h
-etcd-minikube                      1/1     Running   4 (7h22m ago)   8h
-kube-apiserver-minikube            1/1     Running   5 (3h31m ago)   8h
-kube-controller-manager-minikube   1/1     Running   5 (7h22m ago)   8h
-kube-proxy-nr6wg                   1/1     Running   4 (7h22m ago)   8h
-kube-scheduler-minikube            1/1     Running   4 (7h22m ago)   8h
-storage-provisioner                1/1     Running   14 (32m ago)    8h
 
-Label用于给某个对象定义标识,Label Selector用于查询和筛选拥有某些标签的资源,可以使用","分割多个组合查询,相当于and
-基于等式的Label Selector: 
-name=avatar选择所有Label中key=name且value=avatar的对象; name!=avatar选择所有Label中key=name且value!=avatar,或没有key=name标签的对象
-基于集合的Label Selector: 
-name in (v1,v2)选择所有Label中key=name且value=v1或value=v2的对象; name notin (v1,v2)选择所有Label中key=name且value!=v1且value!=v2的对象
-partition选择所有包含了有partition标签的资源,没有校验它的值; !partition选择所有没有partition标签的资源,没有校验它的值
-kubectl get pod -l version=3.0 -n dev # 查询指定标签的pod
-
-Service可以看做一组同类Pod对外的访问接口,应用可以方便的实现服务发现和负载均衡
-DaemonSet可以保证集群中的每个节点上运行一个副本,适用于日志收集,节点监控等,会根据集群节点数量动态增加删除Pod
-Job负责批量处理短暂的一次性任务
-CronJob可以在特定时间反复运行Job任务
-Endpoint存储在Etcd中,用来记录一个Service对应的所有Pod访问地址,它是根据Service配置中的selector描述产生的
-ResourceQuota限制命名空间中所有Pod|CronJob等的运行总数、内存请求总量、内存限制总量、CPU请求总量、CPU限制总量
-LimitRange限制命名空间中单个Pod的内存请求总量、内存限制总量、CPU请求总量、CPU限制总量
-服务质量类(QoS class),当Node没有足够可用资源时按照BestEffort > Burstable > Guaranteed优先级驱逐Pod
-
-Volume是Pod中能被多个容器访问的共享目录,定义在Pod上,k8s通过Volume实现同一个Pod中不同容器间数据共享和数据持久化存储
-Volume生命周期不与Pod中单个容器生命周期相关,容器终止或重启时Volume数据不丢失,Volume常见类型如下:
-EmptyDir: 创建Pod时创建,初始内容为空,Pod销毁时EmptyDir中数据也被删除
-HostPath: 将节点中一个实际目录挂在到Pod中,Pod销毁时数据依旧存在节点上,缺点是Pod挂掉后可能会在其他节点新建Pod,导致数据失效
-NFS: 网络文件存储系统,所有Pod数据都存储到这个上面
-ConfigMap: 存储配置信息的存储卷
-Secret: 用法与ConfigMap类似,存储敏感信息
-
-容器探测用于检测容器中应用是否正常工作,k8s提供2种探针实现容器探测
-livenessProbe: 存活性探针,用于检测应用实例当前是否处于正常运行状态,如果不是,k8s会重启容器,由Pod的重启策略restartPolicy决定
-startupProbe: 启动探针,应用有最多t=failureThreshold * periodSeconds的时间来完成其启动过程,此探针成功前会禁用所有其他探针
-启动探测成功后其他探测任务就会接管对容器的探测,如果启动探测一直没成功,容器会在t秒后被杀死,并且根据restartPolicy来执行进一步处置
-readinessProbe: 就绪性探针,用于检测应用实例当前是否可以接受请求,如果不能,k8s不会转发流量但不会重启容器,就绪探针在容器的整个生命周期中保持运行状态
-探针支持以下三种方式
-Exec: 在容器内执行一次命令,如果命令执行退出码为0,则认为程序正常
-TCPSocket: 尝试访问一个用户容器端口,如果能建立连接,则认为程序正常
-HTTPGet: 调用容器内web应用的url,如果返回状态码在200-399之间,则认为程序正常
-
-YAML是JSON的超集,支持整数、浮点数、布尔、字符串、数组和对象等数据类型,大小写敏感,任何合法的JSON文档也都是YAML文档
-使用空白与缩进表示层次
-使用 # 书写注释
-使用 - 开头表示数组
-使用 | 表示多行文本块
-使用 : 表示对象,格式与JSON基本相同,但Key不需要双引号
-使用 --- 在一个文件里分隔多个YAML对象
-表示对象的 : 和表示数组的 - 后面都必须有空格
