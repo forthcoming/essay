@@ -93,7 +93,7 @@ ACK(acknowledgment): 确认接受,三次握手和四次分手中用到
 3. server发送完数据后,发送一个FIN包,进入LAST_ACK状态
 4. client收到FIN包后,发送ACK包,进入TIME_WAIT状态,超时等待(一般为1min)结束后关闭连接,server收到ACK包后进入CLOSED状态,关闭连接
 TIME_WAIT是为了保证server能收到ACK包,如果没收到,server会重发送FIN包,处于TIME_WAIT的的client收到FIN包后再次发送ACK包并刷新TIME_WAIT时间
-大量TIME_WAIT会占用内存和端口资源,高并发下服务器出现这种情况,可通过调整等待时间,SO_REUSEADDR端口复用,短连接改长连接等方式解决
+大量TIME_WAIT会占用内存和端口资源,HTTP使用短连接或HTTP长连接数量达到上限会出现这种情况,可通过调整等待时间,SO_REUSEADDR端口复用,短连接改长连接等方式解决
 握手其实是四个阶段,只不过第2,3阶段合并成2阶段,挥手2阶段后服务端可能还会发送数据,所以不能合并
 
 TCP如何保证安全有效传输?
