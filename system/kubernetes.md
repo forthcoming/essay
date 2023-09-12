@@ -19,6 +19,8 @@ node: 集群数据平面,负责为容器提供运行环境,组件如下
 Kubelet: 负责维护容器生命周期,即通过控制docker,来创建,更新,销毁容器
 KubeProxy: 负责提供集群内部服务发现和负载均衡
 ContainerRuntime: 负责节点上容器的各种操作
+
+集群下节点间是互通的,节点可以访问集群上的任意pod,同一个节点下的pod间互通
 ```
 
 ### yaml用法
@@ -47,6 +49,7 @@ kube-system      # 所有k8s创建的对象存储在该命名空间
 ### pod
 ```
 pod是k8s管理的最小单元,容器必须存在于pod中,一个pod可以有多个容器
+pod下所有容器共享pod的ip和端口,pod每次重启ip都不一样
 k8s集群启动后集群中各个组件是以pod方式运行在kube-system命名空间下
 kubectl get pod -n kube-system
 NAME                               READY   STATUS    RESTARTS        AGE
@@ -106,6 +109,96 @@ LimitRange限制命名空间中单个Pod的内存请求总量、内存限制总�
 服务质量类(QoS class),当Node没有足够可用资源时按照BestEffort > Burstable > Guaranteed优先级驱逐Pod
 ```
 
+### ingress安装技巧
+```shell
+# 插件开启失败时解决方案
+minikube addons enable metrics-server
+kubectl get pod,svc -o wide -n kube-system
+minikube ssh 
+docker pull registry.cn-hangzhou.aliyuncs.com/google_containers/metrics-server 
+kubectl edit deploy metrics-server -n kube-system  # 修改imagePullPolicy,image,nodeName属性
+```
+
+### ingress原理剖析
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ingress-nginx-controller
+  namespace: ingress-nginx
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ingress-nginx
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: ingress-nginx
+    spec:
+      containers:
+        image: registry.cn-hangzhou.aliyuncs.com/google_containers/nginx-ingress-controller:v1.8.1
+        name: controller
+        ports:
+        - containerPort: 80
+          hostPort: 80
+          name: http
+          protocol: TCP
+        - containerPort: 443
+          hostPort: 443
+          name: https
+          protocol: TCP
+        - containerPort: 8443
+          name: webhook
+          protocol: TCP
+        livenessProbe:
+          failureThreshold: 5
+          httpGet:
+            path: /healthz
+            port: 10254
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /healthz
+            port: 10254
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: ingress-nginx-controller
+  namespace: ingress-nginx
+spec:
+  clusterIP: 10.104.132.85
+  ports:
+  - appProtocol: http
+    name: http
+    nodePort: 30676
+    port: 80
+    protocol: TCP
+    targetPort: http
+  - appProtocol: https
+    name: https
+    nodePort: 31344
+    port: 443
+    protocol: TCP
+    targetPort: https
+  selector:
+    app.kubernetes.io/name: ingress-nginx
+  sessionAffinity: None
+  type: NodePort
+```
+
 # 常用命令(先安装好minikube和kubectl)
 ```shell
 minikube start --image-mirror-country='cn' --image-repository='registry.cn-hangzhou.aliyuncs.com/google_containers'
@@ -140,7 +233,8 @@ kubectl edit ingress ingress_name # 相当于kubectl get ing my-ing -o yaml > in
 kubectl rollout history deploy|ds name # 查看历史发布版本
 kubectl rollout undo deploy|ds name --to-revision=1 # 回退到指定版本,默认回退到上个版本
 kubectl rollout pause|resume deploy|ds name  # 暂停继续发版,金丝雀发版
-kubectl label node|pod name kkk=vvv  # 给对象打标签
+kubectl label node|pod name kkk=vvv --overwrite # 给对象打标签,overwrite代表更新
+kubectl label node|pod name kkk- # 删除对象标签
 kubectl apply -f nginx.yaml  # 创建或更新 
 kubectl delete -f nginx.yaml
 kubectl get -f nginx.yaml -o yaml
@@ -349,6 +443,10 @@ metadata:
   labels:
     version: "3.0"
     env: test
+  ownerReferences: # 该对象所依赖的对象列表,一般由k8s自动生成,如果列表中的所有对象都被删除后,该对象将被垃圾回收
+    - apiVersion: 
+      kind: # 如果该Pod是由Deployment对象的Pod模板产生,则值为ReplicaSet,name值为ReplicaSet对应名字
+      name: 
 spec:
   hostAliases: # 往/etc/hosts文件追加127.0.0.1 foo.local bar.local,同一个Pod下容器共享IP,所以放在containers同级定义
     - ip: "127.0.0.1"
@@ -373,7 +471,7 @@ spec:
           cpu: 0.5
           memory: "10Mi"
     - name: redis-container
-      image: redis:alpine
+      image: redis:alpine  # 同一个Pod中如果两个容器运行的程序使用相同端口,则会启动失败,说明端口也是共享的
       volumeMounts: 
         - name: logs-volume  
           mountPath: /neos  # 推荐写一个不存在的目录,k8s会自动创建
