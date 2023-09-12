@@ -197,7 +197,8 @@ spec:
     protocol: TCP
     targetPort: https
     
-# ingress插件会运行一个包含nginx的Pod,Ingress对象中定义的rules会映射到容器的/etc/nginx/nginx.conf文件
+# ingress插件会运行一个包含nginx和控制器的Pod
+# Ingress对象中定义的rules会被控制器映射到nginx的/etc/nginx/nginx.conf文件
 # 所以rules中的域名请求会被nginx转发到对应的Service对象上去
 ```
 
