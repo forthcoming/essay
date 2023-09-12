@@ -140,8 +140,8 @@ spec:
         image: registry.cn-hangzhou.aliyuncs.com/google_containers/nginx-ingress-controller:v1.8.1
         name: controller
         ports:
-        - containerPort: 80
-          hostPort: 80
+        - containerPort: 80  # 容器监听的端口
+          hostPort: 80  # 容器端口映射到所在节点的端口,如果设置,主机只能运行一个容器副本即replicas: 1,区别与kubectl port-forward
           name: http
           protocol: TCP
         - containerPort: 443
@@ -179,6 +179,9 @@ metadata:
   name: ingress-nginx-controller
   namespace: ingress-nginx
 spec:
+  selector:
+    app.kubernetes.io/name: ingress-nginx
+  type: NodePort
   clusterIP: 10.104.132.85
   ports:
   - appProtocol: http
@@ -193,10 +196,9 @@ spec:
     port: 443
     protocol: TCP
     targetPort: https
-  selector:
-    app.kubernetes.io/name: ingress-nginx
-  sessionAffinity: None
-  type: NodePort
+    
+# ingress插件会运行一个包含nginx的Pod,Ingress对象中定义的rules会映射到容器的/etc/nginx/nginx.conf文件
+# 所以rules中的域名请求会被nginx转发到对应的Service对象上去
 ```
 
 # 常用命令(先安装好minikube和kubectl)
@@ -219,7 +221,7 @@ kubectl api-resources # 查看所有对象信息
 kubectl explain pod # 查看对象字段的yaml文档
 kubectl get node  # 查看节点信息
 kubectl get all # 查看(default命名空间)所有对象信息
-kubectl cp file pod_name:pod_path -c container_name # 将主机文件和目录复制到容器中或从容器中复制出来,方向是从左到右
+kubectl cp local_path pod_name:pod_path -c container_name # 将主机文件和目录复制到容器中或从容器中复制出来,方向是从左到右
 kubectl top node|pod  # 查看资源使用详情(前提是启用metrics-server功能)
 kubectl create ns dev # 创建名为dev的命名空间
 kubectl delete ns dev  # 删除命名空间dev及其下所有pod
@@ -278,7 +280,7 @@ spec:
         - nginx.local.com
       secretName: tls-secret  
   rules:  # 可以定义多个路由规则,Service的type为ClusterIP即可(NodePort也行)
-    - host: nginx.local.com  # 通过该域名访问nginx,可以在本地机/etc/hosts文件添加 集群节点ip nginx.local.com 模拟
+    - host: nginx.local.com  # 通过该域名访问nginx,可以在本地机/etc/hosts文件添加 ingress所在集群节点ip nginx.local.com 模拟
       http:  # nginx.local.com -> svc-nginx:81
         paths:
           - path: /  
