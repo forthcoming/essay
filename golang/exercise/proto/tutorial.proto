@@ -1,0 +1,18 @@
+syntax = "proto3";
+package main;
+
+
+// 会员赠送
+message SendVip {
+  string secret_key = 1;
+  // 添加的会员时长
+  int32 month_length = 2;
+  repeated string uid_array = 3;
+  repeated Product product = 4;
+}
+
+message Product {
+  string id = 1; // 对应product_id
+  float price = 2;
+  int32 title_type = 3;
+}
