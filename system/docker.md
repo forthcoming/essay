@@ -101,6 +101,7 @@ cmd ["python"]
 ```yaml
 services:
   web:
+#    build: . # 从当前目录构建名为Dockerfile的镜像
     image: ktv_room
     container_name: room
     networks:
