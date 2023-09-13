@@ -4,13 +4,24 @@ import (
 	"fmt"
 	"strings"
 	"unicode/utf8"
+	//lib "aaa"  导入包并起别名
+	//_ "aaa"  匿名导入包
 )
 
 /*
+二元运算符优先级
+Precedence    Operator
+    5             *  /  %  <<  >>  &  &^
+    4             +  -  |  ^
+    3             ==  !=  <  <=  >  >=
+    2             &&
+    1             ||
+1<<1 + 1<<1 go返回4,python返回8
+
 go get -v -u github.com/gin-gonic/gin   # v显示日志,u代表发现已安装包会强制更新,会在go.mod文件新增 require github.com/gin-gonic/gin
 go mod init name 创建一个项目后执行,在项目里面生成一个go.mod的文件
 go mod tidy 清理不用的包,下载需要的包（直接go run也会自动下载依赖的包）
-go env -w GOPRIVATE="*.cmcm.com"
+go env -w GOPRIVATE="*.baidu.com"
 go env 查看变量配置
 go build hello.go 把go的源文件编译并且和它所依赖的包打包成可执行文件
 go run -race hello.go 执行go代码(不打包),race会对代码做竞争检测
@@ -73,7 +84,13 @@ func testDefinition() {
 	fmt.Println("changed b is", b, "c is", c)
 }
 
+func testFunction(a float64, b bool) ([]int, bool) { // 单个返回值不用()
+	// func name() (a, b int, c bool) { return }  返回值可以带上变量名,函数结束直接return即可,相同类型返回值可以合并声明
+	return []int{int(a)}, !b
+}
+
 func main() {
-	testString()
+	//testString()
 	//testDefinition()
+	fmt.Println(testFunction(1.2, false))
 }
