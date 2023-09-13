@@ -165,6 +165,31 @@ func testSlice() {
 		return s7[i]%10 < s7[j]%10 // 从小到大排序,按条件为真的顺序排序
 	})
 	fmt.Println(s7) // [21 1 3 84 6 57]
+
+	// 取元素之前一定要先判断是否为空,判断数组是否为空一律用len方式,防止出错,
+	y := make([]int, 0)
+	var z []int
+	fmt.Printf("%T,%T\n", y, z)                     // []int,[]int
+	fmt.Println(len(y), len(z), y != nil, z == nil) // 0 0 true true
+	for idx, value := range z {                     // 遍历y,z都不会报错
+		fmt.Println(idx, value)
+	}
+}
+
+func testMap() {
+	myMap := map[int]string{ // Map无序,是引用操作
+		22: "sun",
+		33: "avatar", // 一行赋值时结尾不用逗号
+	}
+	//var myMap map[int]string
+	//myMap := make(map[string]interface{}, 3) // 只能指定容量,可以提高效率(不指定就自动扩容),没法像切片那样指定长度和容量
+	myMap[11] = "\"oracle\"" // 转义字符
+	name, isOK := myMap[11]
+	fmt.Println(name, isOK) // "oracle" true ,访问不存在的key会返回默认值,isOk是False
+	delete(myMap, 22)       // 删除不存在的key不会报错
+	for key, value := range myMap {
+		println(key, value)
+	}
 }
 
 func main() {
@@ -174,5 +199,6 @@ func main() {
 	//testString()
 	//testDefinition()
 	//testDefer()
-	testSlice()
+	//testSlice()
+	testMap()
 }
