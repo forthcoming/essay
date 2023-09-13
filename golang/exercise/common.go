@@ -71,14 +71,15 @@ func main() {
 	myFloat, _ := strconv.ParseInt("111", 2, 64) // 7
 	fmt.Println(myBool, myFloat)
 	/*
-		%b : 二进制
-		%c : 字符
-		%d : 整数
-		%f : 浮点数
-		%t : bool类型
-		%s : 字符串
-		%T : 变量类型
-		%v : 默认格式输出(通用输出格式)
+				%b : 二进制
+				%c : 字符
+				%d : 整数
+				%f : 浮点数
+				%t : bool类型
+		    	%p : 地址
+				%s : 字符串
+				%T : 变量类型
+				%v : 默认格式输出(通用输出格式)
 	*/
 	formatString := fmt.Sprintf("%04d", rand.Intn(5)) // 04意思是长度为4,不足的前面用0补齐;返回[0,5)范围内伪随机整数,使用前一定要重置随机种子(py会自动执行这一步)
 	fmt.Println(formatString)
@@ -102,6 +103,7 @@ func main() {
 		fmt.Printf("%d is int\n", v)
 	}
 
+	//dict := make(map[string]interface{}, 3)     // 只能指定容量,可以提高效率(不指定就自动扩容),没法像切片那样指定长度或容量
 	time.Sleep(2 * time.Second)
 	queryTime := time.Date(2021, time.Month(4), 1, 0, 0, 0, 0, time.Local)
 	queryTime = queryTime.AddDate(0, -1, 0)
