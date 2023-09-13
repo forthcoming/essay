@@ -18,25 +18,6 @@ Note that there are limited circumstances where a non-nil but zero-length slice 
 When designing interfaces, avoid making a distinction between a nil slice and a non-nil, zero-length slice, as this can lead to subtle programming errors.
 */
 
-func mistake() {
-	value := 2
-
-	defer func(value int) { // Use this deferred function to handle errors.
-		err := recover() // 只有在相同的 Go 协程中调用 recover 才管用,recover 不能恢复一个不同协程的 panic
-		if err != nil {
-			fmt.Printf("1. value: %d error: %v\n", value, err) // 输出2, 并非在调用延迟函数的时候才确定实参,而是当执行 defer 语句的时候就会对延迟函数的实参进行求值
-		}
-	}(value)
-
-	defer func(value int) { // 当一个函数内多次调用defer时,按后进先出顺序执行
-		fmt.Printf("2. value: %d\n", value)
-	}(value)
-
-	value = 22
-	panic("make mistakes")
-	fmt.Println("不会再被执行") // 不会再被执行
-}
-
 func Count(values ...int) int { // 可变参数
 	total := 0
 	fmt.Printf("values's type is %T, cap: %d, len: %d\n", values, cap(values), len(values)) // []int
@@ -71,8 +52,6 @@ func main() {
 	shadowedTest()
 
 	isEmptyArray()
-
-	mistake()
 
 	testValue1 := 1
 	fmt.Println(Count(testValue1, 2, 3), testValue1) // testValue1的值不会被Count改变
