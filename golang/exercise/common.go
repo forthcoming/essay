@@ -8,12 +8,7 @@ import (
 	"time"
 )
 
-const PAY = "Wechat"                         // 常量的值在编译的时候确定, 无法被修改赋值
-var character = '你'                          // 申明全局变量时无法使用:=这种方式, 字符在go里面默认是int32类型
-var OpenError = fmt.Errorf("could not open") // 自定义错误
-
 /*
-
 When declaring an empty slice, prefer
 var t []string
 over
@@ -22,15 +17,6 @@ The former declares a nil slice value, while the latter is non-nil but zero-leng
 Note that there are limited circumstances where a non-nil but zero-length slice is preferred, such as when encoding JSON objects (a nil slice encodes to null, while []string{} encodes to the JSON array []).
 When designing interfaces, avoid making a distinction between a nil slice and a non-nil, zero-length slice, as this can lead to subtle programming errors.
 */
-
-func init() {
-	// 包里面所有的init函数(应为一个包可能含多个文件,每个文件一个init函数)在包被导入或者调用时被执行
-	// 没有参数和返回值,不能在代码中主动调用他
-	// 如果main包导入了slave包,则会先执行slave包的init函数,再执行main包的init函数
-	// 执行时机 全局申明 -> init() -> main()
-	rand.Seed(time.Now().UnixNano()) // 随机种子
-	fmt.Printf("character is %v \n", character)
-}
 
 func mistake() {
 	value := 2
@@ -93,14 +79,6 @@ func main() {
 	testValue2 := []int{2, 3, 4}
 	fmt.Println(Count(testValue2...), testValue2) // ...类似于python的解引用,可以不给Count传参,testValue2的值会被Count改变
 
-	// 简短声明的语法要求 := 操作符的左边至少有一个变量是尚未声明的
-	a, b := 20, 30 // 声明变量a和b
-	fmt.Println("a is", a, "b is", b)
-	b, c := 40, 50 // b已经声明，但c尚未声明
-	fmt.Println("b is", b, "c is", c)
-	b, c = 80, 90 // 给已经声明的变量b和c赋新值
-	fmt.Println("changed b is", b, "c is", c)
-
 	userFile := "note.txt"
 	fOut, _ := os.OpenFile(userFile, os.O_RDWR|os.O_CREATE, 0666)
 	defer fOut.Close()
@@ -145,6 +123,7 @@ func main() {
 		fmt.Printf("%d is int\n", v)
 	}
 
+	time.Sleep(2 * time.Second)
 	queryTime := time.Date(2021, time.Month(4), 1, 0, 0, 0, 0, time.Local)
 	queryTime = queryTime.AddDate(0, -1, 0)
 	before := queryTime.Add(-2 * time.Second)                                                   // Add是给现有时间加减分钟或者小时,Sub是前一个时间减后一个时间的时差

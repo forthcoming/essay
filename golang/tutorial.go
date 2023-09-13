@@ -20,14 +20,25 @@ Go语言没有类和继承的概念,它通过接口(interface)来实现多态
 可变参数可以用结构体指针,这样如果使用者不想传,可以直接用空指针
 */
 
+const pay = "Wechat"                         // 常量在编译期间确定, 无法被修改
+var OpenError = fmt.Errorf("could not open") // 自定义错误
+
+func init() {
+	// 没有参数和返回值,不能在代码中主动调用他
+	// 包里面所有的init函数(应为一个包可能含多个文件,每个文件一个init函数)在包被导入或者调用时被执行
+	// 如果main包导入了slave包,则会先执行slave包的init函数,再执行main包的init函数
+	// 执行时机 全局申明 -> init() -> main()
+	fmt.Println(pay)
+}
+
 func testString() {
 	str := "AB中C"                  // 字符串底层是一个 byte 数组,因此 string 也可以进行切片处理,字符串是不可变对象,无法被修改
-	for index, char := range str { // 通过观察index可以发现"中"占了3字节
-		fmt.Printf("%c starts at byte %d\n", char, index)
-		//A starts at byte 0
-		//B starts at byte 1
-		//中 starts at byte 2
-		//C starts at byte 5
+	for index, char := range str { // 观察index发现"中"占了3字节,字符默认是int32类型
+		fmt.Printf("%c=%v starts at byte %d\n", char, char, index)
+		//A=65 starts at byte 0
+		//B=66 starts at byte 1
+		//中=20013 starts at byte 2
+		//C=67 starts at byte 5
 	}
 	for i := 0; i < len(str); i++ { // 返回字符串中字节的数量
 		fmt.Printf("%d\t", str[i]) // 65      66      228     184     173     67
@@ -52,6 +63,17 @@ func testString() {
 	strings.Replace("oink oink oink", "o", "l", 2)    // link link oink, n表示替换的次数,小于0表示全部替换
 }
 
+func testDefinition() {
+	var a int // int类型默认初始值为0, var可以初始化全局变量
+	fmt.Println("a=", a)
+
+	b := "hello"        // 自动类型推导为string, :=操作符要求至少有一个变量尚未声明,不能初始化全局变量
+	b, c := "world", 50 // b已经声明,但c尚未声明
+	b, c = "oracle", 90 // 给已经声明的变量b和c赋新值
+	fmt.Println("changed b is", b, "c is", c)
+}
+
 func main() {
 	testString()
+	//testDefinition()
 }
