@@ -1,0 +1,102 @@
+plugins {
+    id 'org.springframework.boot' version '2.4.0-SNAPSHOT'
+    id 'io.spring.dependency-management' version '1.0.9.RELEASE'
+    id 'java'
+}
+
+group = 'com.kugou'
+version = '0.0.1-SNAPSHOT'
+[compileJava, compileTestJava]*.options*.encoding = "UTF-8"
+
+/*
+指定使用的仓库,mavenCentral()表示使用中央仓库(类似的还有jcenter),此刻项目中所需要的jar包都会从这里下载到本地指定目录
+*/
+repositories {
+    mavenCentral()
+    maven {url 'http://maven.aliyun.com/nexus/content/groups/public/'}
+    maven {url 'http://maven.aliyun.com/nexus/content/repositories/jcenter'}
+    maven {url 'https://repo.spring.io/milestone'}
+    maven {url 'https://repo.spring.io/snapshot'}
+}
+
+/*
+gradle工程所有的jar包坐标都在dependencies属性中放置
+每个jar包都有三个基本元素组成(group,name,version)
+testCompile 表示该jar包在测试的时候起作用,该属性为jar包的作用域
+添加jar包的时候都要带上作用域
+不同jar包可能会依赖其他jar包,如果依赖了某个jar包的不同版本会导致spring启动失败
+* */
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-cache'
+    implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jdbc'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    runtimeOnly 'com.h2database:h2' // very fast, open source disk-based or in-memory databases,Transaction support, multi-version concurrency,Encrypted databases,Fulltext search,Pure Java with small footprint: around 2 MB jar file size
+    testImplementation('org.springframework.boot:spring-boot-starter-test') {
+        exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'
+    }
+    testImplementation 'org.awaitility:awaitility:3.1.2'
+
+    // https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-api
+    testCompile group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: '5.6.2'
+
+    // https://mvnrepository.com/artifact/io.github.resilience4j/resilience4j-all
+    compile group: 'io.github.resilience4j', name: 'resilience4j-all', version: '1.5.0'
+    compile "io.github.resilience4j:resilience4j-spring-boot2:1.5.0"
+    compile('org.springframework.boot:spring-boot-starter-actuator')
+    compile('org.springframework.boot:spring-boot-starter-aop')
+
+    // https://mvnrepository.com/artifact/mysql/mysql-connector-java
+    compile group: 'mysql', name: 'mysql-connector-java', version: '8.0.20'
+
+    // https://mvnrepository.com/artifact/redis.clients/jedis
+    compile group: 'redis.clients', name: 'jedis', version: '3.3.0'
+
+    // https://mvnrepository.com/artifact/com.alibaba/druid
+    compile group: 'com.alibaba', name: 'druid', version: '1.1.22'
+
+    // https://mvnrepository.com/artifact/org.springframework/spring-context
+    compile group: 'org.springframework', name: 'spring-context', version: '5.2.6.RELEASE'
+
+    // https://mvnrepository.com/artifact/org.springframework.boot/spring-boot
+    compile group: 'org.springframework.boot', name: 'spring-boot', version: '2.3.0.RELEASE'
+
+    // https://mvnrepository.com/artifact/org.springframework/spring-jdbc
+    compile group: 'org.springframework', name: 'spring-jdbc', version: '5.2.6.RELEASE'
+
+    // https://mvnrepository.com/artifact/com.google.guava/guava
+    compile group: 'com.google.guava', name: 'guava', version: '29.0-jre'
+
+    // https://mvnrepository.com/artifact/com.ctrip.framework.apollo/apollo-client
+    // WARNING: An illegal reflective access operation has occurred
+    compile group: 'com.ctrip.framework.apollo', name: 'apollo-client', version: '1.6.0'
+
+}
+
+test {
+    useJUnitPlatform()
+}
+
+task hello {
+    doLast {
+        String someString = 'mY_nAmE'
+        println "Original: " + someString
+        println "Upper case: " + someString.toUpperCase()
+
+        def my_string = 'mY_nAmE'  // groovy语法,自动推导类型
+        def my_list = ['avatar','akatsuki']
+        my_list<<'oracle'
+        println my_list.get(2)
+
+        def my_map=['aa':12,34:'bb']
+        my_map.'cc'='dd'
+        println my_map.get('cc')
+    }
+}
+
+/*
+src/main/java: 正式代码目录
+src/main/resources: 正式配置文件目录
+src/test/java: 单元测试代码目录
+src/test/resources: 测试配置文件目录
+*/

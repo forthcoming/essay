@@ -5,7 +5,7 @@ import (
 	"strings"
 	"unicode/utf8"
 	//lib "aaa"  导入包并起别名
-	//_ "aaa"  匿名导入包
+	//_ "aaa"  匿名导入包,无法使用包里的内容,但能执行包里的init函数
 )
 
 /*
