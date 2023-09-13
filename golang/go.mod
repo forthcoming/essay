@@ -1,3 +1,3 @@
-module aix.zhhainiao.com
+module tutorial
 
-go 1.12
+go 1.21.1
