@@ -22,7 +22,7 @@ Precedence    Operator
 go get -v -u github.com/gin-gonic/gin   # v显示日志,u代表发现已安装包会强制更新,会在go.mod文件新增 require github.com/gin-gonic/gin
 go mod init name 创建一个项目后执行,在项目里面生成一个go.mod的文件
 go mod tidy 清理不用的包,下载需要的包（直接go run也会自动下载依赖的包）
-go env -w GOPRIVATE="*.baidu.com"
+go env -w GOPROXY=https://goproxy.cn,direct  # 解决国内包同步问题
 go env 查看变量配置
 go build hello.go 把go的源文件编译并且和它所依赖的包打包成可执行文件
 go run -race hello.go 执行go代码(不打包),race会对代码做竞争检测
@@ -113,22 +113,20 @@ func testDefer() {
 }
 
 func testSlice() {
-	// []string{""}和[]string{}长度不一样,但在用fmt.Println打印时显示的都是[]
 	/****************************** 数组 ******************************/
 	// 数组是值传递
-	a0 := [...]int{1, 2, 3, 4}     // [1 2 3 4] ; 三个点代表自动推导长度,仍然是数组,a0并不是指向第一个元素的指针
-	a1 := [6]int{3: 1, 2, 1: 3, 4} // [0 3 4 1 2 0] ; 按索引下标赋初值
-	a2 := [2][3]int{               // 二维数组
+	a0 := [...]int{1, 2, 3, 4}     // [1 2 3 4],类型是[4]int,三个点代表自动推导长度,仍然是数组,a0并不是指向第一个元素的指针
+	a1 := [6]int{3: 1, 2, 1: 3, 4} // [0 3 4 1 2 0],按索引下标赋初值
+	a2 := [2][3]int{               // [2][3]int类型二维数组
 		{0, 1, 2},
 		{3, 4, 5},
 	}
 	fmt.Println(a0, a1, a2)
-	/****************************** 数组 ******************************/
 
 	/****************************** 切片 ******************************/
 	// 切片是引用传递
-	//dict := make(map[string]interface{}, 3)                 // 只能指定容量,可以提高效率(不指定就自动扩容),没法像切片那样指定长度或容量
-	s1 := make([]int, 3, 4)                                 // 创建一个长度为3,初始默认值是0的切片,容量是4,容量指the maximum length the slice can reach when resliced
+	//dict := make(map[string]interface{}, 3)     // 只能指定容量,可以提高效率(不指定就自动扩容),没法像切片那样指定长度或容量
+	s1 := make([]int, 3, 4)                                 // 创建一个类型是[]int,长度为3,容量是4,初始默认值是0的切片,容量指重新切片时切片可以达到的最大长度
 	s2 := s1[:2]                                            // 切片的切片还是切片
 	fmt.Println(s1, len(s1), cap(s1), s2, len(s2), cap(s2)) // [0 0 0] 3 4 [0 0] 2 4
 	s1 = append(s1, 1)
@@ -147,10 +145,10 @@ func testSlice() {
 	}
 
 	s4 := []string{"google", "root", "世界", "cat"} // 未指定数组长度的其实定义的是切片
-	s5 := s4                                      // 切片是引用操作
+	s5 := s4
 	s5[0] = "round"
 	s6 := make([]string, len(s4)-1)
-	copy(s6, s4) // 切片深拷贝,如果s6长度不足,则会自动截取适当长度; Copy returns the number of elements copied, which will be the minimum of len(src) and len(dst).
+	copy(s6, s4) // 切片深拷贝,如果s6长度不足,则会自动截取适当长度; 返回拷贝的元素数量,数量等于min(len(src), len(dst))
 	s6[0] = "circle"
 	fmt.Println(s6, len(s4), cap(s4), s4[:2], s4[2:], s4[1:3]) // 包含头不包含尾,跟python一样
 
@@ -164,7 +162,6 @@ func testSlice() {
 		return s8[i]%10 < s8[j]%10 // 从小到大排序,按条件为真的顺序排序
 	})
 	fmt.Println(s8)
-	/****************************** 切片 ******************************/
 
 	/****************************** 下标越界 ******************************/
 	// 下标是否越界主要是看下标是否超过其capacity值(切片,数组皆适用)
@@ -175,7 +172,6 @@ func testSlice() {
 	fmt.Println(s9[3:])           // [0]
 	fmt.Println(s9[:6])           // [0 0 0 0 0 0]
 	//fmt.Println(s9[:7])  // error,最大不能超过cap值
-	/****************************** 下标越界 ******************************/
 }
 
 func main() {
