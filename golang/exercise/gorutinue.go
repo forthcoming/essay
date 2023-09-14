@@ -7,6 +7,8 @@ import (
 	"time"
 )
 
+// 主协程退出,其他子协程也要跟着退出,Goroutine没有ID号
+
 func f1(ch1 chan<- int, wg *sync.WaitGroup) {
 	defer wg.Done()
 	for i := 0; i < 10; i++ {

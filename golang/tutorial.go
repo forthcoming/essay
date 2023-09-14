@@ -1,7 +1,9 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"reflect"
 	"sort"
 	"strings"
 	"time"
@@ -29,7 +31,6 @@ go build hello.go 把go的源文件编译并且和它所依赖的包打包成可
 go run -race hello.go 执行go代码(不打包),race会对代码做竞争检测
 
 类名,属性名,方法名首字母大写表示其他包和本包可以访问,否则只能在本包内访问
-主协程退出,其他子协程也要跟着退出,Goroutine没有ID号
 */
 
 const pay = "Wechat"                         // 常量在编译期间确定, 无法被修改
@@ -208,21 +209,54 @@ func testSwitch() {
 }
 
 func testTime() {
-	time.Sleep(2 * time.Second)
-	queryTime := time.Date(2021, time.Month(4), 1, 0, 0, 0, 0, time.Local)
+	// 秒             毫秒                 微秒                 纳秒
+	// Second = 1e3 * Millisecond = 1e6 * Microsecond = 1e9 * Nanosecond = 1e9
+	queryTime := time.Date(2021, 4, 1, 0, 0, 0, 0, time.Local)
 	queryTime = queryTime.AddDate(0, -1, 0)
-	before := queryTime.Add(-2 * time.Second)                                                   // Add是给现有时间加减分钟或者小时,Sub是前一个时间减后一个时间的时差
-	o := before.Sub(queryTime)                                                                  // before - queryTime, 返回time.Duration类型
-	fmt.Println(o > 0, queryTime.Unix())                                                        // false, Unix返回秒级整形时间戳
-	fmt.Println(queryTime.UnixNano(), queryTime.UnixNano()/1e9)                                 // UnixNano返回纳秒级整形时间戳,1秒等于10^9纳秒
-	fmt.Println(time.Now().Format("2006-01-02 15:04:05"))                                       // 记忆诀窍: 2006年12345,也可以2006-01-02 03:04:05但有区别
+	fmt.Println(queryTime.Unix(), queryTime.UnixNano()) // Unix返回秒级整形时间戳,UnixNano返回纳秒级整形时间戳
+
+	// Add是给现有时间加减分钟或者小时
+	before := queryTime.Add(-2 * time.Second)
+	// Sub是前一个时间减后一个时间的时差,before - queryTime, 返回time.Duration类型
+	duration := before.Sub(queryTime)
+	fmt.Println(duration, duration < 0) // -2s true
+
+	// 记忆诀窍: 2006年12345,也可以2006-01-02 03:04:05但有区别
+	fmt.Println(time.Now().Format("2006-01-02 15:04:05"))                                       // 2023-09-14 20:03:40
+	fmt.Println(time.Now().Format("03:04:05"))                                                  // 08:03:4
+	fmt.Println(time.Unix(time.Now().Unix(), 0))                                                // 将时间戳转换为时间
 	fmt.Println(time.ParseInLocation("2006-01-02 15:04:05", "2021-01-21 14:30:00", time.Local)) // 字符串转时间
-	fmt.Println(time.Now().Format("04:05"))
-	fmt.Println(time.Unix(queryTime.Unix(), 0)) // 将时间戳转换为时间
-	//Nanosecond  Duration = 1                  // 纳秒
-	//Microsecond          = 1000 * Nanosecond  // 微秒
-	//Millisecond          = 1000 * Microsecond // 毫秒
-	//Second               = 1000 * Millisecond
+
+	time.Sleep(2 * time.Second)
+}
+
+func testReflect() {
+	data := map[string]any{
+		"name": "sakura",
+		"age":  12,
+	}
+
+	info := struct {
+		Sex         int    `yaml:"sex"`
+		PhoneNumber string `yaml:"phone_number"`
+	}{
+		1,
+		"13189616789",
+	}
+	//TypeOf: 用来获取输入参数接口中的值的类型, 如果接口为空则返回nil
+	infoType := reflect.TypeOf(info) // 此处必须传值类型
+	//ValueOf: 用来获取输入参数接口中的数据的值, 如果接口为空则返回0
+	infoValue := reflect.ValueOf(info)                // 此处必须传值类型
+	for idx := 0; idx < infoValue.NumField(); idx++ { // 按照结构体定义成员变量的顺序遍历
+		typeFiled := infoType.Field(idx)
+		// typeFiled.Name
+		// typeFiled.Type
+		tag := typeFiled.Tag.Get("yaml")
+		valueFiled := infoValue.Field(idx)
+		data[tag] = valueFiled.Interface() // cannot return value obtained from unexported field or method
+	}
+	dataByte, _ := json.Marshal(data)
+	fmt.Println(string(dataByte))
 }
 
 func main() {
@@ -235,5 +269,6 @@ func main() {
 	//testSlice()
 	//testMap()
 	//testSwitch()
-	testTime()
+	//testTime()
+	testReflect()
 }
