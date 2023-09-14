@@ -2,14 +2,14 @@ package main
 
 import (
 	"fmt"
-	"strconv"
 )
 
 type Book struct {
 	/*
-		如果结构体包含不可比较的字段,则该结构体实例间也不可比较; 如果它的每一个字段都可比较,则该结构体实例间也可比较(==和!=)
-		如果函数返回值定义了结构体指针变量,则该变量是空指针类型
-		名为S的结构体不能再包含S类型的成员,但可以包含*S指针类型的成员
+			如果结构体包含不可比较的字段,则该结构体实例间也不可比较; 如果它的每一个字段都可比较,则该结构体实例间也可比较(==和!=)
+			如果函数返回值定义了结构体指针变量,则该变量是空指针类型
+			名为S的结构体不能再包含S类型的成员,但可以包含*S指针类型的成员
+		    可以给内置类型如int增加方法,前提是用type给int定义命名类型
 	*/
 	title  string
 	author string
@@ -47,14 +47,14 @@ func testReverse() {
 	}
 	var book1Ptr []*Book
 	for _, book := range book1 {
-		book.bookId /= 2                   // 此处book是值拷贝,不会影响到book6
+		book.bookId /= 2                   // 此处book是值拷贝,不会影响到book1
 		book1Ptr = append(book1Ptr, &book) // 错误写法,应为遍历过程中book的地址始终不变,只有值在变
 	}
 	fmt.Println(book1, book1Ptr) // [{C++ sakura 12 <nil>} {Go neo 22 <nil>}] [0xc0001080c0 0xc0001080c0]
 
 	book2 := book1
 	for idx := range book2 {
-		book2[idx].bookId /= 2 // 由于book6是切片,因此改变book7会影响到book6
+		book2[idx].bookId /= 2 // 由于book1是切片,因此改变book2会影响到book1
 	}
 	fmt.Println(book1)
 
@@ -64,7 +64,7 @@ func testReverse() {
 	}
 	var book3Ptr []*Book
 	for _, book := range book3 {
-		book.bookId /= 2                  // 此处book是指针的值拷贝,会影响到book8
+		book.bookId /= 2                  // 此处book是指针的值拷贝,会影响到book3
 		book3Ptr = append(book3Ptr, book) // 正确写法
 	}
 	fmt.Println(book3, book3Ptr)
@@ -73,60 +73,4 @@ func testReverse() {
 func main() {
 	//testCommon()
 	testReverse()
-	return
-
-	/****************************** 多态+继承+覆盖 ******************************/
-	// mate30无法直接调用Huawei结构体的成员变量,如mate30.name
-	// Huawei必须实现Phone接口的所有方法
-	var mate30 Phone = &Huawei{name: "Mate 30", price: 3999}
-	mate30.call()
-	mate30.seenMessage()
-
-	pro := HuaweiPro{Huawei: Huawei{name: "huawei pro", price: 6999}, camera: "camera"} // 匿名成员的key就是其类型本身
-	var proPtr Phone = &pro                                                             // HuaweiPro包含了匿名字段类型Huawei,所以继承了匿名字段的函数和变量,所以也是实现了Phone接口
-	proPtr.call()
-	proPtr.seenMessage()
-	pro.echo()
-	fmt.Println(pro, pro.Huawei.name, pro.name, pro.price, pro.camera)
-}
-
-/****************************** 接口定义 ******************************/
-type Phone interface { // 如果一个类型实现了一个接口中所有方法,我们说类型实现了该接口,go没有显式的关键字用来实现接口
-	call()
-	seenMessage()
-}
-
-// 接口嵌套
-type MobilePhone interface {
-	Phone
-}
-
-/****************************** 接口实现 ******************************/
-type Huawei struct {
-	name   string
-	price  float64
-	GetUID func(token string) (int64, error)
-}
-
-func (h *Huawei) call() { // 这里Huawei是指针,无论传入的h是指针还是值类型,都会更改h本身; 可以给内置类型如int增加方法,前提是用type给int定义命名类型
-	h.name = "banana"
-	fmt.Printf("%s 有打电话功能.....\n", h.name)
-}
-func (h *Huawei) seenMessage() {
-	fmt.Printf("%s 有发短信功能.....\n", h.name)
-}
-func (h Huawei) String() string { // 自定义格式化输出
-	return "❰ " + strconv.FormatInt(int64(h.price), 10) + " ❱"
-}
-func (h Huawei) echo() {
-	fmt.Println("in huawei")
-}
-
-type HuaweiPro struct {
-	Huawei // 继承了Huawei的成员变量及接口方法
-	camera string
-}
-
-func (h HuaweiPro) echo() { // 只需要名字相同,即可重写匿名字段的方法
-	fmt.Println("in huawei pro")
 }
