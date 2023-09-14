@@ -82,8 +82,8 @@ func testJsonMarshal() {
 		// omit 美[əˈmɪt]  v. 省略; 忽略; 遗漏; 删除; 漏掉
 		// 重命名json序列化后的字段名,omitempty属性只要发现字段值为false,0,空指针,空接口,空数组,空切片,空映射,空字符串中的一种,就会被忽略
 		Name     string `json:"name,omitempty"`
-		nickname string `json:"nick_name"` // 小写开头的变量无法在其他包中被访问,因此不会被序列化
-		Age      int32  `json:"-"`         // -意思是不转换
+		nickname string `json:"nick_name"` // 小写开头的变量无法在其他包中被访问,因此被忽略
+		Age      int32  `json:"-"`         // -意思是忽略
 		Scores   []int  // 不指定别名则按照原始字段序列化
 		JsonExt
 		Ext     JsonExt
@@ -110,6 +110,7 @@ func testJsonMarshal() {
 		}
 	*/
 	jsonTarget, _ := json.Marshal(jsonSource) // jsonTarget类型是[]uint8
+	fmt.Println(string(jsonTarget))
 	jsonSource = JsonData{}
 	_ = json.Unmarshal(jsonTarget, &jsonSource)
 }
