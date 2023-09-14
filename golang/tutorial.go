@@ -3,6 +3,8 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"math/rand"
+	"os"
 	"reflect"
 	"sort"
 	"strings"
@@ -126,6 +128,11 @@ func testSlice() {
 
 	/****************************** 切片 ******************************/
 	// 切片是引用传递
+	// 声明空切片时优先选择var t []string而不是t := []string{}
+	// 前者声明一个nil切片值,后者非nil但长度为零,它们的len和cap都为零
+	// 注意在有限情况下,首选非nil零长度的切片,例如在编码JSON对象时(nil切片编码为null,而[]string{}编码为JSON数组[])
+	// 设计接口时避免区分nil切片和非nil零长度切片,因为这可能导致微妙的编程错误
+
 	s0 := make([]int, 4, 6)       // 创建一个类型是[]int,长度为4,容量是6,初始默认值是0的切片,容量指重新切片时切片可以达到的最大长度,可省略
 	fmt.Println(len(s0), cap(s0)) // 4 6
 	fmt.Println(s0[:4], s0[3:])   // [0 0 0 0] [0],数组的cap值等于len值,S[A:B]范围是[A,B),跟python一样包含头不包含尾
@@ -230,6 +237,33 @@ func testTime() {
 	time.Sleep(2 * time.Second)
 }
 
+func testPrint() {
+	/*
+				%b : 二进制
+				%c : 字符
+				%d : 整数
+				%f : 浮点数
+				%t : bool类型
+		    	%p : 地址
+				%s : 字符串
+				%T : 变量类型, reflect.TypeOf(args)
+				%v : 默认格式输出(通用输出格式)
+	*/
+	// 04意思是长度为4,不足的前面用0补齐;返回[0,5)范围内伪随机整数,使用前一定要重置随机种子(py会自动执行这一步)
+	formatString := fmt.Sprintf("%04d", rand.Intn(5))
+	fmt.Println(formatString)
+	fmt.Printf("%v,%T", 2, 2) // 2,int
+}
+
+func testOpenFile() {
+	fOut, _ := os.OpenFile("test_open_file.txt", os.O_RDWR|os.O_CREATE, 0666)
+	defer fOut.Close()
+	for i := 0; i < 3; i++ {
+		_, _ = fOut.WriteString("write string!\n")
+		_, _ = fOut.Write([]byte("write byte!\n"))
+	}
+}
+
 func testReflect() {
 	data := map[string]any{
 		"name": "sakura",
@@ -255,6 +289,11 @@ func testReflect() {
 	}
 	dataByte, _ := json.Marshal(data)
 	fmt.Println(string(dataByte))
+
+	for idx := 0; idx < infoType.NumMethod(); idx++ {
+		method := infoType.Method(idx)
+		fmt.Println(method.Name, method.Type)
+	}
 }
 
 func main() {
@@ -268,5 +307,7 @@ func main() {
 	//testMap()
 	//testSwitch()
 	//testTime()
+	//testPrint()
+	//testOpenFile()
 	testReflect()
 }

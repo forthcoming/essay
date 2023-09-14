@@ -1,0 +1,6 @@
+write string!
+write byte!
+write string!
+write byte!
+write string!
+write byte!
