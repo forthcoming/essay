@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"time"
 	"unicode/utf8"
 	//lib "aaa"  导入包并起别名
 	//_ "aaa"  匿名导入包,无法使用包里的内容,但能执行包里的init函数
@@ -191,6 +192,39 @@ func testMap() {
 	}
 }
 
+func testSwitch() {
+	local := 15
+	switch local {
+	case 15:
+		fmt.Println("111")
+		fallthrough // 强制执行后一个case语句块
+	case 20:
+		fmt.Println("222") // 不需要加break
+	case 1, 2:
+		fmt.Println("333")
+	default:
+		fmt.Println("default")
+	}
+}
+
+func testTime() {
+	time.Sleep(2 * time.Second)
+	queryTime := time.Date(2021, time.Month(4), 1, 0, 0, 0, 0, time.Local)
+	queryTime = queryTime.AddDate(0, -1, 0)
+	before := queryTime.Add(-2 * time.Second)                                                   // Add是给现有时间加减分钟或者小时,Sub是前一个时间减后一个时间的时差
+	o := before.Sub(queryTime)                                                                  // before - queryTime, 返回time.Duration类型
+	fmt.Println(o > 0, queryTime.Unix())                                                        // false, Unix返回秒级整形时间戳
+	fmt.Println(queryTime.UnixNano(), queryTime.UnixNano()/1e9)                                 // UnixNano返回纳秒级整形时间戳,1秒等于10^9纳秒
+	fmt.Println(time.Now().Format("2006-01-02 15:04:05"))                                       // 记忆诀窍: 2006年12345,也可以2006-01-02 03:04:05但有区别
+	fmt.Println(time.ParseInLocation("2006-01-02 15:04:05", "2021-01-21 14:30:00", time.Local)) // 字符串转时间
+	fmt.Println(time.Now().Format("04:05"))
+	fmt.Println(time.Unix(queryTime.Unix(), 0)) // 将时间戳转换为时间
+	//Nanosecond  Duration = 1                  // 纳秒
+	//Microsecond          = 1000 * Nanosecond  // 微秒
+	//Millisecond          = 1000 * Microsecond // 毫秒
+	//Second               = 1000 * Millisecond
+}
+
 func main() {
 	//a := 1.2
 	//fmt.Println(testFunction(&a, false)) // [3] true, &意思是取地址
@@ -199,5 +233,7 @@ func main() {
 	//testDefinition()
 	//testDefer()
 	//testSlice()
-	testMap()
+	//testMap()
+	//testSwitch()
+	testTime()
 }

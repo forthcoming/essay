@@ -5,7 +5,6 @@ import (
 	"math/rand"
 	"os"
 	"strconv"
-	"time"
 )
 
 /*
@@ -68,52 +67,9 @@ func main() {
 				%t : bool类型
 		    	%p : 地址
 				%s : 字符串
-				%T : 变量类型
+				%T : 变量类型, reflect.TypeOf(args)
 				%v : 默认格式输出(通用输出格式)
 	*/
 	formatString := fmt.Sprintf("%04d", rand.Intn(5)) // 04意思是长度为4,不足的前面用0补齐;返回[0,5)范围内伪随机整数,使用前一定要重置随机种子(py会自动执行这一步)
 	fmt.Println(formatString)
-
-	var inter interface{} = 12                                           // 所有类型都实现了空接口,所以可以接受所有类型变量,println就是这么实现
-	result, ok := inter.(int)                                            // 类型断言,判断正确了,result即为断言的值,前提是被断言的变量是接口类型
-	fmt.Printf("result: %d, ok: %t, valueType: %T\n", result, ok, inter) // reflect.TypeOf(args)
-	switch v := inter.(type) {                                           // 只能在switch语法中使用
-	case nil:
-		fmt.Printf("%s is nil\n", v)
-	case string:
-		fmt.Printf("%s is string\n", v)
-	case int:
-		fmt.Printf("%d is int\n", v)
-	}
-
-	time.Sleep(2 * time.Second)
-	queryTime := time.Date(2021, time.Month(4), 1, 0, 0, 0, 0, time.Local)
-	queryTime = queryTime.AddDate(0, -1, 0)
-	before := queryTime.Add(-2 * time.Second)                                                   // Add是给现有时间加减分钟或者小时,Sub是前一个时间减后一个时间的时差
-	o := before.Sub(queryTime)                                                                  // before - queryTime, 返回time.Duration类型
-	fmt.Println(o > 0, queryTime.Unix())                                                        // false, Unix返回秒级整形时间戳
-	fmt.Println(queryTime.UnixNano(), queryTime.UnixNano()/1e9)                                 // UnixNano返回纳秒级整形时间戳,1秒等于10^9纳秒
-	fmt.Println(time.Now().Format("2006-01-02 15:04:05"))                                       // 记忆诀窍: 2006年12345,也可以2006-01-02 03:04:05但有区别
-	fmt.Println(time.ParseInLocation("2006-01-02 15:04:05", "2021-01-21 14:30:00", time.Local)) // 字符串转时间
-	fmt.Println(time.Now().Format("04:05"))
-	fmt.Println(time.Unix(queryTime.Unix(), 0)) // 将时间戳转换为时间
-	//Nanosecond  Duration = 1                  // 纳秒
-	//Microsecond          = 1000 * Nanosecond  // 微秒
-	//Millisecond          = 1000 * Microsecond // 毫秒
-	//Second               = 1000 * Millisecond
-
-	local := 15
-	switch local {
-	case 1, 2:
-		fmt.Println("1111")
-	case 15:
-		fmt.Println("3333")
-		fmt.Println("三三三")
-		// 不需要加break
-		fallthrough // 强制执行后一个case语句块
-	case 20:
-		fmt.Println("4444")
-	default:
-		fmt.Println("default")
-	}
 }
