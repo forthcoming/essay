@@ -5,24 +5,26 @@ import (
 	"strconv"
 )
 
-// 结构体是值类型; 如果结构体包含不可比较的字段,则结构体也不可比较; 如果它的每一个字段都可比较,则该结构体也可比较(==和!=)
-// 如果函数返回值定义了结构体指针变量, 则该变量是空指针类型
-type Book struct { // 结构体成员顺序也有重要意义,如果交换title和author顺序,那样的话就是定义了不同的结构体类型
+type Book struct {
+	/*
+		如果结构体包含不可比较的字段,则该结构体实例间也不可比较; 如果它的每一个字段都可比较,则该结构体实例间也可比较(==和!=)
+		如果函数返回值定义了结构体指针变量,则该变量是空指针类型
+		名为S的结构体不能再包含S类型的成员,但可以包含*S指针类型的成员
+	*/
 	title  string
 	author string
 	bookId int
-	next   *Book // 一个命名为S的结构体类型将不能再包含S类型的成员,但是S类型的结构体可以包含*S指针类型的成员
+	next   *Book
 }
 
-func main() {
-	/****************************** 基本使用 ******************************/
-	book1 := Book{"C++", "sakura", 1, nil} // 结构体初始化的时候要么全用key-value形式,要么全用value形式,后者只能按成员声明顺序一一赋值
+func testCommon() {
+	book1 := Book{"C++", "sakura", 1, nil} // 初始化要么全用key-value形式,要么全用value形式,后者只能按成员声明顺序一一赋值
 	book2 := Book{title: "Go", bookId: 2}  // 忽略的字段用默认值
 	book3 := new(Book)                     // 等价于 book3 := &Book{}
 	var book4 Book                         // 等价于 book4 := Book{}
 
 	var book5 *Book // 此时book5还是nil的空指针,未分配实际内存
-	// book5.bookId = 5     // 错误写法, 当结构体指针为nil时只能被赋一个拥有实际存储地址的结构体指针后, 才能访问自己的成员变量
+	// book5.bookId = 5     // 错误写法, 当结构体指针为nil时只能被赋一个拥有实际存储地址的结构体指针后,才能访问自己的成员变量
 	book5 = book3
 	book5.title = "Python" // 结构体指针访问成员方式跟结构体变量一样
 	fmt.Println(book1, book2, book3, book4)
@@ -36,37 +38,42 @@ func main() {
 		age:       31,
 	}
 	fmt.Println("匿名结构体", employee)
-	/****************************** 基本使用 ******************************/
+}
 
-	/****************************** 遍历 ******************************/
-	book6 := []Book{
+func testReverse() {
+	book1 := []Book{
 		{"C++", "sakura", 12, nil},
 		{"Go", "neo", 22, nil},
 	}
-	var book6ptr []*Book
-	for _, book := range book6 {
+	var book1Ptr []*Book
+	for _, book := range book1 {
 		book.bookId /= 2                   // 此处book是值拷贝,不会影响到book6
-		book6ptr = append(book6ptr, &book) // 错误写法,应为遍历过程中book的地址始终不变,只有值在变
+		book1Ptr = append(book1Ptr, &book) // 错误写法,应为遍历过程中book的地址始终不变,只有值在变
 	}
-	fmt.Println(book6, book6ptr)
+	fmt.Println(book1, book1Ptr) // [{C++ sakura 12 <nil>} {Go neo 22 <nil>}] [0xc0001080c0 0xc0001080c0]
 
-	book7 := book6
-	for idx := range book7 {
-		book7[idx].bookId /= 2 // 由于book6是切片,因此改变book7会影响到book6
+	book2 := book1
+	for idx := range book2 {
+		book2[idx].bookId /= 2 // 由于book6是切片,因此改变book7会影响到book6
 	}
-	fmt.Println(book6)
+	fmt.Println(book1)
 
-	book8 := []*Book{
+	book3 := []*Book{
 		{"C++", "sakura", 12, nil},
 		{"Go", "neo", 22, nil},
 	}
-	var book8ptr []*Book
-	for _, book := range book8 {
+	var book3Ptr []*Book
+	for _, book := range book3 {
 		book.bookId /= 2                  // 此处book是指针的值拷贝,会影响到book8
-		book8ptr = append(book8ptr, book) // 正确写法
+		book3Ptr = append(book3Ptr, book) // 正确写法
 	}
-	fmt.Println(book8, book8ptr)
-	/****************************** 遍历 ******************************/
+	fmt.Println(book3, book3Ptr)
+}
+
+func main() {
+	//testCommon()
+	testReverse()
+	return
 
 	/****************************** 多态+继承+覆盖 ******************************/
 	// mate30无法直接调用Huawei结构体的成员变量,如mate30.name
@@ -81,8 +88,6 @@ func main() {
 	proPtr.seenMessage()
 	pro.echo()
 	fmt.Println(pro, pro.Huawei.name, pro.name, pro.price, pro.camera)
-	/****************************** 多态+继承+覆盖 ******************************/
-
 }
 
 /****************************** 接口定义 ******************************/
@@ -95,8 +100,6 @@ type Phone interface { // 如果一个类型实现了一个接口中所有方法
 type MobilePhone interface {
 	Phone
 }
-
-/****************************** 接口定义 ******************************/
 
 /****************************** 接口实现 ******************************/
 type Huawei struct {
@@ -127,5 +130,3 @@ type HuaweiPro struct {
 func (h HuaweiPro) echo() { // 只需要名字相同,即可重写匿名字段的方法
 	fmt.Println("in huawei pro")
 }
-
-/****************************** 接口实现 ******************************/
