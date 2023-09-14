@@ -248,11 +248,9 @@ func testReflect() {
 	//ValueOf: 用来获取输入参数接口中的数据的值, 如果接口为空则返回0
 	infoValue := reflect.ValueOf(info)                // 此处必须传值类型
 	for idx := 0; idx < infoValue.NumField(); idx++ { // 按照结构体定义成员变量的顺序遍历
-		typeFiled := infoType.Field(idx)
-		// typeFiled.Name
-		// typeFiled.Type
-		tag := typeFiled.Tag.Get("yaml")
 		valueFiled := infoValue.Field(idx)
+		typeFiled := infoType.Field(idx) // 拥有typeFiled.Name,typeFiled.Type,typeFiled.Tag等属性
+		tag := typeFiled.Tag.Get("yaml")
 		data[tag] = valueFiled.Interface() // cannot return value obtained from unexported field or method
 	}
 	dataByte, _ := json.Marshal(data)
