@@ -10,6 +10,21 @@ import (
 	"time"
 )
 
+/*
+go tool compile -l -m hello.go  # -m让编译器告诉我们变量到底是在堆还是栈分配
+go tool objdump hello.o
+
+f2返回结构体比f1返回指针更快
+f2结构体在栈空间分配,f1结构体在堆内存分配
+经测试1M以内返回结构体速度更快
+堆上分配内存比栈慢原因:
+堆上分配内存的函数runtime.newobject本身逻辑复杂
+堆上分配内存后期需要gc对其内存回收
+
+逃逸分析:
+假设有变量v及指向v的指针p,如果p的生命周期大于v,则v需要在堆上分配内存
+*/
+
 var client = http.Client{Timeout: time.Second * 5} // 设置超时时间
 
 func Get() {
