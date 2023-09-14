@@ -115,8 +115,7 @@ func testDefer() {
 	fmt.Println("不会再被执行")
 }
 
-func testSlice() {
-	/****************************** 数组 ******************************/
+func testArray() {
 	// 数组是值传递
 	a0 := [...]int{1, 2, 3, 4}     // [1 2 3 4],类型是[4]int,三个点代表自动推导长度,仍然是数组,a0并不是指向第一个元素的指针
 	a1 := [6]int{3: 1, 2, 1: 3, 4} // [0 3 4 1 2 0],按索引下标赋初值
@@ -125,8 +124,9 @@ func testSlice() {
 		{3, 4, 5},
 	}
 	fmt.Println(a0, a1, a2)
+}
 
-	/****************************** 切片 ******************************/
+func testSlice() {
 	// 切片是引用传递
 	// 声明空切片时优先选择var t []string而不是t := []string{}
 	// 前者声明一个nil切片值,后者非nil但长度为零,它们的len和cap都为零
@@ -285,7 +285,7 @@ func testReflect() {
 		valueFiled := infoValue.Field(idx)
 		typeFiled := infoType.Field(idx) // 拥有typeFiled.Name,typeFiled.Type,typeFiled.Tag等属性
 		tag := typeFiled.Tag.Get("yaml")
-		data[tag] = valueFiled.Interface() // cannot return value obtained from unexported field or method
+		data[tag] = valueFiled.Interface() // 无法返回私有变量的值
 	}
 	dataByte, _ := json.Marshal(data)
 	fmt.Println(string(dataByte))

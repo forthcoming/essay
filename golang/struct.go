@@ -1,7 +1,9 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"gopkg.in/yaml.v3"
 )
 
 type Book struct {
@@ -71,7 +73,90 @@ func testReverse() {
 	fmt.Println(book3, book3Ptr)
 }
 
+func testYamlMarshal() {
+	type YamlExt struct {
+		Key   string `yaml:"key"`
+		Array []any  `yaml:"array"`
+	}
+	type YamlData struct {
+		Yaml      []string `yaml:"yaml"`
+		Paragraph string   `yaml:"paragraph"`
+		Object    YamlExt  `yaml:"object"`
+	}
+	// ``代表多行字符串
+	yamlTarget := `
+      yaml:
+        - slim and flexible
+        - better for configuration
+      object:
+        key: value
+        array:
+          - null_value:
+            boolean: true  
+          - integer: 1
+      paragraph:
+        Blank lines denote paragraph breaks
+    `
+	/*
+		{
+			"Yaml": ["slim and flexible", "better for configuration"],
+			"Paragraph": "Blank lines denote paragraph breaks",
+			"Object": {
+				"Key": "value",
+				"Array": [{
+					"boolean": true,
+					"null_value": null
+				}, {
+					"integer": 1
+				}]
+			}
+		}
+	*/
+
+	yamlSource := YamlData{}
+	_ = yaml.Unmarshal([]byte(yamlTarget), &yamlSource)
+	jsonTarget, _ := json.Marshal(yamlSource)
+	fmt.Println(string(jsonTarget))
+}
+
+func testJsonMarshal() {
+	type JsonExt struct {
+		Friend string
+		Number int
+	}
+	type JsonData struct {
+		// 重命名json序列化后的字段名,omitempty属性只要发现字段值为false,0,空指针,空接口,空数组,空切片,空映射,空字符串中的一种,就会被忽略
+		Name string `json:"name,omitempty"`
+		// 小写开头的变量不会被序列化,应为结构体中小写开头的成员变量是私有变量,无法在其他包中被访问
+		nickname string `json:"nick_name"`
+		Age      int32  `json:"-"` // -意思是不转换
+		Scores   []int  // 不指定别名则按照原始字段序列化
+		JsonExt
+		Ext     JsonExt
+		Mapping map[int]string // 注意struct和map序列化后的形式一样
+	}
+
+	jsonSource := JsonData{
+		"welcome",
+		"oracle",
+		12,
+		[]int{1, 2},
+		JsonExt{"zgt", 10},
+		JsonExt{"newer", 20},
+		map[int]string{1: "A", 4: "B"},
+	}
+	jsonTarget, _ := json.Marshal(jsonSource) // jsonTarget类型是[]uint8
+	// {"name":"welcome","Scores":[1,2],"Friend":"zgt","Number":10,"Ext":{"Friend":"newer","Number":20},"Mapping":{"1":"A","4":"B"}}
+	fmt.Println(string(jsonTarget))
+
+	jsonSource = JsonData{}
+	err := json.Unmarshal(jsonTarget, &jsonSource)
+	fmt.Println(err, jsonSource, jsonSource.Name)
+}
+
 func main() {
 	//testCommon()
-	testReverse()
+	//testReverse()
+	//testYamlMarshal()
+	testJsonMarshal()
 }
