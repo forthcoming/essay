@@ -100,25 +100,6 @@ func testFunction(a *float64, b bool) ([]int, bool) { // 单个返回值不用()
 	return []int{int(*a)}, !b
 }
 
-func testDefer() {
-	value := 2
-
-	defer func() { // 匿名函数定义
-		err := recover() // 只有在相同的协程中调用recover才能处理错误
-		if err != nil {
-			fmt.Printf("position 1, error: %v\n", err)
-		}
-	}()
-
-	defer func(value int) { // defer在函数结束时被调用(return语句之后),当一个函数内多次调用defer时,按后进先出顺序执行
-		fmt.Println("position 2,", value) // 输出2, 在执行defer语句时就会对延迟函数的实参进行求值
-	}(value)
-
-	value = 10
-	panic("make mistakes")
-	fmt.Println("不会再被执行")
-}
-
 func testArray() {
 	// 数组是值传递
 	a0 := [...]int{1, 2, 3, 4}     // [1 2 3 4],类型是[4]int,三个点代表自动推导长度,仍然是数组,a0并不是指向第一个元素的指针
@@ -307,7 +288,6 @@ func main() {
 
 	//testString()
 	//testDefinition()
-	//testDefer()
 	//testSlice()
 	//testMap()
 	//testSwitch()
