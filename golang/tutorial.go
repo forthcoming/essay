@@ -26,13 +26,17 @@ Precedence    Operator
 
 go get -v -u github.com/gin-gonic/gin   # v显示日志,u代表发现已安装包会强制更新,会在go.mod文件新增 require github.com/gin-gonic/gin
 go mod init name 创建一个项目后执行,在项目里面生成一个go.mod的文件
-go mod tidy 清理不用的包,下载需要的包（直接go run也会自动下载依赖的包）
+go mod tidy # 清理不用的包,下载需要的包（直接go run也会自动下载依赖的包）
 go env -w GOPROXY=https://goproxy.cn,direct  # 解决国内包同步问题
-go env 查看变量配置
+go env # 查看变量配置
 go build hello.go 把go的源文件编译并且和它所依赖的包打包成可执行文件
 go run -race hello.go 执行go代码(不打包),race会对代码做竞争检测
+go build -gcflags "-N -l -S" 1.go # 编译Go文件生成汇编代码,-N禁止编译优化,-l禁止内联,-S打印汇编,-m显示变量是在堆还是栈分配
+go tool objdump -S [-s symregexp] binary  # 反汇编可执行文件,-S在汇编旁边打印出Go源码,-s仅反汇编名称与正则表达式匹配的符号
+go tool objdump binary start end  # 会从起始地址开始反汇编二进制文件,并在结束地址处停止
 
 类名,属性名,方法名首字母大写表示其他包和本包可以访问,否则只能在本包内访问
+机器指令是由0和1组成的二进制指令,汇编语言是二进制指令的文本形式,与机器指令一一对应,比如加法的机器指令是00000011写成汇编语言就是ADD
 */
 
 const pay = "Wechat"                         // 常量在编译期间确定, 无法被修改
