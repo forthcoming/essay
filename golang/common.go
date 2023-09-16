@@ -36,6 +36,7 @@ go tool objdump -S [-s symregexp] binary  # 反汇编可执行文件,-S在汇编
 go tool objdump binary start end  # 会从起始地址开始反汇编二进制文件,并在结束地址处停止
 
 类名,属性名,方法名首字母大写表示其他包和本包可以访问,否则只能在本包内访问
+go语言不支持隐式类型转换; 循环只有for关键字; ++,--只支持后置操作
 机器指令是由0和1组成的二进制指令,汇编语言是二进制指令的文本形式,与机器指令一一对应,比如加法的机器指令是00000011写成汇编语言就是ADD
 */
 
@@ -93,6 +94,7 @@ func testDefinition() {
 }
 
 func testFunction(a *float64, b bool) ([]int, bool) { // 单个返回值不用()
+	// 所有参数都是值传递,函数可以作为变量的值,可以作为参数和返回值
 	// func name() (a, b int, c bool) { return }  返回值可以带上变量名,函数结束直接return即可,相同类型返回值可以合并声明
 	*a += 1
 	multiPointer := &a // multiPointer类型为**float64
@@ -100,8 +102,22 @@ func testFunction(a *float64, b bool) ([]int, bool) { // 单个返回值不用()
 	return []int{int(*a)}, !b
 }
 
+func testVariableParam(values ...int) int { // 可变参数
+	// values是[]int类型,且入参只能是int型切片的解引用或多个int型参数
+	total := 0
+	fmt.Printf("values's type is %T, cap: %d, len: %d\n", values, cap(values), len(values)) // []int
+	for _, val := range values {
+		total += val
+	}
+	values[0] = 100              // 由于是切片传参,此处会直接影响到入参值
+	values = append(values, 200) // append引起values扩容,指向了新位置,所以append不会影响到入参值
+	return total
+}
+
 func testArray() {
 	// 数组是值传递
+	// 数组是否相等前提是类型相同,[2]int和[1]int被认为是不同类型,切片只能跟nil做比较
+	// 数组的cap值等于len值
 	a0 := [...]int{1, 2, 3, 4}     // [1 2 3 4],类型是[4]int,三个点代表自动推导长度,仍然是数组,a0并不是指向第一个元素的指针
 	a1 := [6]int{3: 1, 2, 1: 3, 4} // [0 3 4 1 2 0],按索引下标赋初值
 	a2 := [2][3]int{               // [2][3]int类型二维数组
@@ -121,9 +137,11 @@ func testSlice() {
 	// make返回的都是引用类型,创建一个类型是[]int,长度为4,容量是6,初始默认值是0的切片,容量指重新切片时切片可以达到的最大长度,可省略
 	s0 := make([]int, 4, 6)
 	fmt.Println(len(s0), cap(s0)) // 4 6
-	fmt.Println(s0[:4], s0[3:])   // [0 0 0 0] [0],数组的cap值等于len值,S[A:B]范围是[A,B),跟python一样包含头不包含尾
-	fmt.Println(s0[:6])           // [0 0 0 0 0 0],下标是否越界看下标是否超过其capacity值(切片,数组皆适用)
-	//fmt.Println(s0[:7])           // error,最大不能超过cap值
+	// [0 0 0 0] [0],S[A:B]范围是[A,B),跟python一样包含头不包含尾,但不能是负数,新切片容量cap(s0[:p]) = cap(s0) - p
+	fmt.Println(s0[:4], s0[3:])
+	fmt.Println(s0[:6]) // [0 0 0 0 0 0],下标是否越界看下标是否超过其capacity值(切片,数组皆适用)
+	//fmt.Println(s0[:7]) // error,最大不能超过cap值
+	//fmt.Println(s0[4])           // error,必须小于len值
 
 	s1 := make([]int, 3, 4)
 	s2 := s1[:2]                      // 切片的切片还是切片
@@ -285,6 +303,11 @@ func testReflect() {
 func main() {
 	//a := 1.2
 	//fmt.Println(testFunction(&a, false)) // [3] true, &意思是取地址
+	//fmt.Println(testVariableParam([3]int{2, 3, 4}...)) // error
+	//vValue := 1
+	//fmt.Println(testVariableParam(vValue, 2, 3), vValue) // vValue的值不会被testVariableParam改变
+	//vValue1 := []int{2, 3, 4}                            // len(vValue1)=cap(vValue1)=3
+	//fmt.Println(testVariableParam(vValue1...), vValue1)  // ...类似于python的解引用,vValue1的值会被testVariableParam改变
 
 	//testString()
 	//testDefinition()

@@ -38,7 +38,7 @@ func (h *Huawei) echo() {
 }
 
 type HuaweiPro struct {
-	Huawei // 继承了Huawei的成员变量及接口方法
+	Huawei // 相当于继承了Huawei的成员变量及接口方法
 	camera string
 }
 
