@@ -54,6 +54,8 @@ func testRaceCondition() {
 		wg.Add(1) // 一定要在Wait函数执行前执行
 		go func(lock *sync.Mutex, wg *sync.WaitGroup) {
 			atomic.AddInt32(&atomicCounter, 1) // 效率比锁更高
+			//atomic.LoadInt32(&atomicCounter)   // 原子读
+			//atomic.StoreInt32(&atomicCounter, 200) // 原子写
 			lock.Lock()
 			defer lock.Unlock()
 			defer wg.Done() // 等价于wg.Add(-1)
@@ -168,9 +170,9 @@ func testMutex() {
 
 func main() {
 	//testWaitGroup()
-	//testRaceCondition()
+	testRaceCondition()
 	//testSelect()
 	//testChannel()
-	testDefer()
+	//testDefer()
 	//testMutex()
 }

@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"math/rand"
 	"os"
 	"reflect"
@@ -85,7 +86,7 @@ func testString() {
 
 func testDefinition() {
 	var a int // int类型默认初始值为0, var可以初始化全局变量
-	fmt.Println("a=", a)
+	fmt.Println("a=", a, math.MinInt, math.MaxInt)
 
 	b := "hello"        // 自动类型推导为string, :=操作符要求至少有一个变量尚未声明,不能初始化全局变量
 	b, c := "world", 50 // b已经声明,但c尚未声明
@@ -100,6 +101,14 @@ func testFunction(a *float64, b bool) ([]int, bool) { // 单个返回值不用()
 	multiPointer := &a // multiPointer类型为**float64
 	**multiPointer += 1
 	return []int{int(*a)}, !b
+}
+
+func testClosure() func(int) int {
+	x := 0
+	return func(y int) int {
+		x += y
+		return x
+	}
 }
 
 func testVariableParam(values ...int) int { // 可变参数
@@ -243,15 +252,16 @@ func testTime() {
 
 func testPrint() {
 	/*
-				%b : 二进制
-				%c : 字符
-				%d : 整数
-				%f : 浮点数
-				%t : bool类型
-		    	%p : 地址
-				%s : 字符串
-				%T : 变量类型, reflect.TypeOf(args)
-				%v : 默认格式输出(通用输出格式)
+					%b : 二进制
+					%c : 字符
+					%d : 整数
+					%f : 浮点数
+		            %% : 百分号
+					%t : bool类型
+			    	%p : 地址
+					%s : 字符串
+					%T : 变量类型, reflect.TypeOf(args)
+					%v : 默认格式输出(通用输出格式)
 	*/
 	// 04意思是长度为4,不足的前面用0补齐;返回[0,5)范围内伪随机整数,使用前一定要重置随机种子(py会自动执行这一步)
 	formatString := fmt.Sprintf("%04d", rand.Intn(5))
@@ -309,6 +319,9 @@ func main() {
 	//vValue1 := []int{2, 3, 4}                            // len(vValue1)=cap(vValue1)=3
 	//fmt.Println(testVariableParam(vValue1...), vValue1)  // ...类似于python的解引用,vValue1的值会被testVariableParam改变
 
+	f := testClosure()
+	fmt.Println(f(10), f(10)) // 10 20
+
 	//testString()
 	//testDefinition()
 	//testSlice()
@@ -317,5 +330,5 @@ func main() {
 	//testTime()
 	//testPrint()
 	//testOpenFile()
-	testReflect()
+	//testReflect()
 }
