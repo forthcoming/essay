@@ -36,6 +36,7 @@ go build -gcflags "-N -l -S" 1.go # 编译Go文件生成汇编代码,-N禁止编
 go tool objdump -S [-s symregexp] binary  # 反汇编可执行文件,-S在汇编旁边打印出Go源码,-s仅反汇编名称与正则表达式匹配的符号
 go tool objdump binary start end  # 会从起始地址开始反汇编二进制文件,并在结束地址处停止
 
+常量不能用于取地址符
 类名,属性名,方法名首字母大写表示其他包和本包可以访问,否则只能在本包内访问
 go语言不支持隐式类型转换; 循环只有for关键字; ++,--只支持后置操作
 机器指令是由0和1组成的二进制指令,汇编语言是二进制指令的文本形式,与机器指令一一对应,比如加法的机器指令是00000011写成汇编语言就是ADD
@@ -211,6 +212,18 @@ func testMap() {
 	for key, value := range myMap {
 		println(key, value)
 	}
+
+	m := map[string]struct{ x int }{
+		"foo": {2},
+	}
+	//m["foo"].x = 4  // error
+	tmp := m["foo"]
+	tmp.x = 4
+	m["foo"] = tmp
+	// 如果不想利用tmp,可以如下定义
+	//m := map[string]*struct{ x int }{
+	//	"foo": {2},
+	//}
 }
 
 func testSwitch() {

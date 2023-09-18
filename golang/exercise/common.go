@@ -17,8 +17,14 @@ f2结构体在栈空间分配,f1结构体在堆内存分配
 堆上分配内存比栈慢原因:
 堆上分配内存的函数runtime.newobject本身逻辑复杂
 堆上分配内存后期需要gc对其内存回收
-逃逸分析:
-假设有变量v及指向v的指针p,如果p的生命周期大于v,则v需要在堆上分配内存
+逃逸分析(escape analysis): 当发现变量的作用域没有跑出函数范围，就可以在栈上，反之则必须分配在堆
+func main() {
+	mainVal := func() *int {
+		fooVal := 11  // moved to heap: fooVal
+		return &fooVal
+	}()
+	println(*mainVal)
+}
 https://golang.org/ref/mod
 
 go tool pprof

@@ -64,8 +64,9 @@ func testInterface() {
 }
 
 func main() {
-	var mate30 Phone = &Huawei{name: "Mate 30", price: 3999} // 通过接口(interface)实现多态,Huawei必须实现Phone接口的所有方法
-	mate30.call()                                            // mate30无法直接调用Huawei结构体的成员变量,如mate30.name
+	// 通过接口(interface)实现多态,Huawei必须实现Phone接口的所有方法,这里只能使用地址
+	var mate30 Phone = &Huawei{name: "Mate 30", price: 3999}
+	mate30.call() // mate30无法直接调用Huawei结构体的成员变量,如mate30.name
 	mate30.seenMessage()
 
 	pro := HuaweiPro{Huawei: Huawei{name: "huawei pro", price: 6999}, camera: "camera"} // 匿名成员的key就是其类型本身

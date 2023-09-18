@@ -7,7 +7,11 @@ import (
 	"time"
 )
 
-// 主协程退出,其他子协程也要跟着退出,Goroutine没有ID号
+/*
+主协程退出,其他子协程也要跟着退出,Goroutine没有ID号
+GMP(协程-处理器-内核线程)模型中P的最大数量可通过runtime.GOMAXPROCS()设置
+新创建的G优先放在P中,如果满了会放在全局队列中
+*/
 
 func testWaitGroup() {
 	wg := sync.WaitGroup{} // WaitGroup传递要使用指针
@@ -15,7 +19,7 @@ func testWaitGroup() {
 	ch2 := make(chan int, 10)                       // 带缓存的channel
 	fmt.Println("len:", len(ch2), "cap:", cap(ch2)) // len: 0 cap: 10
 
-	wg.Add(2)
+	wg.Add(2)                                     // 注意顺序,先Add,再开启协程,协程内部Done,所有协程函数后面Wait
 	go func(ch1 chan<- int, wg *sync.WaitGroup) { // 可以定义单向通道的channel,双向通道可以作为单向通道的入参
 		defer wg.Done()
 		//runtime.Goexit() // 退出当前协程
@@ -51,7 +55,7 @@ func testRaceCondition() {
 	lock := sync.Mutex{} // 互斥锁,传递要使用指针
 	wg := sync.WaitGroup{}
 	for i := 0; i < 99999; i++ {
-		wg.Add(1) // 一定要在Wait函数执行前执行
+		wg.Add(1)
 		go func(lock *sync.Mutex, wg *sync.WaitGroup) {
 			atomic.AddInt32(&atomicCounter, 1) // 效率比锁更高
 			//atomic.LoadInt32(&atomicCounter)   // 原子读
@@ -147,6 +151,13 @@ func testDefer() {
 	fmt.Println("不会再被执行")
 }
 
+func testDeferReturn() (t int) { // 最终返回10
+	defer func() {
+		t *= 10
+	}()
+	return 1
+}
+
 func testMutex() {
 	rwLock := sync.RWMutex{} // 读写锁,传递要使用指针
 	rwLock.Lock()
@@ -170,9 +181,10 @@ func testMutex() {
 
 func main() {
 	//testWaitGroup()
-	testRaceCondition()
+	//testRaceCondition()
 	//testSelect()
 	//testChannel()
 	//testDefer()
+	fmt.Println(testDeferReturn())
 	//testMutex()
 }
