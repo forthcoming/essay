@@ -13,6 +13,29 @@ GMP(协程-处理器-内核线程)模型中P的最大数量可通过runtime.GOMA
 新创建的G优先放在P中,如果满了会放在全局队列中
 */
 
+type SingleExample struct {
+}
+
+var instance *SingleExample
+
+func GetInstance(once *sync.Once) *SingleExample {
+	once.Do(func() { // Do方法保证在程序运行过程中只运行一次其中的回调
+		instance = &SingleExample{}
+		fmt.Println("only work once")
+	})
+	return instance
+
+	// 等价操作
+	//if instance == nil { // 单例没被实例化才会加锁
+	//	mutex.Lock()
+	//	defer mutex.Unlock()
+	//	if instance == nil { // 单例没被实例化才会创建(注意此处要再判断一次)
+	//		instance = &SingleExample{}
+	//	}
+	//}
+	//return instance
+}
+
 func testWaitGroup() {
 	wg := sync.WaitGroup{} // WaitGroup传递要使用指针
 	ch1 := make(chan int, 5)
@@ -160,23 +183,29 @@ func testDeferReturn() (t int) { // 最终返回10
 
 func testMutex() {
 	rwLock := sync.RWMutex{} // 读写锁,传递要使用指针
-	rwLock.Lock()
+	rwLock.Lock()            // 加写锁
 	for i := 0; i < 4; i++ {
 		go func(i int) {
-			fmt.Printf("第 %d 个协程准备开始... \n", i)
-			rwLock.RLock()
-			fmt.Printf("第 %d 个协程获得读锁, sleep 1s 后，释放锁\n", i)
+			fmt.Printf("第 %d 个协程准备开始...\n", i)
+			rwLock.RLock() // 加读锁
+			fmt.Printf("第 %d 个协程获得读锁\n", i)
 			time.Sleep(time.Second)
 			rwLock.RUnlock()
 		}(i)
 	}
-	time.Sleep(time.Second * 2)
-	fmt.Println("准备释放写锁，读锁不再阻塞")
-	rwLock.Unlock() // 写锁一释放,读锁就自由了
 	time.Sleep(time.Second)
-	rwLock.Lock() // 会等读锁全部释放,才能获得写锁
-	fmt.Println("程序退出...")
+	fmt.Println("释放写锁")
+	rwLock.Unlock()         // 写锁一释放,读锁就自由了
+	time.Sleep(time.Second) // 保证所有协程都拿到读锁
+	rwLock.Lock()           // 会等读锁全部释放,才能获得写锁
 	rwLock.Unlock()
+}
+
+func testSingleton() {
+	once := sync.Once{} // 必须传递指针
+	GetInstance(&once)
+	GetInstance(&once)
+	GetInstance(&once)
 }
 
 func main() {
@@ -185,6 +214,7 @@ func main() {
 	//testSelect()
 	//testChannel()
 	//testDefer()
-	fmt.Println(testDeferReturn())
+	//fmt.Println(testDeferReturn())
 	//testMutex()
+	testSingleton()
 }
