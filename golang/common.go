@@ -228,7 +228,7 @@ func testMap() {
 
 func testSwitch() {
 	local := 15
-	switch local {
+	switch local { // switch-case会按照case定义顺序逐个判断是否满足条件
 	case 15:
 		fmt.Println("111")
 		fallthrough // 强制执行后一个case语句块

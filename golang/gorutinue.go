@@ -108,8 +108,8 @@ func testSelect() {
 		}
 		stop <- true
 	}()
-	for run := true; run; {
-		select { // 同时处理多个channel,case执行顺序随机
+	for run := true; run; { // 同时处理多个channel
+		select { // select-case每次都会随机case顺序判断是否满足条件
 		//case ch <- 1: // 如果成功向ch写入数据,则执行对应case处理语句
 		case _ = <-stop:
 			run = false
