@@ -307,7 +307,11 @@ func testReflect() {
 	//TypeOf: 用来获取输入参数接口中的值的类型, 如果接口为空则返回nil
 	infoType := reflect.TypeOf(info) // 此处必须传值类型
 	//ValueOf: 用来获取输入参数接口中的数据的值, 如果接口为空则返回0
-	infoValue := reflect.ValueOf(info)                // 此处必须传值类型
+	infoValue := reflect.ValueOf(info) // 此处必须传值类型
+	if infoValue.Kind() == reflect.Struct {
+		fmt.Println("是结构体")
+	}
+
 	for idx := 0; idx < infoValue.NumField(); idx++ { // 按照结构体定义成员变量的顺序遍历
 		valueFiled := infoValue.Field(idx)
 		typeFiled := infoType.Field(idx) // 拥有typeFiled.Name,typeFiled.Type,typeFiled.Tag等属性
@@ -332,8 +336,8 @@ func main() {
 	//vValue1 := []int{2, 3, 4}                            // len(vValue1)=cap(vValue1)=3
 	//fmt.Println(testVariableParam(vValue1...), vValue1)  // ...类似于python的解引用,vValue1的值会被testVariableParam改变
 
-	f := testClosure()
-	fmt.Println(f(10), f(10)) // 10 20
+	//f := testClosure()
+	//fmt.Println(f(10), f(10)) // 10 20
 
 	//testString()
 	//testDefinition()
@@ -343,5 +347,5 @@ func main() {
 	//testTime()
 	//testPrint()
 	//testOpenFile()
-	//testReflect()
+	testReflect()
 }

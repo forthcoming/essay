@@ -30,7 +30,7 @@ func (h *Huawei) call() { // 这里Huawei是指针,无论传入的h是指针还�
 func (h *Huawei) seenMessage() {
 	fmt.Printf("%s 有发短信功能.....\n", h.name)
 }
-func (h *Huawei) String() string { // 自定义格式化输出
+func (h *Huawei) String() string { // 自定义fmt.Printf格式化输出
 	return "❰ " + strconv.FormatInt(int64(h.price), 10) + " ❱"
 }
 func (h *Huawei) echo() {

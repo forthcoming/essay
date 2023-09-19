@@ -9,7 +9,7 @@ import (
 
 /*
 主协程退出,其他子协程也要跟着退出,Goroutine没有ID号
-GMP(协程-处理器-内核线程)模型中P的最大数量可通过runtime.GOMAXPROCS()设置
+GMP(协程-处理器-内核线程)模型中P的最大数量可通过runtime.GOMAXPROCS()设置,runtime.GC()手动触发垃圾回收
 新创建的G优先放在P中,如果满了会放在全局队列中
 */
 
