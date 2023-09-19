@@ -1,11 +1,10 @@
-package test
+package main
 
 import (
 	format "fmt"
 	"strconv"
 ) // 给包起别名
 
-// import 默认从GOPATH下面的src开始导入
 // import "testmodule/foo" 导入时，是按照目录导入。导入目录后，可以使用这个目录下的所有包,出于习惯，包名和目录名通常会设置成一样，所以会让你有一种你导入的是包的错觉
 // 同一个目录下的文件的包名必须一致，目录下面可以再包含目录
 // main包不能被其他包导入,如果包A入包B,包B又导入包A,就会报错(import cycle not allowed)

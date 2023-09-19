@@ -40,6 +40,11 @@ go tool objdump binary start end  # 会从起始地址开始反汇编二进制�
 类名,属性名,方法名首字母大写表示其他包和本包可以访问,否则只能在本包内访问
 go语言不支持隐式类型转换; 循环只有for关键字; ++,--只支持后置操作
 机器指令是由0和1组成的二进制指令,汇编语言是二进制指令的文本形式,与机器指令一一对应,比如加法的机器指令是00000011写成汇编语言就是ADD
+
+单元测试注意点: 文件名必须是xxx_test格式; 测试函数名必须是TestXxx格式; 入参必须是t *testing.T
+func TestPrint(t *testing.T) {
+	fmt.Println("in testPrint")
+}
 */
 
 const pay = "Wechat"                         // 常量在编译期间确定, 无法被修改
