@@ -40,6 +40,9 @@ go tool objdump -S [-s symregexp] binary  # 反汇编可执行文件,-S在汇编
 go tool objdump binary start end  # 会从起始地址开始反汇编二进制文件,并在结束地址处停止
 
 常量不能用于取地址符
+c, d = d, c   // 交换两个变量的值
+函数,结构体,切片,指针,接口,信道的零值是nil
+声明变量后若不赋值,使用默认值
 类名,属性名,方法名首字母大写表示其他包和本包可以访问,否则只能在本包内访问
 go语言不支持隐式类型转换; 循环只有for关键字; ++,--只支持后置操作
 机器指令是由0和1组成的二进制指令,汇编语言是二进制指令的文本形式,与机器指令一一对应,比如加法的机器指令是00000011写成汇编语言就是ADD
@@ -49,7 +52,7 @@ func TestPrint(t *testing.T) {
 	fmt.Println("in testPrint")
 }
 
-make用来为slice,map,chan类型分配内存和初始化一个对象,返回的是引用类型,
+make用来为slice,map,chan类型分配内存和初始化一个对象,返回的是引用类型
 new可以初始化任意对象,返回的是对象指针,不常用
 */
 
@@ -89,6 +92,7 @@ func testString() {
 	str2 = string(str2Rune)
 	fmt.Println(str1, str2) // Welcome 李佳瑞
 
+	fmt.Println("Hello" + " World!")
 	strings.Contains("seafood", "foo")                // true
 	strings.Join([]string{"foo", "bar", "baz"}, ", ") // foo, bar, baz
 	strings.Index("chicken", "ken")                   // 4, substr不存在返回-1
@@ -300,7 +304,7 @@ func testPrint() {
 					%v : 默认格式输出(通用输出格式)
 	*/
 	// 04意思是长度为4,不足的前面用0补齐;返回[0,5)范围内伪随机整数,使用前一定要重置随机种子(py会自动执行这一步)
-	formatString := fmt.Sprintf("%04d", rand.Intn(5))
+	formatString := fmt.Sprintf("%04d", rand.Intn(5)) // sprintf是格式化字符串给变量,printf是格式化字符串打印出来
 	fmt.Println(formatString)
 	fmt.Printf("%v,%T", 2, 2) // 2,int
 }
@@ -350,7 +354,7 @@ func testReflect() {
 	}
 }
 
-func main() {
+func main() { // 程序开始执行的函数,名字main固定,{不能单独一行
 	//a := 1.2
 	//fmt.Println(testFunction(&a, false)) // [3] true, &意思是取地址
 	//fmt.Println(testVariableParam([3]int{2, 3, 4}...)) // error

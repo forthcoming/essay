@@ -39,7 +39,7 @@ func GetInstance(once *sync.Once) *SingleExample {
 func testWaitGroup() {
 	wg := sync.WaitGroup{} // WaitGroup传递要使用指针
 	ch1 := make(chan int, 5)
-	ch2 := make(chan int, 10)                       // 带缓存的channel
+	ch2 := make(chan int, 10)                       // 带缓冲的channel
 	fmt.Println("len:", len(ch2), "cap:", cap(ch2)) // len: 0 cap: 10
 
 	wg.Add(2)                                     // 注意顺序,先Add,再开启协程,协程内部Done,所有协程函数后面Wait
@@ -49,7 +49,7 @@ func testWaitGroup() {
 		for i := 0; i < 5; i++ {
 			ch1 <- i
 		}
-		close(ch1) // 用完关闭,防止下面协程死锁,通道关闭后可以一直取默认值,且第二个参数是false,无法向关闭的通道中发送数据
+		close(ch1) // 用完关闭,防止下面协程死锁
 	}(ch1, &wg)
 	go func(ch1 <-chan int, ch2 chan<- int, wg *sync.WaitGroup) { // 单向通道,限定通道方向
 		defer wg.Done()
@@ -126,7 +126,8 @@ func testChannel() {
 	/*
 		方向只有<-,表示数据从右向左传输,可以看作先进先出的队列
 		由于channel自带阻塞特性,所以可以用来模拟WaitGroup,Mutex
-		带有缓冲的channel,缓冲区满时插入数据会阻塞,缓冲区空时获取数据会阻塞
+		缓冲区满时插入数据会阻塞,缓冲区空时获取数据会阻塞,不带缓冲区可以认为缓冲区等于0,插入/读取数据都会阻塞
+		通道关闭后可以一直取默认值,不阻塞,且第二个参数是false,无法向关闭的通道中发送数据
 	*/
 	// 信道当WaitGroup使用
 	done := make(chan bool)
