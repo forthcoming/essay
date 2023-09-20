@@ -11,8 +11,11 @@ import (
 	"strings"
 	"time"
 	"unicode/utf8"
-	//lib "aaa"  导入包并起别名,导入的是目录的名字,通过 包名.xx 访问包下面的对象,一般目录名和包名相同
+	"unsafe"
+	//lib "aaa"  导入包并起别名,导入的是目录的名字,通过 包名.object 访问包下面的公共对象,一般最后一个目录名和包名相同
 	//_ "aaa"  匿名导入包,无法使用包里的内容,但能执行包里的init函数
+	// main包不能被其他包导入,如果包A入包B,包B又导入包A,就会报错(import cycle not allowed)
+	// 同一个目录下的文件的包名必须一致,目录下面可以再包含目录
 )
 
 /*
@@ -45,6 +48,9 @@ go语言不支持隐式类型转换; 循环只有for关键字; ++,--只支持后
 func TestPrint(t *testing.T) {
 	fmt.Println("in testPrint")
 }
+
+make用来为slice,map,chan类型分配内存和初始化一个对象,返回的是引用类型,
+new可以初始化任意对象,返回的是对象指针,不常用
 */
 
 const pay = "Wechat"                         // 常量在编译期间确定, 无法被修改
@@ -92,7 +98,7 @@ func testString() {
 
 func testDefinition() {
 	var a int // int类型默认初始值为0, var可以初始化全局变量
-	fmt.Println("a=", a, math.MinInt, math.MaxInt)
+	fmt.Println("a=", a, math.MinInt, math.MaxInt, unsafe.Sizeof(a))
 
 	b := "hello"        // 自动类型推导为string, :=操作符要求至少有一个变量尚未声明,不能初始化全局变量
 	b, c := "world", 50 // b已经声明,但c尚未声明
@@ -115,6 +121,18 @@ func testClosure() func(int) int {
 		x += y
 		return x
 	}
+}
+
+func testShadowDeclaration() (str string) {
+	if true {
+		//str = "inner"
+		//return     // 正确,如果return后不接变量,则返回的始终是返回值列表中的变量
+
+		str := "inner"
+		fmt.Println(str)
+		return str // 正确,return后必须加上变量名 输出inner
+	}
+	return
 }
 
 func testVariableParam(values ...int) int { // 可变参数

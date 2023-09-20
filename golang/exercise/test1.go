@@ -1,50 +1,61 @@
 package main
 
 import (
-	format "fmt"
-	"strconv"
-) // 给包起别名
+	"fmt"
+	_ "sync"
+	"time"
+)
 
-// import "testmodule/foo" 导入时，是按照目录导入。导入目录后，可以使用这个目录下的所有包,出于习惯，包名和目录名通常会设置成一样，所以会让你有一种你导入的是包的错觉
-// 同一个目录下的文件的包名必须一致，目录下面可以再包含目录
-// main包不能被其他包导入,如果包A入包B,包B又导入包A,就会报错(import cycle not allowed)
-// 只要是导入了某个包,其包内的所有公共函数,变量都可以通过 包.object 方式调用
+func main() {
+	//c := make(chan int) //声明一个int类型的无缓冲通道
+	//c <- 1  // 由于channel这种阻塞发送方和接收方的特性，如果我们在一个线程内向同一个channel同时进行读取和发送的操作，就会导致死锁。
+	//i := <- c
+	//fmt.Printf("receive %d\n", i)
 
-type INT int32
+	//go spinner(100 * time.Millisecond)
+	//const n = 45
+	//fibN := fib(n) // slow
+	//fmt.Printf("\rFibonacci(%d) = %d\n", n, fibN)
 
-func mai1n() {
+	c := make(chan int) //声明一个int类型的无缓冲通道
+	go func() {
+		fmt.Println("ready to send in g1")
+		c <- 1
+		fmt.Println("send 1 to chan")
+		fmt.Println("goroutine start sleep 1 second")
+		time.Sleep(time.Second)
+		fmt.Println("goroutine end sleep")
+		c <- 2
+		fmt.Println("send 2 to chan")
+	}()
 
-	stringInt := strconv.FormatInt(7, 2)
-	format.Println(stringInt) // 111
+	//fmt.Println("main thread start sleep 1 second")
+	//time.Sleep(time.Second)
+	//fmt.Println("main thread end sleep")
+	//i,ok := <- c
+	//fmt.Printf("receive %d, ok %t\n", i,ok)
+	//i = <- c
+	//fmt.Printf("receive %d\n", i)
+	//time.Sleep(time.Second)
+	//close(c)
+	//关闭channel的操作原则上应该由发送者完成，因为如果仍然向一个已关闭的channel发送数据，会导致程序抛出panic
+	//从一个已关闭的channel中读取数据不会报错。只不过需要注意的是，接受者就不会被一个已关闭的channel的阻塞。
+	//而且接受者从关闭的channel中仍然可以读取出数据，只不过是这个channel的数据类型的默认值
 
-	//var age INT = 6
-	//format.Println(age,unsafe.Sizeof(age),reflect.TypeOf(age))
+}
 
-	// 类型不匹配
-	//var score int32 = 4
-	//score+age
+func spinner(delay time.Duration) {
+	for {
+		for _, r := range `-\|/` {
+			fmt.Printf("\r%c", r)
+			time.Sleep(delay)
+		}
+	}
+}
 
-	// make返回的是引用类型,new返回的是指针类型
-	//makeMap := make(map[int]string)
-	//newMap := new(map[int]string)
-	//format.Println(reflect.TypeOf(makeMap),reflect.TypeOf(newMap))
-
-	//chan1 := make(chan int)
-	//chan2 := make(chan bool)
-	//for{
-	//	select{
-	//	    case num := <-chan1:
-	//		    format.Printf("number is %d",num)
-	//		case num1 := <-chan2:
-	//            format.Printf("number is %t",num1)
-	//    }
-	//}
-
-	//c := make(chan bool)
-	//for i := 0; i < 100; i++ {
-	//   go func(i int) {
-	//   	format.Println(i)
-	//   	c <- true
-	//   }(i)
-	//}  // 为什么不是死锁
+func fib(x int) int {
+	if x < 2 {
+		return x
+	}
+	return fib(x-1) + fib(x-2)
 }

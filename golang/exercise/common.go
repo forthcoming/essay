@@ -65,20 +65,7 @@ func Post() {
 	fmt.Printf(string(body))
 }
 
-func shadowedTest() (str string) {
-	if true {
-		//str = "inner"
-		//return     // 正确,如果return后不接变量,则返回的始终是返回值列表中的变量
-
-		str := "inner"
-		return str // 正确, 输出 inner
-	}
-	return
-}
-
 func main() {
-	shadowedTest()
-
 	fmt.Println(strconv.FormatBool(false), strconv.FormatInt(1234, 10))
 	myBool, _ := strconv.ParseBool("false")
 	myFloat, _ := strconv.ParseInt("111", 2, 64) // 7
