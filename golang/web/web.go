@@ -1,4 +1,4 @@
-package main
+package web
 
 import (
 	"fmt"
@@ -12,7 +12,7 @@ func MiddleWare() gin.HandlerFunc {
 		t := time.Now()
 		fmt.Println("中间件开始执行了")
 		c.Set("request", "中间件") // 设置变量到Context的key中,可以通过Get()取
-		c.Next()                   // c.Next前面是请求前逻辑,后面是请求后逻辑
+		c.Next()                // c.Next前面是请求前逻辑,后面是请求后逻辑
 		status := c.Writer.Status()
 		fmt.Println("中间件执行完毕", status)
 		latency := time.Since(t)
@@ -22,8 +22,8 @@ func MiddleWare() gin.HandlerFunc {
 
 func main() {
 	// 创建路由,基于Radix树的路由,小内存占用
-	r := gin.Default()  // 默认注册gin.Logger()和gin.Recovery()中间件,Recovery会recover任何panic
-	r.Use(MiddleWare()) // 注册自定义全局中间件,如果有多个中间件,请求前按顺序执行,请求后按逆序执行
+	r := gin.Default()          // 默认注册gin.Logger()和gin.Recovery()中间件,Recovery会recover任何panic
+	r.Use(MiddleWare(), Cors()) // 注册自定义全局中间件,如果有多个中间件,请求前按顺序执行,请求后按逆序执行
 
 	r.GET("/ping", func(c *gin.Context) { // 绑定路由规则,执行函数,gin.Context封装了request和response
 		//  /ping/:name?firstname=Jane&lastname=Doe
