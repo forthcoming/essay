@@ -154,7 +154,7 @@ func testVariableParam(values ...int) int { // 可变参数
 func testArray() {
 	// 数组是值传递
 	// 数组是否相等前提是类型相同,[2]int和[1]int被认为是不同类型,切片只能跟nil做比较
-	// 数组的cap值等于len值
+	// 数组的cap值等于len值且不可被更改,无法用于append
 	a0 := [...]int{1, 2, 3, 4}     // [1 2 3 4],类型是[4]int,三个点代表自动推导长度,仍然是数组,a0并不是指向第一个元素的指针
 	a1 := [6]int{3: 1, 2, 1: 3, 4} // [0 3 4 1 2 0],按索引下标赋初值
 	a2 := [2][3]int{               // [2][3]int类型二维数组
@@ -162,6 +162,10 @@ func testArray() {
 		{3, 4, 5},
 	}
 	fmt.Println(a0, a1, a2)
+
+	a3 := &a0
+	a3[0] = 0       // 注意这里不用加*,结构体有类似写法,加*正确写法是(*a3)[0] = 0
+	fmt.Println(a0) // [0 2 3 4]
 }
 
 func testSlice() {
@@ -179,6 +183,13 @@ func testSlice() {
 	fmt.Println(s0[:6]) // [0 0 0 0 0 0],下标是否越界看下标是否超过其capacity值(切片,数组皆适用)
 	//fmt.Println(s0[:7]) // error,最大不能超过cap值
 	//fmt.Println(s0[4])           // error,必须小于len值
+
+	// 二维切片初始化
+	xSize, ySize := 5, 10
+	picture := make([][]uint8, ySize) // 每y个单元一行
+	for i := range picture {          // 遍历行,为每一行分配切片
+		picture[i] = make([]uint8, xSize)
+	}
 
 	s1 := make([]int, 3, 4)
 	s2 := s1[:2]                      // 切片的切片还是切片
@@ -233,9 +244,9 @@ func testMap() {
 	//var myMap map[int]string
 	//myMap := make(map[string]interface{}, 3) // 只能指定容量,可以提高效率(不指定就自动扩容),没法像切片那样指定长度和容量
 	myMap[11] = "\"oracle\"" // 转义字符
-	name, isOK := myMap[11]
-	fmt.Println(name, isOK) // "oracle" true ,访问不存在的key会返回默认值,isOk是False
-	delete(myMap, 22)       // 删除不存在的key不会报错
+	name, ok := myMap[11]
+	fmt.Println(name, ok) // "oracle" true ,访问不存在的key会返回默认值,ok是False
+	delete(myMap, 22)     // 删除不存在的key不会报错
 	for key, value := range myMap {
 		println(key, value)
 	}
@@ -255,7 +266,7 @@ func testMap() {
 
 func testSwitch() {
 	local := 15
-	switch local { // switch-case会按照case定义顺序逐个判断是否满足条件
+	switch local { // switch-case会按照case定义顺序逐个判断是否满足条件,若switch后面没有表达式,它将匹配true(相当于if-else-if-else)
 	case 15:
 		fmt.Println("111")
 		fallthrough // 强制执行后一个case语句块
@@ -301,7 +312,7 @@ func testPrint() {
 			    	%p : 地址
 					%s : 字符串
 					%T : 变量类型, reflect.TypeOf(args)
-					%v : 默认格式输出(通用输出格式)
+					%v : 默认格式输出(通用输出格式),%+v会为结构体的每个字段添上字段名,%#v按照Go语法打印值
 	*/
 	// 04意思是长度为4,不足的前面用0补齐;返回[0,5)范围内伪随机整数,使用前一定要重置随机种子(py会自动执行这一步)
 	formatString := fmt.Sprintf("%04d", rand.Intn(5)) // sprintf是格式化字符串给变量,printf是格式化字符串打印出来
@@ -368,11 +379,12 @@ func main() { // 程序开始执行的函数,名字main固定,{不能单独一�
 
 	//testString()
 	//testDefinition()
-	//testSlice()
+	testSlice()
 	//testMap()
 	//testSwitch()
 	//testTime()
 	//testPrint()
 	//testOpenFile()
-	testReflect()
+	//testReflect()
+	//testArray()
 }

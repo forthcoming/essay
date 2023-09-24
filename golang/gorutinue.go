@@ -141,7 +141,7 @@ func testChannel() {
 
 	// 信道当锁使用
 	wg := sync.WaitGroup{}
-	chanLock := make(chan bool, 1)
+	chanLock := make(chan bool, 1) // 缓冲区大于1时可以看作信号量
 	var x int
 	for i := 0; i < 9999; i++ {
 		wg.Add(1)
@@ -168,7 +168,7 @@ func testDefer() {
 
 	defer func(value int) { // defer在函数结束时被调用(return语句之后),当一个函数内多次调用defer时,按后进先出顺序执行
 		fmt.Println("position 2,", value) // 输出2, 在执行defer语句时就会对延迟函数的实参进行求值
-	}(value)
+	}(value) // 如果value是个函数调用,则会先执行该函数
 
 	value = 10
 	panic("make mistakes")
@@ -207,6 +207,15 @@ func testSingleton() {
 	GetInstance(&once)
 	GetInstance(&once)
 	GetInstance(&once)
+}
+
+func commonMistake() {
+	for _, value := range []int{1, 2, 3} {
+		go func() {
+			fmt.Println(value) // 打印的都是3,解决方案是value以参数形式传进来
+		}()
+	}
+	time.Sleep(time.Second)
 }
 
 func main() {
