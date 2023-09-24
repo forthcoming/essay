@@ -1,6 +1,6 @@
 syntax = "proto3";
 package main;
-
+option go_package =".";  // 在.proto所在文件夹生成.pb.go文件
 
 // 会员赠送
 message SendVip {
@@ -8,7 +8,7 @@ message SendVip {
   // 添加的会员时长
   int32 month_length = 2;
   repeated string uid_array = 3;
-  repeated Product product = 4;
+  repeated Product products = 4;
 }
 
 message Product {
