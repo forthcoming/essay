@@ -57,6 +57,7 @@ func getAllowHeaders(c *gin.Context) string {
 // Cors 自定义跨域中间件
 // 跨域资源共享(CORS)是一种机制,它使用额外的HTTP头来告诉浏览器,让运行在一个origin(domain)上的Web应用被准许访问来自不同源服务器上的指定的资源
 // 当一个资源从与该资源本身所在的服务器不同的域、协议或端口请求一个资源时,资源会发起一个跨域HTTP请求
+// 浏览器先往目标url发起options请求,根据服务端返回的Allow-Origin等信息判断是否继续进行跨域请求
 // Ref: https://github.com/gin-contrib/cors
 // Ref: https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Headers/Access-Control-Allow-Headers
 // Ref: https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Access_control_CORS

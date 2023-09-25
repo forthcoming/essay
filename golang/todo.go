@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strconv"
 	"time"
 )
 
@@ -155,11 +154,6 @@ func task6(ctx context.Context) {
 }
 
 func main() {
-	fmt.Println(strconv.FormatBool(false), strconv.FormatInt(1234, 10))
-	myBool, _ := strconv.ParseBool("false")
-	myFloat, _ := strconv.ParseInt("111", 2, 64) // 7
-	fmt.Println(myBool, myFloat)
-
 	Get()
 
 	task1(context.Background())

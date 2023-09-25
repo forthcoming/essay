@@ -8,6 +8,7 @@ import (
 	"os"
 	"reflect"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -98,6 +99,12 @@ func testString() {
 	strings.Index("chicken", "ken")                   // 4, substr不存在返回-1
 	strings.Split("a,b,c", ",")                       // [a b c]
 	strings.Replace("oink oink oink", "o", "l", 2)    // link link oink, n表示替换的次数,小于0表示全部替换
+
+	// 字符串与其他类型互转
+	fmt.Println(strconv.FormatBool(false), strconv.FormatInt(1234, 10))
+	myBool, _ := strconv.ParseBool("false")
+	myFloat, _ := strconv.ParseInt("111", 2, 64) // 7
+	fmt.Println(myBool, myFloat)
 }
 
 func testDefinition() {
