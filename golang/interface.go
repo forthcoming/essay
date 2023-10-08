@@ -48,8 +48,8 @@ func (h *HuaweiPro) echo() { // 只需要名字相同,即可重写匿名字段�
 
 func testInterface() {
 	// 所有类型都实现了空接口,所以可以接受所有类型变量,println就是这么实现
-	var inter any = 12 // type any = interface{}即any是interface{}别名
-	// 类型断言,判断正确了,result即为断言的值,前提是被断言的变量是接口类型
+	var inter any = 12 // type any = interface{}
+	// 类型断言,判断正确了,result即为断言的值,前提是被断言的变量是any类型
 	result, ok := inter.(int)
 	fmt.Printf("result: %d, ok: %t, type: %T\n", result, ok, inter)
 

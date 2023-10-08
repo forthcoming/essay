@@ -12,7 +12,7 @@ func MiddleWare() gin.HandlerFunc {
 		t := time.Now()
 		fmt.Println("中间件开始执行了")
 		c.Set("request", "中间件") // 设置变量到Context的key中,可以通过Get()取
-		c.Next()                // c.Next前面是请求前逻辑,后面是请求后逻辑
+		c.Next()                   // c.Next前面是请求前逻辑,后面是请求后逻辑
 		status := c.Writer.Status()
 		fmt.Println("中间件执行完毕", status)
 		latency := time.Since(t)
@@ -55,5 +55,5 @@ func main() {
 		MaxHeaderBytes: 1 << 20,
 	}
 	s.ListenAndServe()
-	// 也可以通过r.Run(":8000")直接运行
+	//也可以通过r.Run(":8000")直接运行
 }

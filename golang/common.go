@@ -42,7 +42,7 @@ go tool objdump binary start end  # 会从起始地址开始反汇编二进制�
 
 常量不能用于取地址符
 c, d = d, c   // 交换两个变量的值
-函数,结构体,切片,指针,接口,信道的零值是nil
+函数,结构体,映射,切片,指针,接口,信道的零值是nil
 声明变量后若不赋值,使用默认值
 类名,属性名,方法名首字母大写表示其他包和本包可以访问,否则只能在本包内访问
 go语言不支持隐式类型转换; 循环只有for关键字; ++,--只支持后置操作
@@ -54,7 +54,7 @@ func TestPrint(t *testing.T) {
 }
 
 make用来为slice,map,chan类型分配内存和初始化一个对象,返回的是引用类型
-new可以初始化任意对象,返回的是对象指针,不常用
+new可以初始化任意对象,返回的是对象指针,不建议用来new引用类型,因为仅仅为引用的对象名分配空间,对象名此时仍然指向nil,new不常用
 */
 
 const pay = "Wechat"                         // 常量在编译期间确定, 无法被修改
@@ -69,7 +69,7 @@ func init() {
 }
 
 func testString() {
-	str := "AB中C"                  // 字符串底层是一个 byte 数组,因此 string 也可以进行切片处理,字符串是不可变对象,无法被修改
+	str := "AB中C"                  // 字符串底层是一个byte数组,因此string也可以进行切片处理,字符串是不可变对象,无法被修改
 	for index, char := range str { // 观察index发现"中"占了3字节,字符默认是int32类型
 		fmt.Printf("%c=%v starts at byte %d\n", char, char, index)
 		//A=65 starts at byte 0
@@ -127,7 +127,7 @@ func testFunction(a *float64, b bool) ([]int, bool) { // 单个返回值不用()
 }
 
 func testClosure() func(int) int {
-	x := 0
+	x := 0 // moved to heap: x
 	return func(y int) int {
 		x += y
 		return x

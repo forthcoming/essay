@@ -24,6 +24,9 @@ func main() {
 		return &fooVal
 	}()
 	println(*mainVal)
+
+    nums1 := make([]int64, 1<<13)     //  does not escape, (2^3)*(2^13) = 2^16byte = 64KB
+    nums2 := make([]int64, (1<<13)+1) //  escapes to heap, > 64KB
 }
 https://golang.org/ref/mod
 
