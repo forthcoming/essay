@@ -188,7 +188,7 @@ func testSlice() {
 	// 设计接口时避免区分nil切片和非nil零长度切片,因为这可能导致微妙的编程错误
 
 	// make返回的都是引用类型,创建一个类型是[]int,长度为4,容量是6,初始默认值是0的切片,容量指重新切片时切片可以达到的最大长度,可省略
-	s0 := make([]int, 4, 6)
+	s0 := make([]int, 4, 6)       // 申请unsafe.Sizeof(int) * cap个字节
 	fmt.Println(len(s0), cap(s0)) // 4 6
 	// [0 0 0 0] [0],S[A:B]范围是[A,B),跟python一样包含头不包含尾,但不能是负数,新切片容量cap(s0[:p]) = cap(s0) - p
 	fmt.Println(s0[:4], s0[3:])
@@ -376,6 +376,44 @@ func testReflect() {
 		method := infoType.Method(idx)
 		fmt.Println(method.Name, method.Type)
 	}
+}
+
+func nextslicecap(newLen, oldCap int) int { // slice扩容源代码,参考https://github.com/golang/go/blob/master/src/runtime/slice.go
+	// newLen = new length (= oldLen + num)
+	// oldCap = original slice's capacity.
+	// num = number of elements being added
+	// newCap = capacity of the new backing store
+	// Requires that uint(newLen) > uint(oldCap) and assumes the original slice length is newLen - num
+	newcap := oldCap
+	doublecap := newcap + newcap
+	if newLen > doublecap {
+		return newLen // 会被roundupsize修正
+	}
+
+	const threshold = 256
+	if oldCap < threshold {
+		return doublecap
+	}
+	for {
+		// Transition from growing 2x for small slices
+		// to growing 1.25x for large slices. This formula
+		// gives a smooth-ish transition between the two.
+		newcap += (newcap + 3*threshold) >> 2
+
+		// We need to check `newcap >= newLen` and whether `newcap` overflowed.
+		// newLen is guaranteed to be larger than zero, hence
+		// when newcap overflows then `uint(newcap) > uint(newLen)`.
+		// This allows to check for both with the same comparison.
+		if uint(newcap) >= uint(newLen) {
+			break
+		}
+	}
+
+	// Set newcap to the requested cap when the newcap calculation overflowed.
+	if newcap <= 0 {
+		return newLen
+	}
+	return newcap
 }
 
 func main() { // 程序开始执行的函数,名字main固定,{不能单独一行
