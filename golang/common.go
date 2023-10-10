@@ -169,6 +169,11 @@ func testArray() {
 		{3, 4, 5},
 	}
 	fmt.Println(a0, a1, a2)
+	fmt.Println(unsafe.Sizeof(a0)) // 32,计算的是所有元素大小之和
+
+	eleSize := unsafe.Sizeof(a0[0])
+	uintPtr := uintptr(unsafe.Pointer(&a0[0]))              // 将*int类型转换为无符号整数
+	fmt.Println(*(*int)(unsafe.Pointer(uintPtr + eleSize))) // 2
 
 	a3 := &a0
 	a3[0] = 0       // 注意这里不用加*,结构体有类似写法,加*正确写法是(*a3)[0] = 0
@@ -231,7 +236,8 @@ func testSlice() {
 	sort.Slice(s7, func(i, j int) bool {
 		return s7[i]%10 < s7[j]%10 // 从小到大排序,按条件为真的顺序排序
 	})
-	fmt.Println(s7) // [21 1 3 84 6 57]
+	fmt.Println(s7)                // [21 1 3 84 6 57]
+	fmt.Println(unsafe.Sizeof(s7)) // 一般为24,由8bit cap + 8bit len + 8bit pointer构成
 
 	// 取元素之前一定要先判断是否为空,判断数组是否为空一律用len方式,防止出错,
 	y := make([]int, 0)
