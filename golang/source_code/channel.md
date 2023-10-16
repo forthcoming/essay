@@ -4,6 +4,7 @@ package source_code
 // For buffered channels, also:
 //  c.qcount > 0 implies that c.recvq is empty.
 //  c.qcount < c.dataqsiz implies that c.sendq is empty.
+// refer: https://juejin.cn/post/7125610595801530376
 
 import (
 	"internal/abi"
@@ -14,6 +15,7 @@ import (
 
 const (
 	maxAlign  = 8
+	// 计算离8最近的倍数,只需将n补足与到8倍数的差值就可
 	hchanSize = unsafe.Sizeof(hchan{}) + uintptr(-int(unsafe.Sizeof(hchan{}))&(maxAlign-1))
 	debugChan = false
 )
@@ -27,8 +29,8 @@ type hchan struct {
 	closed   uint32 // channel是否关闭,1代表关闭
 	sendx    uint   // 队列已发送位置索引
 	recvx    uint   // 队列已接受位置索引
-	recvq    waitq  // 等待读消息的goroutine队列
-	sendq    waitq  // 等待发消息的goroutine队列
+	recvq    waitq  // 等待读消息(<-ch)的goroutine队列
+	sendq    waitq  // 等待发消息(ch<-)的goroutine队列
 	lock     mutex  // 保护hchan中的所有字段,以及在该通道上阻塞的sudogs中的几个字段
 }
 
@@ -148,7 +150,7 @@ func makechan64(t *chantype, size int64) *hchan {
 	return makechan(t, int(size))
 }
 
-func makechan(t *chantype, size int) *hchan {
+func makechan(t *chantype, size int) *hchan {  // 由汇编知对应make操作
 	elem := t.Elem
 
 	// compiler checks this but be safe.
@@ -215,13 +217,15 @@ func chansend(c *hchan, ep unsafe.Pointer, block bool, callerpc uintptr) bool {
 		panic("send on closed channel")
 	}
 
+	// 同步发送: 当存在等待的接收者时,即recvq可以获得waitq,通过send方法直接将数据发送给等待的接收者
 	if sg := c.recvq.dequeue(); sg != nil {
 		// Found a waiting receiver. We pass the value we want to send
 		// directly to the receiver, bypassing the channel buffer (if any).
 		send(c, sg, ep, func() { unlock(&c.lock) }, 3)
 		return true
 	}
-
+    
+	// 异步发送: 如果创建的channel带缓冲区,接收者队列为空时,此时判断缓冲区是否已满,如果未满则进入异步发送逻辑,将待接收的数据放入缓冲区中
 	if c.qcount < c.dataqsiz {
 		// Space is available in the channel buffer. Enqueue the element to send.
 		qp := chanbuf(c, c.sendx)
@@ -243,6 +247,7 @@ func chansend(c *hchan, ep unsafe.Pointer, block bool, callerpc uintptr) bool {
 		return false
 	}
 
+	// 阻塞发送: 如果没有等待的接受者,且缓存区已满或无缓存,则进入阻塞发送逻辑
 	// Block on the channel. Some receiver will complete our operation for us.
 	gp := getg()
 	mysg := acquireSudog()
