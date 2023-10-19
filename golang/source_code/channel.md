@@ -7,7 +7,6 @@ package source_code
 // refer: https://juejin.cn/post/7125610595801530376
 
 import (
-	"internal/abi"
 	"runtime/internal/atomic"
 	"runtime/internal/math"
 	"unsafe"
@@ -17,7 +16,6 @@ const (
 	maxAlign  = 8
 	// 计算离8最近的倍数,只需将n补足与到8倍数的差值就可
 	hchanSize = unsafe.Sizeof(hchan{}) + uintptr(-int(unsafe.Sizeof(hchan{}))&(maxAlign-1))
-	debugChan = false
 )
 
 type hchan struct {
@@ -229,9 +227,6 @@ func chansend(c *hchan, ep unsafe.Pointer, block bool, callerpc uintptr) bool {
 	if c.qcount < c.dataqsiz {
 		// Space is available in the channel buffer. Enqueue the element to send.
 		qp := chanbuf(c, c.sendx)
-		if raceenabled {
-			racenotify(c, c.sendx, nil)
-		}
 		typedmemmove(c.elemtype, qp, ep)
 		c.sendx++
 		if c.sendx == c.dataqsiz {
@@ -303,22 +298,6 @@ func chansend(c *hchan, ep unsafe.Pointer, block bool, callerpc uintptr) bool {
 // The value ep sent by the sender is copied to the receiver sg.
 // Channel c must be empty and locked.  send unlocks c with unlockf.
 func send(c *hchan, sg *sudog, ep unsafe.Pointer, unlockf func(), skip int) {
-	if raceenabled {
-		if c.dataqsiz == 0 {
-			racesync(c, sg)
-		} else {
-			// Pretend we go through the buffer, even though
-			// we copy directly. Note that we need to increment
-			// the head/tail locations only when raceenabled.
-			racenotify(c, c.recvx, nil)
-			racenotify(c, c.recvx, sg)
-			c.recvx++
-			if c.recvx == c.dataqsiz {
-				c.recvx = 0
-			}
-			c.sendx = c.recvx // c.sendx = (c.sendx+1) % c.dataqsiz
-		}
-	}
 	if sg.elem != nil {
 		sendDirect(c.elemtype, sg, ep)
 		sg.elem = nil
@@ -375,13 +354,7 @@ func closechan(c *hchan) {
 		unlock(&c.lock)
 		panic(plainError("close of closed channel"))
 	}
-
-	if raceenabled {
-		callerpc := getcallerpc()
-		racewritepc(c.raceaddr(), callerpc, abi.FuncPCABIInternal(closechan))
-		racerelease(c.raceaddr())
-	}
-
+	
 	c.closed = 1
 
 	var glist gList
@@ -534,9 +507,6 @@ func chanrecv(c *hchan, ep unsafe.Pointer, block bool) (selected, received bool)
 	if c.qcount > 0 {
 		// Receive directly from queue
 		qp := chanbuf(c, c.recvx)
-		if raceenabled {
-			racenotify(c, c.recvx, nil)
-		}
 		if ep != nil {
 			typedmemmove(c.elemtype, ep, qp)
 		}
@@ -624,10 +594,6 @@ func recv(c *hchan, sg *sudog, ep unsafe.Pointer, unlockf func(), skip int) {
 		// its item at the tail of the queue. Since the
 		// queue is full, those are both the same slot.
 		qp := chanbuf(c, c.recvx)
-		if raceenabled {
-			racenotify(c, c.recvx, nil)
-			racenotify(c, c.recvx, sg)
-		}
 		// copy data from queue to receiver
 		if ep != nil {
 			typedmemmove(c.elemtype, ep, qp)
@@ -735,47 +701,5 @@ func reflect_chancap(c *hchan) int {
 		return 0
 	}
 	return int(c.dataqsiz)
-}
-
-func racesync(c *hchan, sg *sudog) {
-	racerelease(chanbuf(c, 0))
-	raceacquireg(sg.g, chanbuf(c, 0))
-	racereleaseg(sg.g, chanbuf(c, 0))
-	raceacquire(chanbuf(c, 0))
-}
-
-// Notify the race detector of a send or receive involving buffer entry idx
-// and a channel c or its communicating partner sg.
-// This function handles the special case of c.elemsize==0.
-func racenotify(c *hchan, idx uint, sg *sudog) {
-	// We could have passed the unsafe.Pointer corresponding to entry idx
-	// instead of idx itself.  However, in a future version of this function,
-	// we can use idx to better handle the case of elemsize==0.
-	// A future improvement to the detector is to call TSan with c and idx:
-	// this way, Go will continue to not allocating buffer entries for channels
-	// of elemsize==0, yet the race detector can be made to handle multiple
-	// sync objects underneath the hood (one sync object per idx)
-	qp := chanbuf(c, idx)
-	// When elemsize==0, we don't allocate a full buffer for the channel.
-	// Instead of individual buffer entries, the race detector uses the
-	// c.buf as the only buffer entry.  This simplification prevents us from
-	// following the memory model's happens-before rules (rules that are
-	// implemented in racereleaseacquire).  Instead, we accumulate happens-before
-	// information in the synchronization object associated with c.buf.
-	if c.elemsize == 0 {
-		if sg == nil {
-			raceacquire(qp)
-			racerelease(qp)
-		} else {
-			raceacquireg(sg.g, qp)
-			racereleaseg(sg.g, qp)
-		}
-	} else {
-		if sg == nil {
-			racereleaseacquire(qp)
-		} else {
-			racereleaseacquireg(sg.g, qp)
-		}
-	}
 }
 ```
