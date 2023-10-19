@@ -9,7 +9,6 @@ package source_code
 // refer: https://zhuanlan.zhihu.com/p/548186842
 
 import (
-	"internal/abi"
 	"internal/goarch"
 	"runtime/internal/atomic"
 	"runtime/internal/math"
@@ -18,8 +17,7 @@ import (
 
 const (
 	// Maximum number of key/elem pairs a bucket can hold.
-	bucketCntBits = abi.MapBucketCountBits
-	bucketCnt     = abi.MapBucketCount
+	bucketCnt = 8
 
 	// Maximum average load of a bucket that triggers growth is bucketCnt*13/16 (about 80% full)
 	// Because of minimum alignment rules, bucketCnt is known to be at least 8.
@@ -27,12 +25,9 @@ const (
 	loadFactorDen = 2
 	loadFactorNum = loadFactorDen * bucketCnt * 13 / 16
 
-	// Maximum key or elem size to keep inline (instead of mallocing per element).
-	// Must fit in a uint8.
-	// Fast versions cannot handle big elems - the cutoff size for
-	// fast versions in cmd/compile/internal/gc/walk.go must be at most this elem.
-	maxKeySize  = abi.MapMaxKeyBytes
-	maxElemSize = abi.MapMaxElemBytes
+	// Maximum key or elem size to keep inline (instead of mallocing per element).Must fit in a uint8.
+	maxKeySize  = 128 
+	maxElemSize = 128 
 
 	// data offset should be the size of the bmap struct, but needs to be
 	// aligned correctly. For amd64p32 this means 64-bit alignment
@@ -577,11 +572,6 @@ search:
 // Both need to have zeroed hiter since the struct contains pointers.
 // 遍历map
 func mapiterinit(t *maptype, h *hmap, it *hiter) {
-	if raceenabled && h != nil {
-		callerpc := getcallerpc()
-		racereadpc(unsafe.Pointer(h), callerpc, abi.FuncPCABIInternal(mapiterinit))
-	}
-
 	it.t = t
 	if h == nil || h.count == 0 {
 		return
@@ -629,10 +619,6 @@ func mapiterinit(t *maptype, h *hmap, it *hiter) {
 
 func mapiternext(it *hiter) {
 	h := it.h
-	if raceenabled {
-		callerpc := getcallerpc()
-		racereadpc(unsafe.Pointer(h), callerpc, abi.FuncPCABIInternal(mapiternext))
-	}
 	if h.flags&hashWriting != 0 {
 		fatal("concurrent map iteration and map write")
 	}
@@ -755,12 +741,6 @@ next:
 
 // mapclear deletes all keys from a map.
 func mapclear(t *maptype, h *hmap) {
-	if raceenabled && h != nil {
-		callerpc := getcallerpc()
-		pc := abi.FuncPCABIInternal(mapclear)
-		racewritepc(unsafe.Pointer(h), callerpc, pc)
-	}
-
 	if h == nil || h.count == 0 {
 		return
 	}
