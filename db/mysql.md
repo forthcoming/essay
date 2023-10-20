@@ -182,7 +182,7 @@ call item();
 
 ```
 unique key和primary key约束的字段不可重复,foreign key是另一表的主键,外键可以重复,可以是空值
-创建key的同时会创建索引,primary key = unique +  not null
+创建key的同时会创建索引,primary key = unique + not null
 区别如下:
 1. 作为primary key的域/域组不能为null,而unique key可以
 2. 在一个表中只能有一个primary key,推荐auto_increment做主键,可以有多个unique key同时存在
@@ -234,7 +234,7 @@ show create database db_name;
 select now(),SUBDATE(now(),INTERVAL 1 MINUTE),SUBDATE(now(),INTERVAL -1 MINUTE) from dual; -- 2019-07-29 18:00:59 | 2019-07-29 17:59:59 | 2019-07-29 18:01:59
 alter table t_name add name char(9); // add之后的列名语法和创建表时的列声明一样
 alter table t_name add (column_1,column_2);  // 同时新增多列
-alter table t_name change 旧列名 新列名 列类型 列参数
+alter table t_name change 旧列名 新列名 列类型 列参数;
 alter table t_name drop column column_name;
 rename table old_name to new_name;
 (select aid,title from article limit 2) union all (select bid,title from blog limit 2); //在UNION中如果对SELECT子句做限制,需要对SELECT添加圆括号,ORDER BY类似
@@ -319,7 +319,7 @@ SELECT * FROM topic PARTITION (p1); -- 只查看p1,要从多个分区获取行,�
 
 ```
 binlog所有引擎都可以使用
-binlog记录了所有数据定义语言语句和数据操纵语言语句,与数据库文件在同目录中,但不包括数据查询(select show),配置文件可以配置binlog文件过期自动删除
+binlog记录了所有数据定义语句和数据操纵语句,与数据库文件在同目录中,但不包括数据查询(select show),配置文件可以配置binlog文件过期自动删除
 binlog.index记录了当前数据库所有的binlog文件名
 binlog记录先存到binlog cache,当大小超过binlog_cache_size时会暂存磁盘,事务提交时把cache和磁盘记录写到binlog文件并清空cache
 使用场景: 主从复制; 使用mysqlbinlog工具恢复数据
@@ -440,7 +440,7 @@ FROM
 	information_schema.innodb_trx; # 当前运行的所有事务(包含分布式事务)
 	
 innodb表隐藏字段
-DB_TRX_ID: 6byte,最近修改事务ID,记录插入这条数据或最后一次修改改数据的事物ID
+DB_TRX_ID: 6byte,最近修改事务ID,记录插入这条数据或最后一次修改数据的事物ID
 DB_ROLL_PTR: 7byte,回滚指针,指向这条数据的上一个版本,用于配合undo log
 DB_ROW_ID: 6byte,隐藏主键,随着新行的插入而单调增加,如果表结构没有指定主键,将会生成该字段
 ```
