@@ -476,7 +476,7 @@ SMOVE source destination member: 原子操作,把source中的member删除,并添
 
 ```
 ZADD key [NX | XX] [GT | LT] score member [score member...]: 时间复杂度O(log(N)),N是排序集中的元素数量
-将指定分数的成员添加到有序集合中,使用双64位浮点数表示分数,如果添加的成员已经存在于有序集合中,则会更新成员的score
+将指定分数的成员添加到有序集合中,使用double64表示分数,如果添加的成员已经存在于有序集合中,则会更新成员的score
 集合按分数由小到大排序,分数相同按member字典序排序,个别情况下需要按member排序这种场景
 XX: 只更新已经存在的元素,不添加新元素
 NX:仅添加新元素,不更新已经存在的元素
