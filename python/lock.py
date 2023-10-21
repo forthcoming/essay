@@ -9,6 +9,13 @@ from types import SimpleNamespace
 from redis import Redis
 from redis.exceptions import RedisError
 
+'''
+程序如何防止死锁:
+1. 锁不要嵌套,如果必须嵌套则使用递归锁
+2. 不同线程间加锁顺序尽量一致,如果线程1要获取LockA,LockB,线程2要获取LockB,LockA,则很容易死锁
+3. 锁设置超时时间或死锁检测
+'''
+
 
 class ReadWriteRLock:  # 分布式可重入读写锁
     """
