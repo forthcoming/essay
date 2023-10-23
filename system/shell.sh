@@ -217,7 +217,7 @@ rsync -a 源文件 user@目标IP:路径 # -a表示递归方式传输文件,并�
 1. apt install openssh-server
 2. /etc/init.d/ssh start
 ------------------------------------------------------------------------------------------------------------------------
-~/.bash_history  #记录用户的历史命令,当用户logout时才会将本次历史缓存写入其中
+~/.bash_history  #记录用户的历史命令,当用户logout时才会将本次历史缓存写入其中,history -c与echo>~/.bash_history同时使用才能彻底删除历史记录
 ~/.bashrc # 作用于当前用户
 /etc/profile # 作用于所有用户,写错后可能导致系统登不进去,该文件还可以定义别名
 /etc/hosts # 作用与windows的hosts文件相同
@@ -456,7 +456,6 @@ root：文件（夹）所属的group
 4096：文件（夹）的大小，单位是bit
 Mar 10 22:25：文件（夹）创建日期或其mtime（非ctime与atime即cat chmod等不会改变时间）
 
-history -c与echo>~/.bash_history同时使用才能彻底删除历史命令记录
 umask #显示新建文件or目录缺省权限
 umask 027 #改变默认的掩码
 so:
