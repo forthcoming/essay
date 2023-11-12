@@ -1,6 +1,10 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from matplotlib.font_manager import FontProperties
+from mpl_toolkits.mplot3d import Axes3D
+
+font = FontProperties(fname='/System/Library/Fonts/Hiragino Sans GB.ttc')
 
 
 def draw_line():  # 曲线图
@@ -11,11 +15,11 @@ def draw_line():  # 曲线图
     plt.subplot(1, 2, 1)  # 一行两列中的第一个图
     plt.plot(x, y1, color='red', linewidth=.5, linestyle='--', label='up')
     plt.plot(x, y2, label='down')  # 一个画布上画多张图
-    plt.title("this is a title")
+    plt.title("这是title", fontproperties=font)
     plt.xlabel('x axis')  # x轴说明
     plt.ylabel('y axis')
     plt.legend()  # 增加图例,需要画图函数有label参数
-    plt.text(0, 3, 'text')
+    plt.text(0, 3, '这是text', fontproperties=font)
     plt.xticks([-3, -2, -1, 0, 1, 2, 3], fontsize=5, color='g')  # 设置x轴刻度
     plt.ylim(-2, 10)  # 设置y轴刻度范围
     plt.grid(axis='y', ls='--')  # 设置y轴网格
@@ -69,19 +73,20 @@ def draw_pie():  # 饼图
 
 def draw_3d():  # 3D绘图
     fig = plt.figure()  # 设置画布
-    # ax = Axes3D(fig)
-    # fig.add_axes(ax)
-    # x = np.arange(-4, 4, .5)
-    # y = np.arange(-4, 4, .5)
-    # z = np.arange(-4, 4, .5)
-    # ax.scatter(x, y, z)
-    # plt.show()
+    ax = Axes3D(fig)
+    fig.add_axes(ax)
+    x = np.arange(-4, 4, .25)
+    y = np.arange(-4, 4, .25)
+    x, y = np.meshgrid(x, y)
+    z = np.sqrt(16-x ** 2 - y ** 2)
+    ax.plot_surface(x, y, z)
+    plt.show()
 
 
 if __name__ == "__main__":
     # draw_line()
     # draw_bar()
     # draw_hist()
-    draw_scatter()
+    # draw_scatter()
     # draw_pie()
-    # draw_3d()
+    draw_3d()
