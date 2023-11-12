@@ -21,8 +21,6 @@ from heapq import heapify, heappop, heappush, nlargest, nsmallest, heappushpop
 from subprocess import run, PIPE
 from threading import Lock
 
-import pandas as pd
-
 import socket
 
 """
@@ -208,7 +206,7 @@ def tuple_tutorial():
 def list_tutorial():
     arr = [1, 2, 3, 4, 5]
     print(arr[:2:-1])  # [5, 4],等价于arr[len(arr)-1:2:-1]
-    print(arr[::-1])   # [5, 4, 3, 2, 1]
+    print(arr[::-1])  # [5, 4, 3, 2, 1]
     arr[2:3] = [0, 0]  # 注意这里的用法(区别于a[2] = [0, 0])   [1, 2, 0, 0, 4, 5]
     arr[1:1] = [8, 9]  # [1, 8, 9, 2, 0, 0, 4, 5]
     arr[1:-1] = []  # [1,5] ,等价于del a[1:-1]
@@ -728,14 +726,6 @@ def cache_tutorial():
     print(fib.cache_info())  # CacheInfo(hits=9, misses=11, maxsize=100, currsize=11)
     fib.cache_clear()
     print(fib.cache_info())  # CacheInfo(hits=0, misses=0, maxsize=100, currsize=0)
-
-
-def read_excel_tutorial():  # 读excel表格
-    df = pd.read_excel('map.xlsx', sheet_name='Sheet2', header=1,  # header指定开始读取的行号
-                       usercols=[2, 4, 6, 7], dtype={'name': str, 'id': int}, names=['name', 'id', 'score'])
-    for row in range(df.shape[0]):
-        if pd.isna(df.loc[row]['name']):
-            pass
 
 
 def random_tutorial():

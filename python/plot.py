@@ -1,47 +1,87 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from mpl_toolkits.mplot3d import Axes3D
 
-x = np.linspace(-3, 3, 50)
-y1 = 2 * x + 1
-y2 = x ** 2
 
-plt.figure()
-plt.subplot(2, 1, 1)
-plt.plot(x, y1)
-plt.subplot(2, 2, 3)
-plt.scatter(x, y2, s=10, c='green', alpha=.3)  # 散点图
-plt.text(2, 3, 'text content')
+def draw_line():  # 曲线图
+    x = np.linspace(-3, 3, 50)
+    y1 = 2 * x + 1
+    y2 = x ** 2
 
-plt.figure()
-plt.plot(x, y1, color='red', linewidth=.5, linestyle='--', label='up')
-plt.plot(x, y2, label='down')
-plt.legend()  # 增加图例(配合plot的label参数)
-plt.xlabel('x axis')
-plt.ylabel('y axis')
+    plt.subplot(1, 2, 1)  # 一行两列中的第一个图
+    plt.plot(x, y1, color='red', linewidth=.5, linestyle='--', label='up')
+    plt.plot(x, y2, label='down')  # 一个画布上画多张图
+    plt.title("this is a title")
+    plt.xlabel('x axis')  # x轴说明
+    plt.ylabel('y axis')
+    plt.legend()  # 增加图例,需要画图函数有label参数
+    plt.text(0, 3, 'text')
+    plt.xticks([-3, -2, -1, 0, 1, 2, 3], fontsize=5, color='g')  # 设置x轴刻度
+    plt.ylim(-2, 10)  # 设置y轴刻度范围
+    plt.grid(axis='y', ls='--')  # 设置y轴网格
 
-# 3D绘图
-fig = plt.figure()
-ax = Axes3D(fig)
-X = np.arange(-4, 4, .25)
-Y = np.arange(-4, 4, .25)
-X, Y = np.meshgrid(X, Y)
-R = np.sqrt(X ** 2 + Y ** 2)
-Z = np.sin(R)
-ax.plot_surface(X, Y, Z)
+    plt.subplot(1, 2, 2)
+    plt.plot(['one', 'two', 'three', 'four'], [1, 2, 3, 4])
 
-plt.show()
+    plt.show()  # 画图并结束当前画布
 
-############################################################################################
 
-data = pd.Series([1, 1, 1, 1, 1, 1])
-print(data)
-data.plot()
-df = pd.DataFrame(np.random.randn(1000, 4), index=np.arange(1000), columns=['A', 'B', 'C', 'D'])
-df = df.cumsum()
-print(df)
-df.plot()
-ax = df.plot.scatter(x='A', y='B', color='red', s=5)
-df.plot.scatter(x='A', y='C', color='green', s=7, ax=ax)  # ax=ax保证相应的plot在同一个figure下面
-plt.show()
+def draw_scatter():  # 散点图
+    # 读excel表格,读csv用pd.read_csv
+    # df = pd.read_excel('map.xlsx',
+    #                    sheet_name='Sheet2',
+    #                    header=1,  # header指定开始读取的行号
+    #                    dtype={'name': str, 'id': int},
+    #                    names=['name', 'id', 'score']
+    #                    )
+    # print(df.name, df.id, df.score)
+    # for row in range(df.shape[0]):
+    #     print(pd.isna(df.loc[row]['name']))
+
+    # np.random.randn(m, n)产生m行n列服从标准正态分布的随机数矩阵
+    df = pd.DataFrame(np.random.randn(20, 3), index=np.arange(20), columns=['A', 'B', 'C'])
+    print(df)
+    print(df.shape)  # (20, 3)
+    plt.scatter(df.A, df.B, color='red', s=20, alpha=.6)
+    plt.scatter(df.A, df.C, color='green', s=10)
+    plt.show()
+
+
+def draw_bar():  # 柱状图
+    subjects, scores = ['English', 'Chinese', 'Math'], [70, 80, 50]
+    plt.bar(subjects, scores, width=.7)  # width代表柱体间距
+    for subject, score in zip(subjects, scores):
+        plt.text(subject, score + 1, score, ha='center', fontsize=8)  # ha代表对齐方式
+    plt.bar(subjects, [10, 20, 30], width=.7, bottom=scores)  # bottom意思是画堆叠柱状图
+    plt.show()
+
+
+def draw_hist():  # 直方图,横轴表示数据类型,纵轴表示分布情况
+    x = np.random.randint(0, 10, 100)
+    plt.hist(x, bins=5, density=True)  # bins意思是多少个数据一组,density=True会以概率分布呈现
+    plt.show()
+
+
+def draw_pie():  # 饼图
+    plt.pie([10, 20, 30], labels=['A', 'B', 'C'], autopct='%.2f%%')
+    plt.show()
+
+
+def draw_3d():  # 3D绘图
+    fig = plt.figure()  # 设置画布
+    # ax = Axes3D(fig)
+    # fig.add_axes(ax)
+    # x = np.arange(-4, 4, .5)
+    # y = np.arange(-4, 4, .5)
+    # z = np.arange(-4, 4, .5)
+    # ax.scatter(x, y, z)
+    # plt.show()
+
+
+if __name__ == "__main__":
+    # draw_line()
+    # draw_bar()
+    # draw_hist()
+    draw_scatter()
+    # draw_pie()
+    # draw_3d()
