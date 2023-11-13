@@ -5,6 +5,8 @@ from matplotlib.font_manager import FontProperties
 from mpl_toolkits.mplot3d import Axes3D
 
 font = FontProperties(fname='/System/Library/Fonts/Hiragino Sans GB.ttc')
+plt.rcParams['font.sans-serif'] = ['SimSun']  # 指定默认字体为宋体,Windows下设置
+plt.rcParams['axes.unicode_minus'] = False  # 解决保存图像是负号'-'显示为方块的问题,Windows下设置
 
 
 def draw_line():  # 曲线图
