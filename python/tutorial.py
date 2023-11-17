@@ -26,7 +26,7 @@ import socket
 """
 pip show flask  # 查看库安装信息(路径等)
 python -m pip install redis  # 在当前python环境下执行pip
-pip freeze > requirements.txt
+pip list --format=freeze > requirements.txt 
 pip install -r requirements.txt
 pip install --proxy=http://127.0.0.1:8118 scrapy==1.4.0
 pip install --proxy=socks5://127.0.0.1:1080 scrapy==1.4.0
