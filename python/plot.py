@@ -16,10 +16,11 @@ def draw_line():  # 曲线图
 
     plt.subplot(1, 2, 1)  # 一行两列中的第一个图
     plt.plot(x, y1, color='red', linewidth=.5, linestyle='--', label='up')
+    plt.cla()  # 清除当前画板的所有内容
     plt.plot(x, y2, label='down')  # 一个画布上画多张图
     plt.title("这是title", fontproperties=font)
     plt.xlabel('x axis')  # x轴说明
-    plt.ylabel('y axis')
+    plt.ylabel(r"$-Z^{''}(m\Omega)$")
     plt.legend()  # 增加图例,需要画图函数有label参数
     plt.text(0, 3, '这是text', fontproperties=font)
     plt.xticks([-3, -2, -1, 0, 1, 2, 3], fontsize=5, color='g')  # 设置x轴刻度
