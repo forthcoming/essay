@@ -26,6 +26,7 @@ import socket
 """
 pip show flask  # 查看库安装信息(路径等)
 python -m pip install redis  # 在当前python环境下执行pip
+pip -V # 获取当前pip绑定的python, pip 23.3.1 from D:/python/Lib/site-packages/pip (python 3.12)
 pip list --format=freeze > requirements.txt 
 pip install -r requirements.txt
 pip install --proxy=http://127.0.0.1:8118 scrapy==1.4.0
@@ -37,8 +38,8 @@ conda create -n scrapy # 创建虚拟环境
 conda env list
 conda activate scrapy # 激活,进入到虚拟环境后,如果该环境没有python2,pip等之类包的话会自动识别到base虚拟环境中的包
 conda deactivate # 退出虚拟环境
-conda install -n scrapy python=3.6  # 也可以先进到对应虚拟环境,再conda install python=3.6
-conda install /root/Desktop/软件名
+conda install -n scrapy python=3.12  # 也可以先进到对应虚拟环境,再conda install python=3.12
+conda install /root/Desktop/软件名,如果某些包找不到,可以先切换到对应的虚拟环境,再python -m pip install安装
 conda remove -n scrapy --all
 
 python运算符优先级如下, 与传统c语言运算符优先级有区别
