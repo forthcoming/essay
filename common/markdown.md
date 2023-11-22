@@ -5,13 +5,20 @@ now = datetime.now()
 print(now.date()) 
 ```
 
+---
+<hr>
+
+<br>
+<br>
+
 **Bold**  
 *Emphasize*  
-~~strike-through~~
+
+~~strike-through~~  
+<del>strike-through</del>    
 
 - List1
 - List2
-
 1. List1
 2. List2
 
@@ -29,15 +36,11 @@ print(now.date())
 
 ###### H6
 
-<img src="http://h.hiphotos.baidu.com/image/pic/item/63d0f703918fa0ec6fcf95d2229759ee3c6ddbe1.jpg" title="sexy !!!" height='20%' width='30%'>
-<br> 
+<img src="http://h.hiphotos.baidu.com/image/pic/item/63d0f703918fa0ec6fcf95d2229759ee3c6ddbe1.jpg" title="sexy !!!" height='20%' width='30%'>   
 
----
-<hr>
-<del>strike-through</del>    
+![Image](http://h.hiphotos.baidu.com/image/pic/item/63d0f703918fa0ec6fcf95d2229759ee3c6ddbe1.jpg '美女')
 
 [Link](https://www.baidu.com '百度')
-![Image](http://h.hiphotos.baidu.com/image/pic/item/63d0f703918fa0ec6fcf95d2229759ee3c6ddbe1.jpg '美女')
 
 | 表头     |     表头 |   表头    |
 |:-------|-------:|:-------:|
@@ -47,3 +50,4 @@ print(now.date())
 
 $$x=\frac{-b\pm\sqrt{b^2-4ac}}{2a}$$     
 $x=\frac{-b\pm\sqrt{b^2-4ac}}{2a}$      
+$$ J_\alpha(x) = \sum_{m=0}^\infty \frac{(-1)^m}{m! \Gamma (m + \alpha + 1)} {\left({ \frac{x}{2} }\right)}^{2m + \alpha} \text {，独立公式示例} $$
