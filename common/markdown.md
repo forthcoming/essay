@@ -48,6 +48,21 @@ print(now.date())
 | Phone  |    $12 | America |
 | Pipe   |     $1 |  Japan  |
 
+<table style="width:100%">
+  <tr>
+    <th>Name:</th>
+    <td>Bill Gates</td>
+  </tr>
+  <tr>
+    <th>Telephone:</th>
+    <td>555 77 854</td>
+  </tr>
+  <tr>
+    <th>Telephone:</th>
+    <td>555 77 855</td>
+  </tr>
+</table>
+
 $$x=\frac{-b\pm\sqrt{b^2-4ac}}{2a}$$     
 $x=\frac{-b\pm\sqrt{b^2-4ac}}{2a}$      
 $$ J_\alpha(x) = \sum_{m=0}^\infty \frac{(-1)^m}{m! \Gamma (m + \alpha + 1)} {\left({ \frac{x}{2} }\right)}^{2m + \alpha} \text {，独立公式示例} $$
