@@ -208,7 +208,7 @@ minikube start --image-mirror-country='cn' --image-repository='registry.cn-hangz
 minikube dashboard  # 查看控制面板
 minikube status
 minikube stop
-minikube node add # 集群中新增节点
+minikube node add # 集群中新增节点,每个节点对应一个运行中的镜像
 minikube delete # 删除本地的k8s集群
 minikube ssh -n minikube # 登录节点,-n要ssh访问的节点，默认为主控制平面(建议修改docker镜像源,否则kubectl run无法拉取镜像)
 minikube cp file node_name:path  # 将本地机文件拷贝到指定节点目录

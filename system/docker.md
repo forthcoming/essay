@@ -68,7 +68,7 @@ docker run image_id  # 运行本地镜像,如果镜像不存在,会先去dockerh
 docker run -p 80:80 -v /usr/local/data:/container/data --name=test centos echo 'Hello'
 docker run --network my_net -d redis 
 docker run -v /conf:/etc/redis redis redis-server /etc/redis/redis.conf  
-docker run -it centos /bin/sh
+docker run -d -it --name test centos /bin/sh
 ```
 
 ### Dockerfile

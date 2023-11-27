@@ -43,7 +43,7 @@ def draw_scatter():  # 散点图
     #                    )
     # print(df.name, df.id, df.score)
     # for row in range(df.shape[0]):
-    #     print(pd.isna(df.loc[row]['name']))
+    #     print(pd.isna(df.loc[row]['name'])) # loc基于行标签和列标签进行索引,iloc基于行和列的位置进行索引,索引值从0开始且不含最后一个位置
 
     # np.random.randn(m, n)产生m行n列服从标准正态分布的随机数矩阵
     df = pd.DataFrame(np.random.randn(20, 3), index=np.arange(20), columns=['A', 'B', 'C'])
