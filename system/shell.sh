@@ -58,6 +58,15 @@ touch -- -a "a b"
 ls -i   
 find -inum 节点数 -exec rm -rf {} +
 ------------------------------------------------------------------------------------------------------------------------
+sed
+sed '5q' datafile                      # 打印前5行后,q让sed程序退出
+sed -n '/north/p' datafile             # p指打印,默认打印所有行,-n只打印含有north的行
+sed -n '/north/w newfile' datafile     # w指写操作,将匹配的行写入newfile文件中
+sed -i 's/west/north/g' datafile       # 将所有行中的west替换成north,默认只打印结果,i让改动保存到datafile
+sed -i '1,3d' datafile                 # 删除1~3行,'3,$d'删除从第3行到最后一行
+sed -i '/north/c bus' datafile         # c指替换操作,将匹配的行更改为bus,a匹配north的下一行追加行bus,i匹配north的前一行追加行bus
+sed -i 's/[0-9][0-9]$/&.5/' datafile   # &指匹配到的内容,所有两位数结尾的行后面加上.5
+------------------------------------------------------------------------------------------------------------------------
 正则表达式 & 通配符
 正则表达式: 用于文本内容字符串的搜索和替换
 通配符: 用来匹配文件名
@@ -66,7 +75,6 @@ find -inum 节点数 -exec rm -rf {} +
 [...]  匹配括号内出现的任意一个字符
 [!...] 不匹配括号内出现的任意一个字符
 \      代表转义字符,可以转义Enter,适用于指令太长的情况
-
 ------------------------------------------------------------------------------------------------------------------------
 Hard Link & Symbolic Link
 默认不带参数情况下,ln命令创建的是硬链接
@@ -710,24 +718,3 @@ Sed方法4：
 1. 删除符合某个条件以外的所有文件
 2. $ rm -v !(*.iso|*.zip)
 
-sed
-sed '/north/p' datafile                      # 命令p是打印命令,默认情况下是打印所有输入行；选项-n是用于取消默认的打印操作。
-sed  -n '/north/p' datafile                  # 打印datafile中含有north模式的行，只打印匹配到的行。
-sed  '3,$d' datafile                         # 删除从第3行到最后一行的内容。
-sed  's/west/north/g' datafile               # 所有行中的west替换成north.若无g,则每行的第一个west被替换。
-sed  's/[0-9][0-9]$/&.5/' datafile           # & 它代表在查找串中匹配到的内容，这个例子中，所有两位数结尾的行后面都被加上.5
-sed  -n 's/\(Mar\)got/\1ianne/p' datafile    # 包含在圆括号里的模式Mar作为标签1 保存于特定的寄存器中。替换串可通过\1引用它。则Margot被替换成Marianne。
-sed 's#3#88#g' datafile                      # 可以设置新的分隔符为#
-sed -n '/west/,/east/p' datafile             # 打印west行 到 east行之间的所有行
-sed -e '1,3d' -e 's/Mar/Apr/' datafile       # -e多重编辑,先删除1~3行，然后进行替换。
-sed '/Suan/r newfile ' datafile              # r命令是读取指定文件。如果再文件datafile 的某一行匹配到Suan，就在该行后面读入文件newfile的内容。
-sed -n '/north/w newfile' datafile           # w命令是写命令，将匹配的行写入newfile文件中。
-sed '/north/a\ooooooooooooo' datafile        # 匹配north的下一行追加一串ooooo字符。
-sed '/north/i\ooooooooooooo' datafile        # 匹配north的前一行插入一串ooooo字符。
-sed '/north/c\ooooooooooooo' datafile        # 匹配north行，将ooooo替换该行。
-sed '/north/{n; s/AM/PM/;}' datafile         # n 命令表示下一条命令。sed使用该命令获取输入文件的下一行，并将其读入到模式缓冲区中，任何sed命令都将应用到匹配行的下一行上。此处命令的含义是：匹配到含有north后，将输入行下移一行 然后将下一行文本中的AM替换成PM。可以认为n命令是跳跃一行。
-sed '1,3y/abc/ABC/' datafile                 # y 命令是一对一转换，此处是将1~3行中a->A b->B c->C转换。
-sed '5q' datafile                            # 打印完第五行只后，q命令让sed程序退出.
-sed '/Lew/{ s/Lew/John/ ; q;} ' datafile     # 在某行匹配到模式 Lewis时，s表示先用John替换Lewis，然后q命令让sed程序退出。
-sed -e '/north/h' -e '$G'  datafile          # 在匹配到north行时,将该行复制到暂存缓冲区中，然后再匹配最后一行后取出暂存缓冲区的内容追加在文件尾部。
-sed -n '/a/ {n;p}' test.log                  # 打印出符合开头是a的记录的下一行
