@@ -384,7 +384,7 @@ chown -R root:ccktv /data2 # 改变文件所属的[用户]:[组信息]
 ln [-s] 源 目标  # 建立硬链接文件, -s软链接文件(源文件必须写成绝对路径)
 ls -l `which touch` # 命令替换,注意与管道的区别
 time find . -name "*.c"  # 执行命令并计算执行时间
-mkdir -p project/{lib/ext,bin,src/com/bjhee/{web,dao,service},test}
+mkdir -p project/{lib/ext,bin,src/com/bjhee/{web,dao,service},test}  # brace expansion语法,","前后不能有空格,在bash中生效
 mkdir -p /1/2 # 创建目录树
 grep -C 2 -v -n "^$" test.txt  # 匹配test文件中的非空行,C意思是显示匹配行的上下指定行数,v意思是反向查找,n意思是显示字符串在文件中出现的行号,E意思是正则模式匹配,特殊字符如[需要转意\[表示
 sudo su ccktv  # 输入的密码是执行sudo命令的用户密码,环境变量会一起被切换

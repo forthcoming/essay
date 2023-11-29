@@ -46,7 +46,7 @@ docker start container_name|container_id # 启动已经停止的容器
 docker restart container_name|container_id # 重启正在运行的容器
 docker stop container_name|container_id # 停止正在运行的容器
 docker attach container_name|container_id  # 进入正在运行的容器终端
-docker exec container_name|container_id cmd  # 在运行中的容器中启动新进程,在容器环境执行命令并显示
+docker exec container_name|container_id cmd  # 在运行中的容器中启动新进程,在容器环境执行命令并显示,如docker exec -it redis /bin/bash
 docker kill container_name|container_id # 强制停止容器
 docker logs [-tf] container_name|container_id # 查看容器控制台输出日志,-f参考linux的tail,-t显示时间戳
 docker inspect image_id|container_id  # 查看镜像或容器的详细信息,只有启动的容器才分配IP,IP保存在IPAddress字段
@@ -68,7 +68,7 @@ docker run image_id  # 运行本地镜像,如果镜像不存在,会先去dockerh
 docker run -p 80:80 -v /usr/local/data:/container/data --name=test centos echo 'Hello'
 docker run --network my_net -d redis 
 docker run -v /conf:/etc/redis redis redis-server /etc/redis/redis.conf  
-docker run -d -it --name test centos /bin/sh
+docker run -d -it --name test ubuntu /bin/bash
 ```
 
 ### Dockerfile
@@ -80,7 +80,7 @@ docker run -d -it --name test centos /bin/sh
 from ubuntu:latest  
 # 将元数据添加到图像中,通过docker image inspect查看,一个图像可以有多个标签,可以在一行上指定多个标签
 label author="akatsuki" mail="1234567890@qq.com"
-# 构建容器时运行的命令 
+# RUN默认/bin/sh -c on Linux or cmd /S /C on Windows,使用如RUN ["/bin/bash", "-c", "echo hello"]可更改shell类型 
 run apt update   
 run apt install -y iputils-ping && mkdir ~/fuck
 # 将环境变量＜key＞设置为值＜value＞,该值将在构建阶段的所有后续指令的环境中,并且可以在许多指令中内联替换

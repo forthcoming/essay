@@ -650,16 +650,6 @@ redis-server /root/redis/redis.conf    # 指定启动redis时的配置文件
 redis-server --daemonize yes   # 启动时指定相关配置参数
 ```
 
-### 安装redis到/usr/local/redis目录
-
-```shell
-curl https://download.redis.io/redis-stable.tar.gz -o redis-stable.tar.gz
-tar xzf redis-stable.tar.gz
-cd redis-stable
-make PREFIX=/opt/redis install #安装到指定目录中(没该目录则会自动创建)
-mv redis.conf /opt/redis
-```
-
 ### 持久化方案(推荐两种方案同时使用)
 
 ```
@@ -998,7 +988,7 @@ def hash_slot(key):
 
 ```
 1. cd 7000[7001|7002|7003|7004|7005] && redis-server redis_cluster.conf,手动启动每个节点
-2. redis-cli --cluster create 127.0.0.1:7000 127.0.0.1:7001 127.0.0.1:7002 127.0.0.1:7003 127.0.0.1:7004 127.0.0.1:7005 --cluster-replicas 1
+2. redis-cli --cluster create 127.0.0.1:7000 127.0.0.1:7001 127.0.0.1:7002 127.0.0.1:7003 127.0.0.1:7004 127.0.0.1:7005 --cluster-replicas 1 --cluster-yes
 --cluster-replicas 1意味着每个主节点创建一个副本,不需要在每个节点的配置文件中设置(create a cluster with 3 masters and 3 slaves)
 ```
 
