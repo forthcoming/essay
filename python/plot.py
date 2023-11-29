@@ -5,8 +5,11 @@ from matplotlib.font_manager import FontProperties
 from mpl_toolkits.mplot3d import Axes3D
 
 font = FontProperties(fname='/System/Library/Fonts/Hiragino Sans GB.ttc')
-plt.rcParams['font.sans-serif'] = ['SimSun']  # 指定默认字体为宋体,Windows下设置
-plt.rcParams['axes.unicode_minus'] = False  # 解决保存图像是负号'-'显示为方块的问题,Windows下设置
+plt.rcParams.update({
+    "font.family": ["Times New Roman", "SimSun"],  # 指定默认字体,Windows下设置
+    "mathtext.fontset": "stix",
+    "axes.unicode_minus": False,  # 解决保存图像是负号'-'显示为方块的问题,Windows下设置
+})
 
 
 def draw_line():  # 曲线图
@@ -20,10 +23,10 @@ def draw_line():  # 曲线图
     plt.plot(x, y2, label='down')  # 一个画布上画多张图
     plt.title("这是title", fontproperties=font)
     plt.xlabel('x axis')  # x轴说明
-    plt.ylabel(r"$-Z^{''}(m\Omega)$")
+    plt.ylabel(r"$-Z^{''}(m\Omega)$", size=10)
     plt.legend()  # 增加图例,需要画图函数有label参数
     plt.text(0, 3, '这是text', fontproperties=font)
-    plt.xticks([-3, -2, -1, 0, 1, 2, 3], fontsize=5, color='g')  # 设置x轴刻度
+    plt.xticks([-3, -2, -1, 0, 1, 2, 3], color='g', size=10)  # 设置x轴刻度
     plt.ylim(-2, 10)  # 设置y轴刻度范围
     plt.grid(axis='y', ls='--')  # 设置y轴网格
 
@@ -58,7 +61,7 @@ def draw_bar():  # 柱状图
     subjects, scores = ['English', 'Chinese', 'Math'], [70, 80, 50]
     plt.bar(subjects, scores, width=.7)  # width代表柱体间距
     for subject, score in zip(subjects, scores):
-        plt.text(subject, score + 1, score, ha='center', fontsize=8)  # ha代表对齐方式
+        plt.text(subject, score + 1, score, ha='center', size=12)  # ha代表对齐方式
     plt.bar(subjects, [10, 20, 30], width=.7, bottom=scores)  # bottom意思是画堆叠柱状图
     plt.show()
 
@@ -94,15 +97,16 @@ def move_axes():
     ax.spines['top'].set_color("none")
     ax.spines['left'].set_position(('axes', .5))  # 轴上的比例,介于[0,1]之间
     ax.spines['bottom'].set_position(('data', 0))  # data表示按数值移动,其后数字代表移动到y轴的刻度值
+    plt.ticklabel_format(style='sci', scilimits=(0, 0), axis='both')  # 设置x,y轴刻度为科学计数法
     plt.plot(x, y)
     plt.show()
 
 
 if __name__ == "__main__":
     # draw_line()
-    # draw_bar()
+    draw_bar()
     # draw_hist()
     # draw_scatter()
     # draw_pie()
     # draw_3d()
-    move_axes()
+    # move_axes()
