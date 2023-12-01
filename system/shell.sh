@@ -422,9 +422,9 @@ Depends: gconf-service, libasound2 (>= 1.0.16), libatk1.0-0 (>= 1.12.4), libc6 (
 Pre-Depends: dpkg (>= 1.14.0)
 Description: The web browser from Google.
 ------------------------------------------------------------------------------------------------------------------------
-apt install <package>
-apt remove <package>  #remove packages
-apt purge <package>   #remove packages and configs
+apt install <package> # 常见的如redis,mysql-server,vim等
+apt remove <package>  # remove packages
+apt purge <package>   # remove packages and configs
 apt upgrade
 ------------------------------------------------------------------------------------------------------------------------
 ufw enable   #开启防火墙
