@@ -1,6 +1,8 @@
 import sys
+import time
+
 from PySide6 import QtCore, QtWidgets, QtGui
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QThread, Signal
 from PySide6.QtGui import QWheelEvent
 import types
 
@@ -106,6 +108,16 @@ QScrollArea 主要功能在于将另一个控件滚动显示,被显示的控件�
 """
 
 
+class Worker(QThread):
+    task_signal = Signal(int)  # 参数int就代表这个信号可以传一个整数
+
+    def run(self):  # 线程将在run函数返回后退出
+        for i in range(2):
+            time.sleep(1)
+            print("in Worker.run", i)
+            self.task_signal.emit(i)  # 发送信号
+
+
 def wheel_event(self, event: QWheelEvent):
     scroll_bar = self.verticalScrollBar()  # scroll_bar.height() 滚动条长度
     scroll_bar_pos = scroll_bar.value()  # 滚动条头部当前位置
@@ -118,6 +130,7 @@ def wheel_event(self, event: QWheelEvent):
 class MyWidget(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()  # 调用父类的初始化方法
+        self.process = None
         self.main_layout = QtWidgets.QHBoxLayout(self)
 
         self.set_main_window()
@@ -146,6 +159,11 @@ class MyWidget(QtWidgets.QWidget):
         # my_cursor = QtGui.QCursor(pixmap, 26, 26)  # 以图片像素点位置26,26为热点(光标实际所在位置坐标)
         # self.setCursor(my_cursor)
         self.setCursor(Qt.OpenHandCursor)
+
+        self.process = Worker()  # 创建子线程,如果不保存到实例变量,会在start后立马被销毁,导致线程执行失败
+        self.process.task_signal.connect(lambda i: print(f"task_signal:{i}"))
+        self.process.finished.connect(lambda: print("finished"))  # 还自带started信号,按钮的clicked也是信号
+        self.process.start()
 
         print(self.x())
         print(self.y())

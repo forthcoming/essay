@@ -90,7 +90,7 @@ def pool_compute(item, thread_lock, set_counter, dict_counter):
 def pool_executor_tutorial():
     """
     ThreadPoolExecutor 和 ProcessPoolExecutor的函数以及行为均一致,唯一不同的是线程和进程区别
-    with代码块结束会调用executor.shutdown(wait=True),如果wait=True,则对任务进行join操作,因此主程序会等待with代码块所有任务结束
+    with代码块结束会自动调用executor.shutdown(wait=True),wait=True则对任务进行join操作,因此主程序会等待with代码块所有任务结束
     无论wait的值是多少,整个程序都不会退出,直到所有待处理任务都执行完毕,即daemon=False
     一旦某个任务结束,会立即执行下一个任务,由pool_work总耗时6s可以验证
     如果提交的任务是一样的,就可以简化成map.假如提交的任务不一样,或者执行的过程之可能出现异常(map执行过程中发现问题会直接抛错)就要用到submit
