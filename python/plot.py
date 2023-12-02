@@ -94,7 +94,7 @@ def move_axes():
     y = x ** 2
     ax = plt.gca()  # 获取当前坐标轴,通过spines,找到top,bottom,left,right
     ax.spines['right'].set_color("none")  # 将右侧坐标轴隐藏
-    ax.spines['top'].set_color("none")
+    ax.spines['top'].set_visible(False)  # 将顶部坐标轴隐藏
     ax.spines['left'].set_position(('axes', .5))  # 轴上的比例,介于[0,1]之间
     ax.spines['bottom'].set_position(('data', 0))  # data表示按数值移动,其后数字代表移动到y轴的刻度值
     plt.ticklabel_format(style='sci', scilimits=(0, 0), axis='both')  # 设置x,y轴刻度为科学计数法
@@ -104,9 +104,9 @@ def move_axes():
 
 if __name__ == "__main__":
     # draw_line()
-    draw_bar()
+    # draw_bar()
     # draw_hist()
     # draw_scatter()
     # draw_pie()
     # draw_3d()
-    # move_axes()
+    move_axes()
