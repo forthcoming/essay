@@ -28,12 +28,13 @@ docker commit [-a 'author'|-m 'the first image'] container_id image_name[:tag] #
 docker login # 登陆
 docker push yourname/image_name[:tag] # 推送本地镜像到远程仓库,需提前用docker login账户创建好仓库
 docker tag old_image_name[:tag] yourname/image_name[:tag] # 给原镜像打标签,产生的新镜像跟之前的镜像是同一个image_id
-docker build -t image_name[:tag] [-f dir/Dockerfile] .  # 构建镜像,不指定-f则默认为当前目录下名为Dockerfile的文件
+docker build [--no-cache] -t image_name[:tag] [-f dir/Dockerfile] .  # 构建镜像,不指定-f则默认为当前目录下名为Dockerfile的文件
 docker network ls   # 查看docker网络模式,容器默认使用桥接网络
 docker network create network_name  # 默认创建的是桥接网络
 docker history [--no-trunc] image_name[:tag] # 查看镜像构建过程
 docker compose up [-d] # 启动所有compose服务,-d后台运行,前提是当前目录存在compose.yaml文件
 docker compose down # 停止并删除容器,网络,卷,镜像
+docker compose build [--no-cache] # 构建容器
 docker compose ps # 查看当前compose运行的所有容器
 docker compose config # 校验并输出解析后的compose.yaml配置文件
 docker save/load image_name # 保存加载镜像
