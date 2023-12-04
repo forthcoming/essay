@@ -2,7 +2,7 @@
 
 ```
 curl -fsSL https://get.docker.com | sh  # 安装docker
-docker0是docker虚拟出来的一个网桥,镜像产生的容器IP位于该网段,苹果电脑下无法创建docker0网桥,所以宿主机无法ping通容器
+docker0是docker在主机虚拟出的网桥,使用ifconfig或ip address查看,镜像产生的容器IP位于该网段,苹果电脑下无法创建docker0网桥,所以宿主机无法ping通容器
 构建Dockerfile或者docker pull拉下来的叫镜像, 运行中的镜像叫容器,同一个镜像可以实例化多个容器
 容器内访问外部服务用的ip是宿主机ip
 docker建议每个容器只运行一个服务
@@ -30,8 +30,9 @@ docker push yourname/image_name[:tag] # 推送本地镜像到远程仓库,需提
 docker tag old_image_name[:tag] yourname/image_name[:tag] # 给原镜像打标签,产生的新镜像跟之前的镜像是同一个image_id
 docker build [--no-cache] -t image_name[:tag] [-f dir/Dockerfile] .  # 构建镜像,不指定-f则默认为当前目录下名为Dockerfile的文件
 docker network ls   # 查看docker网络模式,容器默认使用桥接网络
+docker network inspect brideg_name   # 查看网络详情(包含哪些容器使用当前网络)
 docker network create network_name  # 默认创建的是桥接网络
-docker history [--no-trunc] image_name[:tag] # 查看镜像构建过程
+docker history [--no-trunc] image_name[:tag] # 逆序查看镜像构建语句
 docker compose up [-d] # 启动所有compose服务,-d后台运行,前提是当前目录存在compose.yaml文件
 docker compose down # 停止并删除容器,网络,卷,镜像
 docker compose build [--no-cache] # 构建容器
