@@ -93,7 +93,7 @@ workdir $PATH/test
 volume $PATH
 # 复制宿主机文件到容器中
 copy test.py ~/fuck/door.txt
-# 镜像启动时运行的命令,一个Dockerfile中只能有一条CMD指令,如果用户指定了镜像运行的参数,则会覆盖CMD指令,只有运行前台程序容器才不会退出
+# 镜像启动时运行的命令,一个Dockerfile中只能有一条CMD指令,如果用户指定了镜像运行的参数,则会覆盖CMD指令(ENTRYPOINT不会被覆盖),只有运行前台程序容器才不会退出
 cmd ["python"]  
 ```
 
