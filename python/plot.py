@@ -37,23 +37,10 @@ def draw_line():  # 曲线图
 
 
 def draw_scatter():  # 散点图
-    # 读excel表格,读csv用pd.read_csv
-    # df = pd.read_excel('map.xlsx',
-    #                    sheet_name='Sheet2',
-    #                    header=1,  # header指定开始读取的行号
-    #                    dtype={'name': str, 'id': int},
-    #                    names=['name', 'id', 'score']
-    #                    )
-    # print(df.name, df.id, df.score)
-    # for row in range(df.shape[0]):
-    #     print(pd.isna(df.loc[row]['name'])) # loc基于行标签和列标签进行索引,iloc基于行和列的位置进行索引,索引值从0开始且不含最后一个位置
-
     # np.random.randn(m, n)产生m行n列服从标准正态分布的随机数矩阵
     df = pd.DataFrame(np.random.randn(20, 3), index=np.arange(20), columns=['A', 'B', 'C'])
-    print(df)
-    print(df.shape)  # (20, 3)
-    plt.scatter(df.A, df.B, color='red', s=20, alpha=.6)
-    plt.scatter(df.A, df.C, color='green', s=10)
+    plt.scatter(df['A'], df['B'], color='red', s=20, alpha=.6)
+    plt.scatter(df['A'], df['C'], color='green', s=10)
     plt.show()
 
 

@@ -1,4 +1,50 @@
 import numpy as np
+import pandas as pd
+
+
+def test_pandas():
+    # 读excel表格,读csv用pd.read_csv
+    # df = pd.read_excel('map.xlsx',
+    #                    sheet_name='Sheet2',
+    #                    header=1,  # header指定开始读取的行号
+    #                    dtype={'name': str, 'id': int},
+    #                    names=['name', 'id', 'score']
+    #                    )
+    df = pd.DataFrame(np.array([[0, 1, 2], [3, 4, 5], [6, 7, 8]]), index=[5, 'six', 7], columns=['A', 'B', 'C'])
+    print(df)
+    '''
+         A  B  C
+    5    0  1  2
+    six  3  4  5
+    7    6  7  8
+    '''
+    print(df.shape)  # (3, 3), tuple类型
+    print(df.index)  # Index([5, 'six', 7], dtype='object')
+    print(df.columns)  # Index(['A', 'B', 'C'], dtype='object')
+    print(df['A'].values)  # [0, 3, 6], numpy.ndarray类型
+    print(df % 2 == 0)
+    '''
+         A      B      C
+    5     True  False   True
+    six  False   True  False
+    7     True  False   True
+    '''
+    print(df[df['C'] % 2 == 0])  # 查找所有满足C列条件的所有行
+    '''
+       A  B  C
+    5  0  1  2
+    7  6  7  8
+    '''
+    for name in df.columns:
+        column = df[name]  # pandas.core.series.Series类型
+        print(column)
+    for index in df.index:
+        print(df.loc[index])  # pandas.core.series.Series类型
+
+    for index in df.index:
+        for name in df.columns:
+            print(df.loc[index][name])
+
 
 np.cross(np.array([1, 2, 3]), np.array([-1, 2, 0]))  # 两列向量叉积 [-6 -3 4]
 np.exp(np.array([1, 2]))
