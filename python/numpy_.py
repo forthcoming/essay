@@ -22,14 +22,16 @@ def test_pandas():
     print(df.index)  # Index([5, 'six', 7], dtype='object')
     print(df.columns)  # Index(['A', 'B', 'C'], dtype='object')
     print(df['A'].values)  # [0, 3, 6], numpy.ndarray类型
-    print(df % 2 == 0)
+    print(df.iloc[:, 1])  # 第二列的所有行,pandas.core.series.Series类型
+    print(df.iloc[1, :])  # 第二行的所有列,pandas.core.series.Series类型
+    print(df % 2 == 0)    # pandas.core.frame.DataFrame类型
     '''
          A      B      C
     5     True  False   True
     six  False   True  False
     7     True  False   True
     '''
-    print(df[df['C'] % 2 == 0])  # 查找所有满足C列条件的所有行
+    print(df[df['C'] % 2 == 0])  # 查找满足C列条件的所有行, pandas.core.frame.DataFrame类型
     '''
        A  B  C
     5  0  1  2
