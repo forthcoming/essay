@@ -74,6 +74,7 @@ interpreter是将编程语言一行行翻译成01机器语言的软件
 python属于解释性语言,_开头的变量名表示不建议用户使用; _结尾的变量名表示避免与关键字冲突
 函数名跟普通变量名一样,都可以被赋值,传参,返回等操作,都是pyobject对象
 cpython源码,Python: 解释器相关代码; Objects: built-in objects实现(如list,dict); Include: c头文件; Lib: python写的内置库; Modules:c写的内置库
+python -u test.py, 其中-u(unbuffered)参数强制其标准输出同标准错误一样不通过缓存直接打印到屏幕
 
 
 我们导入一个包时, 实际上是导入了它的__init__.py文件,被导入module中的全局代码, 类静态区都会被执行,同一个module只会被导入一次
