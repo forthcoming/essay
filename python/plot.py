@@ -55,7 +55,9 @@ def draw_bar():  # 柱状图
 
 def draw_hist():  # 直方图,横轴表示数据类型,纵轴表示分布情况
     x = np.random.randint(0, 10, 100)
-    plt.hist(x, bins=5, density=True)  # bins意思是多少个数据一组,density=True会以概率分布呈现
+    counts, borders, _ = plt.hist(x, bins=10, density=True)  # bins意思是多少个数据一组,density=True会以概率密度分布呈现
+    for i in range(len(counts)):  # 在每个柱上标注数量,counts长度比borders小1
+        plt.text(float(borders[i + 1] + borders[i]) / 2, counts[i] * 1.01, str(round(counts[i], 2)), ha='center')
     plt.show()
 
 
@@ -92,8 +94,8 @@ def move_axes():
 if __name__ == "__main__":
     # draw_line()
     # draw_bar()
-    # draw_hist()
+    draw_hist()
     # draw_scatter()
     # draw_pie()
     # draw_3d()
-    move_axes()
+    # move_axes()
