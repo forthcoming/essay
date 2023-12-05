@@ -41,7 +41,7 @@ def test_pandas():
         column = df[name]  # pandas.core.series.Series类型
         print(column)
     for index in df.index:
-        print(df.loc[index])  # pandas.core.series.Series类型
+        print(df.loc[index])  # loc对应的是df.index, iloc对应的是从0开始的索引, pandas.core.series.Series类型
 
     for index in df.index:
         for name in df.columns:
