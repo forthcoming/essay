@@ -86,6 +86,7 @@ def move_axes():
     ax.spines['top'].set_visible(False)  # 将顶部坐标轴隐藏
     ax.spines['left'].set_position(('axes', .5))  # 轴上的比例,介于[0,1]之间
     ax.spines['bottom'].set_position(('data', 0))  # data表示按数值移动,其后数字代表移动到y轴的刻度值
+    ax.tick_params(pad=20)  # 刻度与坐标轴距离
     plt.ticklabel_format(style='sci', scilimits=(0, 0), axis='both')  # 设置x,y轴刻度为科学计数法
     plt.plot(x, y)
     plt.show()
@@ -94,8 +95,8 @@ def move_axes():
 if __name__ == "__main__":
     # draw_line()
     # draw_bar()
-    draw_hist()
+    # draw_hist()
     # draw_scatter()
     # draw_pie()
     # draw_3d()
-    # move_axes()
+    move_axes()
