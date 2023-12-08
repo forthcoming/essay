@@ -8,6 +8,7 @@ git diff              #比较工作区与暂存区
 git diff --staged     #比较暂存区跟已提交的文件
 git tag # 在控制台打印出当前仓库的所有tag
 git tag name  # 创建轻量标签
+git tag -d v1.0
 git blame filename    #显示文件中每一行的作者,最后一次改动后进行的提交(commit)以及该次提交的时间戳
 git init
 git submodule add https://github.com/forthcoming/qrcode  # 需要在git项目目录执行,qrcode则会作为一个子模块，当你不在那个目录中时，Git并不会跟踪它的内容，而是将它看作子模块仓库中的某个具体的提交
