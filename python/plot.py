@@ -88,6 +88,8 @@ def move_axes():
     ax.spines['bottom'].set_position(('data', 0))  # data表示按数值移动,其后数字代表移动到y轴的刻度值
     ax.tick_params(pad=20)  # 刻度与坐标轴距离
     plt.ticklabel_format(style='sci', scilimits=(0, 0), axis='both')  # 设置x,y轴刻度为科学计数法
+    ax.yaxis.get_offset_text().set_size(20)  # 科学计数法字体大小
+    ax.yaxis.get_offset_text().set_position((.25, 0.5))  # 科学计数法位置
     plt.plot(x, y)
     plt.show()
 
