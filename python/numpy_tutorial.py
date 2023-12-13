@@ -10,7 +10,7 @@ def test_pandas():
     #                    dtype={'name': str, 'id': int},
     #                    names=['name', 'id', 'score']
     #                    )
-    df = pd.DataFrame(np.array([[0, 1, 2], [3, 4, 5], [6, 7, 8]]), index=[5, 'six', 7], columns=['A', 'B', 'C'])
+    df = pd.DataFrame([[0, 1, 2], [3, 4, 5], [6, 7, 8]], index=[5, 'six', 7], columns=['A', 'B', 'C'])
     print(df)
     '''
          A  B  C
@@ -18,6 +18,7 @@ def test_pandas():
     six  3  4  5
     7    6  7  8
     '''
+    df = df.drop_duplicates(subset=['C'], keep='last')  # 去除C列中重复的行,保留重复行中的最后一行数据
     print(df.shape)  # (3, 3), tuple类型
     print(df.index)  # Index([5, 'six', 7], dtype='object')
     print(df.columns)  # Index(['A', 'B', 'C'], dtype='object')
@@ -198,8 +199,8 @@ def common():
 
 
 if __name__ == "__main__":
-    # test_pandas()
+    test_pandas()
     # one_dimension()
     # two_dimension()
     # three_dimension()
-    common()
+    # common()

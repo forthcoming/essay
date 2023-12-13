@@ -20,7 +20,8 @@ from functools import lru_cache, wraps
 from heapq import heapify, heappop, heappush, nlargest, nsmallest, heappushpop
 from subprocess import run, PIPE
 from threading import Lock
-
+import sqlite3
+import pandas as pd
 import socket
 
 """
@@ -1330,6 +1331,17 @@ def singleton_tutorial():
     assert TestSingleton() is TestSingleton()
     assert TestSingleTonPool(1, "2", c=2.4, d="d") is TestSingleTonPool(1, "2", c=2.4, d="d")
     assert TestSingleTonPool() is TestSingleTonPool()
+
+
+def sqlite_tutorial():
+    conn = sqlite3.connect('data.db')
+    cursor = conn.cursor()
+    # sql = "select name from sqlite_master where type='table' order by name"  # 查看表名
+    # sql = f"SELECT sql FROM sqlite_master WHERE type='table' AND name='user'" # 查看建表语句
+    sql = "select * from user"
+    cursor.execute(sql)
+    result = cursor.fetchall()
+    pd.DataFrame(result)
 
 
 if __name__ == "__main__":  # import到其他脚本中不会执行以下代码,spawn方式的多进程也需要
