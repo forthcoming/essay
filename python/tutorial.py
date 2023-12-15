@@ -34,6 +34,7 @@ pip install --proxy=http://127.0.0.1:8118 scrapy==1.4.0
 pip install --proxy=socks5://127.0.0.1:1080 scrapy==1.4.0
 pip install redis -i http://mirrors.aliyun.com/pypi/simple --trusted-host mirrors.aliyun.com  # -i指定库的安装源
 pip uninstall
+pip config edit --editor vim  # 手动编辑配置文件
 conda list  # 列出当前虚拟环境的所有安装包(包括conda和pip安装的包,这两个命令install作用差不多)
 conda create -n scrapy python=3.12 # 创建虚拟环境
 conda env list
