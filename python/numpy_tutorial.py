@@ -3,7 +3,8 @@ import pandas as pd
 
 
 def test_pandas():
-    # 读excel表格,读csv用pd.read_csv
+    # 读excel用read_excel,excel为二进制文件,不用指定编码格式
+    # 读csv,txt用read_csv,txt需要指定delimiter参数
     # df = pd.read_excel('map.xlsx',
     #                    sheet_name='Sheet2',
     #                    header=1,  # header指定开始读取的行号
