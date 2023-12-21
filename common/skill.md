@@ -56,44 +56,6 @@ The SafeSearch filter isn’t 100% accurate, but it helps you avoid most violent
 解决办法:F12审查元素,将 <input value="on" name="safeui" type="hidden"> 的value值改成off即可,然后点右下角save按钮
 ```
 
-### vim
-```
-:w [filename]   保存[另存为]
-:wq             写入并离开vi,等价于ZZ
-:q!             强迫离开并放弃编辑的文件
-
-yy       复制光标所在行
-p        粘贴字符到光标所在行下方
-shift+p  粘贴字符到光标所在行上方
-
-dd  删除光标所在行(删除也带有剪切的意思,可配合p键使用)
-#dd 删除多个行,#代表数字,比如3dd表示删除光标行及光标的下两行
-
-/search  正向查找,按n键把光标移动到下一个符合条件的地方
-:%s/search/replace/g  把当前光标所处的行中的search单词,替换成replace,并把所有search高亮显示
-:n1,n2s/search/replace/g  表示从多少行到多少行,把search替换成replace
-
-Ctrl+u 向文件首翻半屏
-Ctrl+d 向文件尾翻半屏
-Ctrl+f 向文件首翻一屏
-Ctrl+b 向文件尾翻一屏
-gg  跳到行首
-G   跳到末尾
-ctrl+r   #反撤销
-u  取消上一步操作,取消到上次打开文件的点上,并不是上次保存的点(相当于ctrl+z)
-:r [ 文件名 ] - 导入下一个文件
-:!Command  #在vim中执行shell命令
-:set nu   文档每一行前列出行号
-:set nonu  取消行号(默认)
-:set ic  搜索时忽略大小写
-:set noic  严格区分大小写(默认)
-:#   #代表数字,表示跳到第几行
-注意:r可配合:!Command使用  如 :r !date
-在/etc/vim/vimrc下对vim的修改对所有用户永久有效
-在~/.vimrc下对vim的修改仅对当前用户永久有效
-可以设置一些:set nu   :set ic
-```
-
 ### Pycharm/Idea
 ```
 option + command + L  格式化代码
