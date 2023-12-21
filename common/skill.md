@@ -122,6 +122,7 @@ Ctrl Shift F7 高亮某个变量,而且随着鼠标的移动高亮不会消失
 IDE前进后退键： settings -> Appearance & Behavior -> Menus and Toolbars -> Navigation Bar Toolbar -> Toolbar Run Actions -> +号(add action) -> back+forward
 要ctrl + s保存代码（触发格式化）  file =》settings =》 file Watchers =》goimports 和 golangci-lint  # 不同项目需要单独设置
 只有实现了go接口的所有方法,才算实现了接口,ide才会出现i标记
+settings -> keymap 设置快捷键
 ```
 
 ### Sublime
