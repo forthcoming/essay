@@ -25,7 +25,7 @@ def test_pandas():
     print(df.columns)  # Index(['A', 'B', 'C'], dtype='object')
     print(df['A'].values)  # [0, 3, 6], numpy.ndarray类型
     print(df.iloc[:, 1])  # 第二列的所有行,pandas.core.series.Series类型
-    print(df.iloc[1, :])  # 第二行的所有列,pandas.core.series.Series类型
+    print(df.iloc[1, :])  # 第二行的所有列的转秩,pandas.core.series.Series类型
     print(df.loc['six', ["B", "C"]])  # 第six行的B、C列,pandas.core.series.Series类型
     print(df.iloc[:, [1, 2]])  # 第二、三列的所有行,pandas.core.frame.DataFrame类型
     print(df % 2 == 0)  # pandas.core.frame.DataFrame类型
@@ -41,11 +41,16 @@ def test_pandas():
     5  0  1  2
     7  6  7  8
     '''
+
     for name in df.columns:
         column = df[name]  # pandas.core.series.Series类型
         print(column)
     for index in df.index:
         print(df.loc[index])  # loc对应的是df.index, iloc对应的是从0开始的索引, pandas.core.series.Series类型
+
+    for name in df.columns:
+        for index in df.index:
+            print(df[name][index])
 
     for index in df.index:
         for name in df.columns:

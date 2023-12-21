@@ -94,6 +94,7 @@ def move_axes():
     ax.yaxis.get_offset_text().set_position((.25, 0.5))  # 科学计数法位置
     plt.plot(x, y)
     plt.show()
+    # plt.close()  # 关闭当前画图
 
 
 if __name__ == "__main__":
