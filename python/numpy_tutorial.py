@@ -50,6 +50,23 @@ def test_pandas():
         for name in df.columns:
             print(df.loc[index][name])
 
+    df = df.rename(columns={'A': 'a', 'B': 'b'})
+    df.describe()  # 以每列为单位,统计count,mean,max,min等信息
+
+    print(pd.DataFrame([df['a'], df['b']]))
+    '''
+       5  six  7
+    a  0    3  6
+    b  1    4  7
+    '''
+    print(pd.DataFrame([df['a'], df['b']]).T)
+    '''
+         a  b
+    5    0  1
+    six  3  4
+    7    6  7
+    '''
+
 
 def one_dimension():
     arr_a = np.array([20, 30, 40, 50])

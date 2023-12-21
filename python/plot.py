@@ -58,6 +58,7 @@ def draw_hist():  # 直方图,横轴表示数据类型,纵轴表示分布情况
     counts, borders, _ = plt.hist(x, bins=10, density=True)  # bins意思是多少个数据一组,density=True会以概率密度分布呈现
     for i in range(len(counts)):  # 在每个柱上标注数量,counts长度比borders小1
         plt.text(float(borders[i + 1] + borders[i]) / 2, counts[i] * 1.01, str(round(counts[i], 2)), ha='center')
+    plt.xticks(borders)
     plt.show()
 
 
@@ -87,6 +88,7 @@ def move_axes():
     ax.spines['left'].set_position(('axes', .5))  # 轴上的比例,介于[0,1]之间
     ax.spines['bottom'].set_position(('data', 0))  # data表示按数值移动,其后数字代表移动到y轴的刻度值
     ax.tick_params(pad=20)  # 刻度与坐标轴距离
+    ax.axes.get_xaxis().set_visible(False)  # 设置x轴刻度值不可见
     plt.ticklabel_format(style='sci', scilimits=(0, 0), axis='both')  # 设置x,y轴刻度为科学计数法
     ax.yaxis.get_offset_text().set_size(20)  # 科学计数法字体大小
     ax.yaxis.get_offset_text().set_position((.25, 0.5))  # 科学计数法位置
@@ -97,8 +99,8 @@ def move_axes():
 if __name__ == "__main__":
     # draw_line()
     # draw_bar()
-    # draw_hist()
+    draw_hist()
     # draw_scatter()
     # draw_pie()
     # draw_3d()
-    move_axes()
+    # move_axes()
