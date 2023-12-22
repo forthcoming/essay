@@ -38,3 +38,6 @@ character_set_server = utf8mb4   # 在建库/表时默认字符集为charset=utf
 socket = /var/run/mysqld/mysqld.sock   # 跟server处的参数保持一致
 
 
+# mysqld --defaults-file=/root/mysql/mysqld.cnf  # 使用指定配置文件启动mysql服务
+
+
