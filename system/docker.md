@@ -12,7 +12,7 @@ mac系统docker desktop在engine设置页面新增:
 centos系统修改如下:
 sudo vi /etc/docker/daemon.json
 "registry-mirrors": ["https://yxzrazem.mirror.aliyuncs.com","http://hub-mirror.c.163.com"]
-sudo systemctl restart docker
+sudo dockerd
 ```
 
 ### docker命令
