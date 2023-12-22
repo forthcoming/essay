@@ -1,0 +1,40 @@
+[mysqld]
+#### special settings ####
+tmpdir = /tmp
+datadir = /var/lib/mysql
+log_error = /var/log/mysql/error.log
+pid-file = /var/run/mysqld/mysqld.pid
+socket = /var/run/mysqld/mysqld.sock
+port = 3306
+server-id = 1                                        # 主从复制模式下该id必须唯一
+
+long_query_time = 1                                   # 查询时间超过1秒则认为是慢查询,锁等待时间不算在内,在语句执行完后记录耗时
+slow_query_log = on                                   # 是否开启慢日志
+log_queries_not_using_indexes = on                    # 未使用索引的查询也被记录到慢查询日志中
+slow_query_log_file = /var/log/mysql/mysql-slow.log   # 慢日志存储路径
+
+log_bin = /var/log/mysql/mysql-bin.log                # binlog日志名前缀
+binlog_expire_logs_seconds = 604800                   # 删除超过7天的binlog日志
+# relay_log = /var/log/mysql/relay-bin.log            # 主从模式下从服务器设置
+
+
+#### common settings ####
+bind-address = 0.0.0.0           # 127.0.0.1 means only allow connections from localhost
+mysqlx-bind-address = 0.0.0.0
+wait_timeout = 10                # 通过jdbc连接数据库的非交互式连接超时
+interactive_timeout = 100        # mysql客户端连接数据库的交互式连接超时时间
+max_connections = 200            # 服务器最多可以建立的连接数(会保留一个root登陆的连接)
+max_user_connections = 6         # 同一个用户最多可建立的连接数
+character_set_server = utf8mb4   # 在建库/表时默认字符集为charset=utf8mb4
+#skip-grant-tables               # 跳过用户名/密码认证
+# super_read_only = on           # 主从模式下从服务器设置
+# read_only = on,则服务器不允许除具有CONNECTION_ADMIN 或 SUPER 权限的用户之外的任何客户端更新
+# super_read_only = on,服务器将禁止客户端一切更新
+# super_read_only = on 包含 read_only = on; read_only = off 包含 super_read_only = off
+
+
+[client]
+#### special settings ####
+socket = /var/run/mysqld/mysqld.sock   # 跟server处的参数保持一致
+
+
