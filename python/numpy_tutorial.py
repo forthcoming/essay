@@ -35,10 +35,9 @@ def test_pandas():
     six  False   True  False
     7     True  False   True
     '''
-    print(df[df['C'] % 2 == 0])  # 查找满足C列条件的所有行, pandas.core.frame.DataFrame类型
+    print(df[(df['C'] > 2) & (df['C'] % 2 == 0)])  # 查找满足C列条件的所有行, pandas.core.frame.DataFrame类型
     '''
        A  B  C
-    5  0  1  2
     7  6  7  8
     '''
 
@@ -72,6 +71,27 @@ def test_pandas():
     six  3  4
     7    6  7
     '''
+
+    df['new'] = ['x', np.NaN, 'x']  # 新增列
+    '''
+         a  b  C  new
+    5    0  1  2  x
+    six  3  4  5  NaN
+    7    6  7  8  x
+    '''
+    df = df.dropna()  # 删除元素为NaN的所有行
+    '''
+       a  b  C   new
+    5  0  1  2   x
+    7  6  7  8   x
+    '''
+    df['C'] = df['C'].astype(float)
+    df = df.merge(pd.DataFrame([[6, 5], [4, 3]], columns=['a', 'd']), on='a', how='inner')  # join
+    '''
+       a  b    C new  d
+    0  6  7  8.0   x  5
+    '''
+    # pd.concat([df1, df2], axis=0, ignore_index=False)  # axis=0代表垂直方向拼接,axis=1代表水平方向拼接
 
 
 def one_dimension():
