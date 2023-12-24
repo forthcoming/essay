@@ -122,9 +122,8 @@ services:
       - my_net
     ports:
       - "3306:3306"  # HOST:CONTAINER应始终指定为带引号的字符串,以避免与yaml base-60 float发生冲突
-    command:
-      - redis-server
-      - /etc/redis/redis.conf
+    command: redis-server /etc/redis/redis.conf
+    
 networks:
   my_net:
     driver: bridge  # 默认就是bridge  
