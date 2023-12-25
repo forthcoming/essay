@@ -1,7 +1,6 @@
 ### common
 
 ```
-curl -fsSL https://get.docker.com | sh  # 安装docker
 docker0是docker在主机虚拟出的网桥,使用ifconfig或ip address查看,镜像产生的容器IP位于该网段,苹果电脑下无法创建docker0网桥,所以宿主机无法ping通容器
 构建Dockerfile或者docker pull拉下来的叫镜像, 运行中的镜像叫容器,同一个镜像可以实例化多个容器
 容器内访问外部服务用的ip是宿主机ip
@@ -72,63 +71,5 @@ docker run --network my_net -d redis
 docker run -v /conf:/etc/redis redis redis-server /etc/redis/redis.conf  
 docker run -d -it --name test ubuntu /bin/bash
 ```
-
-### Dockerfile
-
-```shell
-# 以#开头的行视为注释,除非该行是有效的解析器指令,行中其他任何位置的#标记都被视为参数
-# Dockerfile指令按照从上到下顺序执行,每条指令都会创建一个新的镜像层并对镜像进行提交
-# 指定基础镜像,Dockerfile必须以FROM指令开头
-from ubuntu:latest  
-# 将元数据添加到图像中,通过docker image inspect查看,一个图像可以有多个标签,可以在一行上指定多个标签
-label author="akatsuki" mail="1234567890@qq.com"
-# RUN默认/bin/sh -c on Linux or cmd /S /C on Windows,使用如RUN ["/bin/bash", "-c", "echo hello"]可更改shell类型 
-run apt update   
-run apt install -y iputils-ping && mkdir ~/fuck
-# 将环境变量＜key＞设置为值＜value＞,该值将在构建阶段的所有后续指令的环境中,并且可以在许多指令中内联替换
-# ARG创建的变量只在镜像构建过程中可见,ENV创建的变量不仅能在构建镜像的过程中使用,在容器运行时也能够以环境变量的形式被应用程序使用
-env PATH=/fuck
-# 为Dockerfile中的任何RUN、CMD、ENTRYPOINT、COPY和ADD指令设置工作目录
-workdir $PATH/test
-# 创建一个具有指定名称的装载点,自动与本机某个目录管理,可通过docker image inspect查看
-volume $PATH
-# 复制宿主机文件到容器中
-copy test.py ~/fuck/door.txt
-# 镜像启动时运行的命令,一个Dockerfile中只能有一条CMD指令,如果用户指定了镜像运行的参数,则会覆盖CMD指令(ENTRYPOINT不会被覆盖),只有运行前台程序容器才不会退出
-cmd ["python"]  
-```
-**说明: dockerfile每层之间相互独立,cd只在所在的层生效**
-
-### compose.yaml
-
-```yaml
-services:
-  web:
-    build: . # 从当前目录名为Dockerfile的文件构建镜像,没有则忽略
-    image: ktv_room  # 构建的镜像名
-    container_name: room
-    networks:
-      - my_net
-    depends_on: # 只能保证容器启动和销毁顺序,不能确保依赖的容器是否ready
-      - redis
-  redis:
-    image: redis:latest
-    container_name: avatar
-    environment:
-      - nickname=akatsuki
-    volumes:
-      - /app/data:/data
-    networks:
-      - my_net
-    ports:
-      - "3306:3306"  # HOST:CONTAINER应始终指定为带引号的字符串,以避免与yaml base-60 float发生冲突
-    command: redis-server /etc/redis/redis.conf
-    
-networks:
-  my_net:
-    driver: bridge  # 默认就是bridge  
-```
-
-
 
 
