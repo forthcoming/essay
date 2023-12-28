@@ -291,6 +291,7 @@ InnoDB(默认) & Myisam(买爱sam)区别:
 mysql单机超过2000QPS,单表超过3000万都会有性能瓶颈,分库可以提高并发,数据量太大可以分表提高单次查询效率
 create table topic(
     tid int primary key auto_increment comment '只能有一个auto列且必须将其定义为键,当多个事务并发写且有事务回滚时,auto列不再连续',
+    created_time datetime not null,
     update_time datetime not null default current_timestamp on update current_timestamp, # 如果update没有更新数据时update_time不会被更新
     title char(20) not null default ''
 )engine innodb charset utf8  
@@ -1245,11 +1246,6 @@ create table tree(
     level tinyint(1) not null default 0, 
     -- scene_id bit(20) not null comment '情景值ID,前8位是appId',  
     parent_id int(10) not null default 0 comment '指向父id',
-    created_time datetime not null,
-    updated_time timestamp not null default current_timestamp on update current_timestamp,
     primary key(id)
 ) engine = innodb auto_increment = 1 default charset = utf8mb4 comment = '商品品类目录表';
 ```
-
-
-
