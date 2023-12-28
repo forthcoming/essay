@@ -669,7 +669,6 @@ aof由基础文件和增量文件组成,新版redis基本文件是rdb格式
 在同时启用AOF和RDB持久化并且Redis重启的情况下,AOF文件将用于重建原始数据集,因为它可以保证是最完整
 主从关系中一般主开启aof,从开启一个rdb
 如果运行了flushall,只要还未执行bgrewriteaof,立即shutdown nosave(看作强制停止服务器的一个ABORT命令),然后删除AOF文件中的"flushall"即可
-避免在RDB快照操作正在进行时触发AOF重写,或者在AOF重写正在进行时允许BGSAVE,这可以防止两个Redis后台进程同时执行大量磁盘I/O
 ```
 
 ### Redis网络模型
