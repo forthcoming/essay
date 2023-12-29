@@ -26,6 +26,21 @@ int main()
 # ./out 运行
 # top -p 15870
 ------------------------------------------------------------------------------------------------------------------------
+shadowsocks
+pip install git+https://github.com/shadowsocks/shadowsocks.git@master
+vim /etc/shadowsocks.json
+{
+    "server":"47.75.73.29",
+    "server_port":8080,
+    "local_address": "127.0.0.1",
+    "local_port":1080,
+    "password":"******",
+    "timeout":60,
+    "method":"rc4-md5",
+    "fast_open": false
+}
+sslocal -c /etc/shadowsocks.json -d start  # -d代表后台运行
+------------------------------------------------------------------------------------------------------------------------
 touch file.txt # 创建一个空文件,改变文件或目录时间
 -a: 修改atime
 -m: 修改mtime
