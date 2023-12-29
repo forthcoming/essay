@@ -1,20 +1,4 @@
-### Step 0(Lantern)
-```shell
-wget https://github.com/getlantern/lantern-binaries/raw/main/lantern-installer-preview-64-bit.deb
-dpkg -i lantern
-
-git clone https://github.com/getlantern/lantern.git
-cd lantern
-make lantern
-./lantern
-
-Manage system proxy    
-Proxy all traffic   # 所有请求都走代理(默认只有部分请求走代理)
-HTTP(S) proxy: 127.0.0.1:42787
-SOCKS proxy: 127.0.0.1:33947
-```
-
-### Step 0(Shadowsocks)
+### Step 1(Shadowsocks)
 ```shell
 pip install git+https://github.com/shadowsocks/shadowsocks.git@master
 vim /etc/shadowsocks.json
@@ -29,34 +13,6 @@ vim /etc/shadowsocks.json
     "fast_open": false
 } 
 sslocal -c /etc/shadowsocks.json -d start  # -d代表后台运行python,使用的是socks5代理,跟tor类似,程序要想使用也需要privoxy转发
-```
-
-### Step 1
-```shell
-curl https://www.torproject.org/dist/torbrowser/13.0.8/tor-browser-linux-x86_64-13.0.8.tar.xz -o tor.tar.xz
-tar xzf tor.tar.gz
-cd tor
-./configure && make  # Now you can run tor as src/or/tor, or you can run make install to install it into /usr/local/ and then you can start it just by running tor.
-make install
-
-vim /usr/local/etc/tor/torrc
-HTTPSProxy 127.0.0.1:42787 # 前置代理端口(lantern)
-#Socks5Proxy 127.0.0.1:1080     # 前置代理端口(Shadowsocks),也可以选择宿主机下的Shadowsocks作为前端代理,一定要记得勾选Shadowsocks的"允许来自局域网的连接"选项
-MaxCircuitDirtiness 10  # default 10 minutes as long as the circuit is working fine.tor自身限制最少10s換一次identity
-ControlPort 9051  # 控制程序(如stem)访问的端口
-SocksPort 127.0.0.1:9050  # default 9050,外部程序访问Tor的端口,This directive can be specified multiple times to bind to multiple addresses/ports.
-SocksPort 192.168.2.107:9050
-ClientOnly 1   # If set to 1, Tor will not run as a relay or serve directory requests
-
-tor
-pkill -sighup tor
-[notice] Read configuration file "/usr/local/etc/tor/torrc".
-[notice] Opening Socks listener on 127.0.0.1:9050
-[notice] You configured a non-loopback address '192.168.2.107:9050' for SocksPort. This allows everybody on your local network to use your machine as a proxy. Make sure this is what you wanted.
-[notice] Opening Control listener on 127.0.0.1:9051
-[notice] Parsing GEOIP IPv4 file /usr/local/share/tor/geoip.
-[notice] Parsing GEOIP IPv6 file /usr/local/share/tor/geoip6.
-[warn] You are running Tor as root. You don't need to, and you probably shouldn't.
 ```
 
 ### Step 2
