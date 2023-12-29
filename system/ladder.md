@@ -1,6 +1,6 @@
 ### Step 0(Lantern)
 ```shell
-wget https://raw.githubusercontent.com/getlantern/lantern-binaries/master/lantern-installer-64-bit.deb
+wget https://github.com/getlantern/lantern-binaries/raw/main/lantern-installer-preview-64-bit.deb
 dpkg -i lantern
 
 git clone https://github.com/getlantern/lantern.git
@@ -19,39 +19,29 @@ SOCKS proxy: 127.0.0.1:33947
 pip install git+https://github.com/shadowsocks/shadowsocks.git@master
 vim /etc/shadowsocks.json
 {
-"server":"47.75.73.29",
-"server_port":8080,
-"local_address": "127.0.0.1",
-"local_port":1080,
-"password":"******",
-"timeout":60,
-"method":"rc4-md5",
-"fast_open": false
+    "server":"47.75.73.29",
+    "server_port":8080,
+    "local_address": "127.0.0.1",
+    "local_port":1080,
+    "password":"******",
+    "timeout":60,
+    "method":"rc4-md5",
+    "fast_open": false
 } 
-sslocal -c /etc/shadowsocks.json -d start  # -d代表后台运行python
-PS:
-Shadowsocks默认监听的本地端口是1080
-shadowsocks使用的是socks5代理,跟tor类似,程序要想使用也需要privoxy转发
-图形界面的客户端可以选择流量转发方式(HTTP(S) or SOCKS5),sslocal只能是SOCKS5方式
-浏览器科学上网:Network -> Network Proxy: Method选择Manual,Socks Host选择ss客户端的本地IP和端口, 即127.0.0.1:1080,其他选项不要设置
-GUI安装
-https://github.com/shadowsocks/shadowsocks-qt5/releases 下载最新的版本是后缀为.AppImage的文件
-chmod a+x Shadowsocks-Qt5-3.0.0-x86_64.AppImage
-./Shadowsocks-Qt5-3.0.0-x86_64.AppImage
+sslocal -c /etc/shadowsocks.json -d start  # -d代表后台运行python,使用的是socks5代理,跟tor类似,程序要想使用也需要privoxy转发
 ```
 
 ### Step 1
 ```shell
-wget http://www.theonionrouter.com/dist/tor-0.3.2.10.tar.gz
-tar xzf tor-0.3.2.10.tar.gz
-cd tor-0.3.2.10
+curl https://www.torproject.org/dist/torbrowser/13.0.8/tor-browser-linux-x86_64-13.0.8.tar.xz -o tor.tar.xz
+tar xzf tor.tar.gz
+cd tor
 ./configure && make  # Now you can run tor as src/or/tor, or you can run make install to install it into /usr/local/ and then you can start it just by running tor.
 make install
 
 vim /usr/local/etc/tor/torrc
-#HTTPSProxy 127.0.0.1:42787 # 前置代理端口(lantern)
-#Socks5Proxy 127.0.0.1:1080     # 前置代理端口(Shadowsocks)，也可以选择宿主机下的Shadowsocks作为前端代理，一定要记得勾选Shadowsocks的"允许来自局域网的连接"选项
-Socks5Proxy 127.0.0.1:33947 # 前置代理端口(lantern)#RunAsDaemon 1
+HTTPSProxy 127.0.0.1:42787 # 前置代理端口(lantern)
+#Socks5Proxy 127.0.0.1:1080     # 前置代理端口(Shadowsocks),也可以选择宿主机下的Shadowsocks作为前端代理,一定要记得勾选Shadowsocks的"允许来自局域网的连接"选项
 MaxCircuitDirtiness 10  # default 10 minutes as long as the circuit is working fine.tor自身限制最少10s換一次identity
 ControlPort 9051  # 控制程序(如stem)访问的端口
 SocksPort 127.0.0.1:9050  # default 9050,外部程序访问Tor的端口,This directive can be specified multiple times to bind to multiple addresses/ports.
@@ -94,7 +84,7 @@ r = requests.get('https://check.torproject.org/?lang=zh_CN',
 print(r.text)
 r = requests.get('https://httpbin.org/ip', proxies={'https': 'socks5://127.0.0.1:9050'})  # tor
 print(r.json()['origin'])
-r = requests.get('https://httpbin.org/ip', proxies={'https': 'socks5://127.0.0.1:33947'})  # lantern
+r = requests.get('https://httpbin.org/ip', proxies={'https': 'socks5://127.0.0.1:1080'})  # shadowsocks
 print(r.json()['origin'])
 r = requests.get('https://httpbin.org/ip')  # local
 print(r.json()['origin'])
