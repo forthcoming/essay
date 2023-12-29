@@ -32,9 +32,8 @@ cookies = {
     'name': 'fucker',
 }
 proxies = {
-    "http": "http://HNF03B86XW5CH2BP:59C97910FF30A87F@proxy.abuyun.com:9010",
     "https": "https://HNF03B86XW5CH2BP:59C97910FF30A87F@proxy.abuyun.com:9010",
-    "https": "socks5://127.0.0.1:9050",  # pip install requests[socks],socks速度比https要快
+    "http": "socks5://127.0.0.1:9050",  # pip install requests[socks]
 }
 # If you specify a single value for the timeout like timeout=5 ,
 # The timeout value will be applied to both the connect and the read timeouts.
