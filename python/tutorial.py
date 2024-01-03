@@ -9,6 +9,7 @@ import os
 import pickle
 import random
 import re
+import sqlite3
 import struct
 import sys
 import time
@@ -20,8 +21,9 @@ from functools import lru_cache, wraps
 from heapq import heapify, heappop, heappush, nlargest, nsmallest, heappushpop
 from subprocess import run, PIPE
 from threading import Lock
-import sqlite3
+
 import pandas as pd
+
 import socket
 
 """
@@ -616,6 +618,9 @@ def arguments_tutorial():
     number = 6
     test_default(1)  # 5 [1] [1]
     test_default(2)  # 5 [1, 2] [2]
+
+    def read_items(*, item_id: int = 12, q: str):  # 如果希望默认值参数后面接非默认值参数,第一个参数需要是*
+        print({"item_id": item_id, 'q': q})
 
 
 def delayed_binding_tutorial():
