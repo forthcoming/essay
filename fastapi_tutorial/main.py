@@ -1,5 +1,8 @@
+import time
+
 import uvicorn
-from fastapi import FastAPI, Query, Path, Body, status, Response, HTTPException
+from fastapi import FastAPI, Query, Path, Body, status, Response, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, HttpUrl
 
 '''
@@ -10,6 +13,29 @@ DELETE: 删除数据
 '''
 
 app = FastAPI()
+
+# refer: https://developer.mozilla.org/zh-CN/docs/Web/HTTP/CORS
+# refer: https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Headers/Access-Control-Allow-Credentials
+# 跨域资源共享(CORS)是一种机制,它使用额外的HTTP头来告诉浏览器,让运行在一个origin(domain)上的Web应用被准许访问来自不同源服务器上的指定的资源
+# 当一个资源从与该资源本身所在的服务器不同的域、协议或端口请求一个资源时,资源会发起一个跨域HTTP请求
+# 浏览器先往目标url发起OPTIONS请求,根据服务端返回的Allow-Origin等信息判断是否继续进行跨域请求
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost", "http://localhost:8080", "https://localhost"],  # 允许跨域请求的源列表
+    allow_credentials=True,  # 指示跨域请求是否支持cookies
+    allow_methods=["*"],  # POST,PUT等,通配符 "*" 允许所有方法
+    allow_headers=["*"],
+    max_age=600,  # 设定浏览器缓存CORS响应的最长时间,单位是秒,默认为600
+)
+
+
+@app.middleware("http")
+async def add_process_time_header(request: Request, call_next):
+    start_time = time.time()
+    response = await call_next(request)
+    process_time = time.time() - start_time
+    response.headers["X-Process-Time"] = str(process_time)
+    return response
 
 
 class Item(BaseModel):
