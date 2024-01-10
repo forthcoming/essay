@@ -41,7 +41,7 @@ minikube status
 minikube stop
 minikube node add # 集群中新增节点,每个节点对应一个运行中的镜像
 minikube delete # 删除本地的k8s集群
-minikube ssh -n minikube # 登录节点,-n要ssh访问的节点，默认为主控制平面,等价于docker exec -it minikube /bin/bash
+minikube ssh -n minikube # 以docker用户登录节点,-n指定节点,默认为主控制平面,等价于docker exec -it minikube /bin/bash,登录用户为root
 minikube cp file node_name:path  # 将本地机文件拷贝到指定节点目录
 minikube addons enable metrics-server # 在kube-system命名空间下开启hpa
 minikube addons enable ingress # 在ingress-nginx命名空间下开启ingress
@@ -61,7 +61,7 @@ kube-system      # 所有k8s创建的对象存储在该命名空间
 ### pod
 ```
 pod是k8s管理的最小单元,容器必须存在于pod中,一个pod可以有多个容器
-pod下所有容器共享pod的ip和端口,pod每次重启ip都不一样
+pod下所有容器共享pod的ip和端口,同一个Pod中如果两个容器运行的程序使用相同端口,则会启动失败,pod每次重启ip都不一样
 k8s集群启动后集群中各个组件是以pod方式运行在kube-system命名空间下
 kubectl get pod -n kube-system
 NAME                               READY   STATUS    RESTARTS        AGE
@@ -219,11 +219,11 @@ spec:
 kubectl cordon|uncordon node_name # 标记node节点为不可调度|可以调度
 kubectl port-forward pod_name local_port:container_port  # 将容器内应用端口映射到本机端口(调试用)
 kubectl exec pod_name -c container_name -it -- /bin/sh  # 进入Pod指定容器内部执行命令
+kubectl cp local_path pod_name:pod_path -c container_name # 将主机文件和目录复制到容器中或从容器中复制出来,方向是从左到右
 kubectl api-resources # 查看所有对象信息
 kubectl explain pod # 查看对象字段的yaml文档
 kubectl get node  # 查看节点信息
 kubectl get all # 查看(default命名空间)所有对象信息
-kubectl cp local_path pod_name:pod_path -c container_name # 将主机文件和目录复制到容器中或从容器中复制出来,方向是从左到右
 kubectl top node|pod  # 查看资源使用详情(前提是启用metrics-server功能)
 kubectl create ns dev # 创建名为dev的命名空间
 kubectl delete ns dev  # 删除命名空间dev及其下所有pod
@@ -475,7 +475,7 @@ spec:
           cpu: 0.5
           memory: "10Mi"
     - name: redis-container
-      image: redis:alpine  # 同一个Pod中如果两个容器运行的程序使用相同端口,则会启动失败,说明端口也是共享的
+      image: redis:alpine  
       volumeMounts: 
         - name: logs-volume  
           mountPath: /neos  # 推荐写一个不存在的目录,k8s会自动创建
