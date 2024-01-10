@@ -1,38 +1,50 @@
 ### 简介
-```
 k8s是容器编排技术提供以下功能
-1. 自我修复: 一旦某个容器崩溃,能在秒级启动新容器
-2. 弹性伸缩: 可以根据需求,自动对集群中正在运行的容器数量进行调整
-3. 服务发现: 服务可通过自己发现的形式找到他所依赖的服务
-4. 负载均衡: 如果一个服务启动了多个容器,能够自动实现请求的负载均衡
-5. 版本回退: 如果发现新发布程序版本有问题,可立即回退到原来版本
-6. 存储编排: 可根据容器自身需求自动创建存储卷
+* 自我修复: 一旦某个容器崩溃,能在秒级启动新容器
+* 弹性伸缩: 可以根据需求,自动对集群中正在运行的容器数量进行调整
+* 版本回退: 如果发现新发布程序版本有问题,可立即回退到原来版本
+* 负载均衡: 如果一个服务启动了多个容器,能够自动实现请求的负载均衡
+* 服务发现: 服务可通过自己发现的形式找到他所依赖的服务
 
-一个k8s集群主要由控制节点(master)和工作节点(node)构成,每个节点都会安装不同组件
-master: 集群控制面板,负责集群决策,组件如下
-ApiServer: 资源操作唯一入口,接收用户输入命令,提供认证,授权,api注册,发现等机制
-Scheduler:负责集群资源调度,按照预定的调度策略将pod调度到相应的node节点上
-ControllerManager: 负责维护集群状态,比如程序部署安排,故障检测,自动扩展,滚动更新等
-Etcd: 高可用的分布式Key-Value数据库,负责存储集群中各种资源对象的信息
+使用k8s需安装minikube和kubectl  
+节点是运行着kicbase/stable镜像的容器,容器内部安装了docker(建议修改docker镜像源,否则kubectl run无法拉取镜像),用于创建pod   
+集群下节点间是互通的,节点可以访问集群上的任意pod,同一个节点下的pod间互通  
+一个k8s集群主要由控制节点(master)和工作节点(node)构成,每个节点都会安装不同组件  
+Control Plane(集群控制面板,负责集群决策)   
+* ApiServer: 资源操作唯一入口,接收用户输入命令,提供认证,授权,api注册,发现等机制    
+* Scheduler: 负责集群资源调度,按照预定的调度策略将pod调度到相应的node节点上     
+* ControllerManager: 负责维护集群状态,比如程序部署安排,故障检测,自动扩展,滚动更新等     
+* Etcd: 高可用的分布式Key-Value数据库,负责存储集群中各种资源对象的信息      
 
-node: 集群数据平面,负责为容器提供运行环境,组件如下
-Kubelet: 负责维护容器生命周期,即通过控制docker,来创建,更新,销毁容器
-KubeProxy: 负责提供集群内部服务发现和负载均衡
-ContainerRuntime: 负责节点上容器的各种操作
-
-集群下节点间是互通的,节点可以访问集群上的任意pod,同一个节点下的pod间互通
-```
+Worker(集群数据平面,负责为容器提供运行环境)    
+* Kubelet: 负责维护容器生命周期,即通过控制docker,来创建,更新,销毁容器
+* KubeProxy: 负责提供集群内部服务发现和负载均衡
+* ContainerRuntime: 负责节点上容器的各种操作
 
 ### yaml用法
 ```
 YAML是JSON的超集,支持整数、浮点数、布尔、字符串、数组和对象等数据类型,大小写敏感,任何合法的JSON文档也都是YAML文档
-使用空白与缩进表示层次
+使用空格与缩进表示层次
 使用 # 书写注释
 使用 - 开头表示数组
 使用 | 表示多行文本块
 使用 : 表示对象,格式与JSON基本相同,但Key不需要双引号
 使用 --- 在一个文件里分隔多个YAML对象
 表示对象的 : 和表示数组的 - 后面都必须有空格
+```
+
+### minikube
+```shell
+minikube start --image-mirror-country='cn' --image-repository='registry.cn-hangzhou.aliyuncs.com/google_containers'
+minikube dashboard  # 查看控制面板
+minikube status
+minikube stop
+minikube node add # 集群中新增节点,每个节点对应一个运行中的镜像
+minikube delete # 删除本地的k8s集群
+minikube ssh -n minikube # 登录节点,-n要ssh访问的节点，默认为主控制平面,等价于docker exec -it minikube /bin/bash
+minikube cp file node_name:path  # 将本地机文件拷贝到指定节点目录
+minikube addons enable metrics-server # 在kube-system命名空间下开启hpa
+minikube addons enable ingress # 在ingress-nginx命名空间下开启ingress
 ```
 
 ### namespace
@@ -202,19 +214,8 @@ spec:
 # 所以rules中的域名请求会被nginx转发到对应的Service对象上去
 ```
 
-# 常用命令(先安装好minikube和kubectl)
+### kubectl
 ```shell
-minikube start --image-mirror-country='cn' --image-repository='registry.cn-hangzhou.aliyuncs.com/google_containers'
-minikube dashboard  # 查看控制面板
-minikube status
-minikube stop
-minikube node add # 集群中新增节点,每个节点对应一个运行中的镜像
-minikube delete # 删除本地的k8s集群
-minikube ssh -n minikube # 登录节点,-n要ssh访问的节点，默认为主控制平面(建议修改docker镜像源,否则kubectl run无法拉取镜像)
-minikube cp file node_name:path  # 将本地机文件拷贝到指定节点目录
-minikube addons enable metrics-server # 在kube-system命名空间下开启hpa
-minikube addons enable ingress # 在ingress-nginx命名空间下开启ingress
-
 kubectl cordon|uncordon node_name # 标记node节点为不可调度|可以调度
 kubectl port-forward pod_name local_port:container_port  # 将容器内应用端口映射到本机端口(调试用)
 kubectl exec pod_name -c container_name -it -- /bin/sh  # 进入Pod指定容器内部执行命令
