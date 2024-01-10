@@ -8,7 +8,7 @@ k8s是容器编排技术提供以下功能
 
 使用k8s需安装minikube和kubectl  
 节点是运行着kicbase/stable镜像的容器,容器内部安装了docker(建议修改docker镜像源,否则kubectl run无法拉取镜像),用于创建pod   
-集群下节点间是互通的,节点可以访问集群上的任意pod,同一个节点下的pod间互通  
+集群下节点间是互通的,节点可以访问集群上的任意pod  
 一个k8s集群主要由控制节点(master)和工作节点(node)构成,每个节点都会安装不同组件  
 Control Plane(集群控制面板,负责集群决策)   
 * ApiServer: 资源操作唯一入口,接收用户输入命令,提供认证,授权,api注册,发现等机制    
@@ -47,9 +47,41 @@ minikube addons enable metrics-server # 在kube-system命名空间下开启hpa
 minikube addons enable ingress # 在ingress-nginx命名空间下开启ingress
 ```
 
+### kubectl
+```shell
+kubectl cordon|uncordon node_name # 标记node节点为不可调度|可以调度
+kubectl api-resources # 查看所有对象信息
+kubectl port-forward pod_name local_port:container_port  # 将容器内应用端口映射到本机端口(调试用)
+kubectl exec pod_name -c container_name -it -- /bin/sh  # 进入Pod指定容器内部执行命令
+kubectl cp local_path pod_name:container_path -c container_name # 将主机文件和目录复制到容器中或从容器中复制出来,方向是从左到右
+kubectl explain pod # 查看对象字段的yaml文档
+kubectl get node  # 查看节点信息
+kubectl get all # 查看(default命名空间)所有对象信息
+kubectl top node|pod  # 查看资源使用详情(前提是启用metrics-server功能)
+kubectl create ns dev # 创建名为dev的命名空间
+kubectl delete ns dev  # 删除命名空间dev及其下所有pod
+kubectl run nginx --image=nginx:alpine -n dev # 在dev(默认为default)命名空间下运行名为nginx的pod,k8s会自动拉取并运行
+kubectl get pod|hpa|node|deploy|svc|ep|cj -o wide|yaml [--v=9] -w -A --show-labels  # 查看对象信息,-o显示详细信息,--v=9会显示详细的http请求,-w开启实时监控,-A查看所有命名空间
+kubectl describe pod nginx -n dev # pod相关描述,通过最后的Events描述可以看到pod构建的各个细节
+kubectl delete pod --all --force  # 强制删除所有pod,避免阻塞等待
+kubectl logs -f pod_name -c container_name # 查看pod运行日志
+kubectl edit deploy deploy_name  # 动态集群扩缩(replicas),动态镜像更新,动态自愈,每一个新版本都会新建一个ReplicaSet
+kubectl edit ingress ingress_name # 相当于kubectl get ing my-ing -o yaml > ing.yaml && vi ing.yaml && kubectl apply -f ing.yaml
+kubectl rollout history deploy|ds name # 查看历史发布版本
+kubectl rollout undo deploy|ds name --to-revision=1 # 回退到指定版本,默认回退到上个版本
+kubectl rollout pause|resume deploy|ds name  # 暂停继续发版,金丝雀发版
+kubectl label node|pod name kkk=vvv --overwrite # 给对象打标签,overwrite代表更新
+kubectl label node|pod name kkk- # 删除对象标签
+kubectl apply -f nginx.yaml  # 创建或更新 
+kubectl delete -f nginx.yaml
+kubectl get -f nginx.yaml -o yaml
+kubectl replace -f https://k8s.io/examples/application/nginx/nginx-deployment.yaml --force # 删除并重新创建资源
+```
+
 ### namespace
 ```
 不同的namespace下pod无法相互访问,不同的namespace可以限制其占用的资源(如cpu,内存)
+相同的namespace下pod可以分布在不同节点上
 k8s集群启动时会默认创建几个namespace
 kubectl get ns
 default          # 所有未指定namespace的对象都会被分配在该命名空间下 
@@ -212,37 +244,6 @@ spec:
 # ingress插件会运行一个包含nginx和控制器的Pod
 # Ingress对象中定义的rules会被控制器映射到nginx的/etc/nginx/nginx.conf文件
 # 所以rules中的域名请求会被nginx转发到对应的Service对象上去
-```
-
-### kubectl
-```shell
-kubectl cordon|uncordon node_name # 标记node节点为不可调度|可以调度
-kubectl port-forward pod_name local_port:container_port  # 将容器内应用端口映射到本机端口(调试用)
-kubectl exec pod_name -c container_name -it -- /bin/sh  # 进入Pod指定容器内部执行命令
-kubectl cp local_path pod_name:pod_path -c container_name # 将主机文件和目录复制到容器中或从容器中复制出来,方向是从左到右
-kubectl api-resources # 查看所有对象信息
-kubectl explain pod # 查看对象字段的yaml文档
-kubectl get node  # 查看节点信息
-kubectl get all # 查看(default命名空间)所有对象信息
-kubectl top node|pod  # 查看资源使用详情(前提是启用metrics-server功能)
-kubectl create ns dev # 创建名为dev的命名空间
-kubectl delete ns dev  # 删除命名空间dev及其下所有pod
-kubectl run nginx --image=nginx:alpine -n dev # 在dev(默认为default)命名空间下运行名为nginx的pod,k8s会自动拉取并运行
-kubectl get pod|hpa|node|deploy|svc|ep|cj -o wide|yaml [--v=9] -w -A --show-labels  # 查看对象信息,-o显示详细信息,--v=9会显示详细的http请求,-w开启实时监控,-A查看所有命名空间
-kubectl describe pod nginx -n dev # pod相关描述,通过最后的Events描述可以看到pod构建的各个细节
-kubectl delete pod --all --force  # 强制删除所有pod,避免阻塞等待
-kubectl logs -f pod_name -c container_name # 查看pod运行日志
-kubectl edit deploy deploy_name  # 动态集群扩缩(replicas),动态镜像更新,动态自愈,每一个新版本都会新建一个ReplicaSet
-kubectl edit ingress ingress_name # 相当于kubectl get ing my-ing -o yaml > ing.yaml && vi ing.yaml && kubectl apply -f ing.yaml
-kubectl rollout history deploy|ds name # 查看历史发布版本
-kubectl rollout undo deploy|ds name --to-revision=1 # 回退到指定版本,默认回退到上个版本
-kubectl rollout pause|resume deploy|ds name  # 暂停继续发版,金丝雀发版
-kubectl label node|pod name kkk=vvv --overwrite # 给对象打标签,overwrite代表更新
-kubectl label node|pod name kkk- # 删除对象标签
-kubectl apply -f nginx.yaml  # 创建或更新 
-kubectl delete -f nginx.yaml
-kubectl get -f nginx.yaml -o yaml
-kubectl replace -f https://k8s.io/examples/application/nginx/nginx-deployment.yaml --force # 删除并重新创建资源
 ```
 
 ### 资源配置样例
