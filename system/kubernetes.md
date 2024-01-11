@@ -49,33 +49,33 @@ minikube addons enable ingress # 在ingress-nginx命名空间下开启ingress
 
 ### kubectl
 ```shell
-kubectl cordon|uncordon node_name # 标记node节点为不可调度|可以调度
-kubectl api-resources # 查看所有对象信息
 kubectl port-forward pod_name local_port:container_port  # 将容器内应用端口映射到本机端口(调试用)
 kubectl exec pod_name -c container_name -it -- /bin/sh  # 进入Pod指定容器内部执行命令
 kubectl cp local_path pod_name:container_path -c container_name # 将主机文件和目录复制到容器中或从容器中复制出来,方向是从左到右
-kubectl explain pod # 查看对象字段的yaml文档
-kubectl get node  # 查看节点信息
-kubectl get all # 查看(default命名空间)所有对象信息
+kubectl cordon|uncordon node_name # 标记node节点为不可调度|可以调度
+kubectl api-resources # 查看所有对象信息
+kubectl explain pod|svc # 查看对象字段的yaml文档
 kubectl top node|pod  # 查看资源使用详情(前提是启用metrics-server功能)
+kubectl delete pod pod_name --force  # 强制删除pod,避免阻塞等待
+kubectl get pod|hpa|node|deploy|svc|ep|cj -o wide|yaml [--v=9] -w -A --show-labels  # 查看对象信息,-o显示详细信息,--v=9会显示详细的http请求,-w开启实时监控,-A查看所有命名空间
+kubectl get all # 查看(default命名空间)所有对象信息
+kubectl get -f nginx.yaml -o yaml  # 查看nginx.yaml中包含的资源信息
+kubectl logs -f pod_name -c container_name # 查看pod运行日志
+kubectl describe pod nginx -n dev # pod相关描述,通过最后的Events描述可以看到pod构建的各个细节
+kubectl rollout history deploy|ds name # 查看历史发布版本
+kubectl rollout pause|resume deploy|ds name  # 暂停继续发版,金丝雀发版
+kubectl rollout undo deploy|ds name --to-revision=1 # 回退到指定版本,默认回退到上个版本
+
 kubectl create ns dev # 创建名为dev的命名空间
 kubectl delete ns dev  # 删除命名空间dev及其下所有pod
-kubectl run nginx --image=nginx:alpine -n dev # 在dev(默认为default)命名空间下运行名为nginx的pod,k8s会自动拉取并运行
-kubectl get pod|hpa|node|deploy|svc|ep|cj -o wide|yaml [--v=9] -w -A --show-labels  # 查看对象信息,-o显示详细信息,--v=9会显示详细的http请求,-w开启实时监控,-A查看所有命名空间
-kubectl describe pod nginx -n dev # pod相关描述,通过最后的Events描述可以看到pod构建的各个细节
-kubectl delete pod --all --force  # 强制删除所有pod,避免阻塞等待
-kubectl logs -f pod_name -c container_name # 查看pod运行日志
-kubectl edit deploy deploy_name  # 动态集群扩缩(replicas),动态镜像更新,动态自愈,每一个新版本都会新建一个ReplicaSet
-kubectl edit ingress ingress_name # 相当于kubectl get ing my-ing -o yaml > ing.yaml && vi ing.yaml && kubectl apply -f ing.yaml
-kubectl rollout history deploy|ds name # 查看历史发布版本
-kubectl rollout undo deploy|ds name --to-revision=1 # 回退到指定版本,默认回退到上个版本
-kubectl rollout pause|resume deploy|ds name  # 暂停继续发版,金丝雀发版
 kubectl label node|pod name kkk=vvv --overwrite # 给对象打标签,overwrite代表更新
 kubectl label node|pod name kkk- # 删除对象标签
+kubectl edit deploy deploy_name  # 动态集群扩缩(replicas),动态镜像更新,动态自愈,每一个新版本都会新建一个ReplicaSet
+kubectl edit ingress ingress_name # 相当于kubectl get ing my-ing -o yaml > ing.yaml && vi ing.yaml && kubectl apply -f ing.yaml
 kubectl apply -f nginx.yaml  # 创建或更新 
 kubectl delete -f nginx.yaml
-kubectl get -f nginx.yaml -o yaml
 kubectl replace -f https://k8s.io/examples/application/nginx/nginx-deployment.yaml --force # 删除并重新创建资源
+kubectl run nginx --image=nginx:alpine -n dev # 在dev(默认为default)命名空间下运行名为nginx的pod,k8s会自动拉取并运行
 ```
 
 ### namespace
