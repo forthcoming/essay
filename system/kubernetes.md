@@ -57,7 +57,7 @@ kubectl api-resources # 查看所有对象信息
 kubectl explain pod|svc # 查看对象字段的yaml文档
 kubectl top node|pod  # 查看资源使用详情(前提是启用metrics-server功能)
 kubectl delete pod pod_name --force  # 强制删除pod,避免阻塞等待
-kubectl get pod|hpa|node|deploy|svc|ep|cj -o wide|yaml [--v=9] -w -A --show-labels  # 查看对象信息,-o显示详细信息,--v=9会显示详细的http请求,-w开启实时监控,-A查看所有命名空间
+kubectl get pod|hpa|node|deploy|svc|ep|cj|rs -o wide|yaml [--v=9] -w -A --show-labels  # 查看对象信息,-o显示详细信息,--v=9会显示详细的http请求,-w开启实时监控,-A查看所有命名空间
 kubectl get all # 查看(default命名空间)所有对象信息
 kubectl get -f nginx.yaml -o yaml  # 查看nginx.yaml中包含的资源信息
 kubectl logs -f pod_name -c container_name # 查看pod运行日志
@@ -151,99 +151,6 @@ Endpoint存储在Etcd中,用来记录一个Service对应的所有Pod访问地址
 ResourceQuota限制命名空间中所有Pod|CronJob等的运行总数、内存请求总量、内存限制总量、CPU请求总量、CPU限制总量
 LimitRange限制命名空间中单个Pod的内存请求总量、内存限制总量、CPU请求总量、CPU限制总量
 服务质量类(QoS class),当Node没有足够可用资源时按照BestEffort > Burstable > Guaranteed优先级驱逐Pod
-```
-
-### ingress安装技巧
-```shell
-# 插件开启失败时解决方案
-minikube addons enable metrics-server
-kubectl get pod,svc -o wide -n kube-system
-minikube ssh 
-docker pull registry.cn-hangzhou.aliyuncs.com/google_containers/metrics-server 
-kubectl edit deploy metrics-server -n kube-system  # 修改imagePullPolicy,image,nodeName属性
-```
-
-### ingress原理剖析
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: ingress-nginx-controller
-  namespace: ingress-nginx
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app.kubernetes.io/name: ingress-nginx
-  template:
-    metadata:
-      labels:
-        app.kubernetes.io/name: ingress-nginx
-    spec:
-      containers:
-        image: registry.cn-hangzhou.aliyuncs.com/google_containers/nginx-ingress-controller:v1.8.1
-        name: controller
-        ports:
-        - containerPort: 80  # 容器监听的端口
-          hostPort: 80  # 容器端口映射到所在节点的端口,如果设置,主机只能运行一个容器副本即replicas: 1,区别与kubectl port-forward
-          name: http
-          protocol: TCP
-        - containerPort: 443
-          hostPort: 443
-          name: https
-          protocol: TCP
-        - containerPort: 8443
-          name: webhook
-          protocol: TCP
-        livenessProbe:
-          failureThreshold: 5
-          httpGet:
-            path: /healthz
-            port: 10254
-            scheme: HTTP
-          initialDelaySeconds: 10
-          periodSeconds: 10
-          successThreshold: 1
-          timeoutSeconds: 1
-        readinessProbe:
-          failureThreshold: 3
-          httpGet:
-            path: /healthz
-            port: 10254
-            scheme: HTTP
-          initialDelaySeconds: 10
-          periodSeconds: 10
-          successThreshold: 1
-          timeoutSeconds: 1
----
-
-apiVersion: v1
-kind: Service
-metadata:
-  name: ingress-nginx-controller
-  namespace: ingress-nginx
-spec:
-  selector:
-    app.kubernetes.io/name: ingress-nginx
-  type: NodePort
-  clusterIP: 10.104.132.85
-  ports:
-  - appProtocol: http
-    name: http
-    nodePort: 30676
-    port: 80
-    protocol: TCP
-    targetPort: http
-  - appProtocol: https
-    name: https
-    nodePort: 31344
-    port: 443
-    protocol: TCP
-    targetPort: https
-    
-# ingress插件会运行一个包含nginx和控制器的Pod
-# Ingress对象中定义的rules会被控制器映射到nginx的/etc/nginx/nginx.conf文件
-# 所以rules中的域名请求会被nginx转发到对应的Service对象上去
 ```
 
 ### 资源配置样例
@@ -528,6 +435,99 @@ metadata:
 data:  # key映射成文件,value映射成文件内容,如果更新了ConfigMap值,挂载目录也会动态更新
   user: oracle
   age: '12'  # 注意
+```
+
+### ingress安装技巧
+```shell
+# 插件开启失败时解决方案
+minikube addons enable metrics-server
+kubectl get pod,svc -o wide -n kube-system
+minikube ssh 
+docker pull registry.cn-hangzhou.aliyuncs.com/google_containers/metrics-server 
+kubectl edit deploy metrics-server -n kube-system  # 修改imagePullPolicy,image,nodeName属性
+```
+
+### ingress原理剖析
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ingress-nginx-controller
+  namespace: ingress-nginx
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ingress-nginx
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: ingress-nginx
+    spec:
+      containers:
+        image: registry.cn-hangzhou.aliyuncs.com/google_containers/nginx-ingress-controller:v1.8.1
+        name: controller
+        ports:
+        - containerPort: 80  # 容器监听的端口
+          hostPort: 80  # 容器端口映射到所在节点的端口,如果设置,主机只能运行一个容器副本即replicas: 1,区别与kubectl port-forward
+          name: http
+          protocol: TCP
+        - containerPort: 443
+          hostPort: 443
+          name: https
+          protocol: TCP
+        - containerPort: 8443
+          name: webhook
+          protocol: TCP
+        livenessProbe:
+          failureThreshold: 5
+          httpGet:
+            path: /healthz
+            port: 10254
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /healthz
+            port: 10254
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: ingress-nginx-controller
+  namespace: ingress-nginx
+spec:
+  selector:
+    app.kubernetes.io/name: ingress-nginx
+  type: NodePort
+  clusterIP: 10.104.132.85
+  ports:
+  - appProtocol: http
+    name: http
+    nodePort: 30676
+    port: 80
+    protocol: TCP
+    targetPort: http
+  - appProtocol: https
+    name: https
+    nodePort: 31344
+    port: 443
+    protocol: TCP
+    targetPort: https
+    
+# ingress插件会运行一个包含nginx和控制器的Pod
+# Ingress对象中定义的rules会被控制器映射到nginx的/etc/nginx/nginx.conf文件
+# 所以rules中的域名请求会被nginx转发到对应的Service对象上去
 ```
 
 ### mysql部署
