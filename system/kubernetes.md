@@ -50,14 +50,14 @@ minikube addons enable ingress # 在ingress-nginx命名空间下开启ingress
 ### kubectl
 ```shell
 kubectl port-forward pod_name local_port:container_port  # 将容器内应用端口映射到本机端口(调试用)
-kubectl exec pod_name -c container_name -it -- /bin/sh  # 进入Pod指定容器内部执行命令
+kubectl exec pod_name -c container_name -it -- /bin/sh  # 进入Pod指定容器内部执行命令(也可以先进入到node,然后使用docker exec进入)
 kubectl cp local_path pod_name:container_path -c container_name # 将主机文件和目录复制到容器中或从容器中复制出来,方向是从左到右
 kubectl cordon|uncordon node_name # 标记node节点为不可调度|可以调度
 kubectl api-resources # 查看所有对象信息
 kubectl explain pod|svc # 查看对象字段的yaml文档
 kubectl top node|pod  # 查看资源使用详情(前提是启用metrics-server功能)
 kubectl delete pod pod_name --force  # 强制删除pod,避免阻塞等待
-kubectl get pod|hpa|node|deploy|svc|ep|cj|rs -o wide|yaml [--v=9] -w -A --show-labels  # 查看对象信息,-o显示详细信息,--v=9会显示详细的http请求,-w开启实时监控,-A查看所有命名空间
+kubectl get pod|hpa|node|deploy|svc|ep|cj|rs -o wide|yaml [--v=9] -w -A -L lbs --show-labels  # 查看对象信息,-o显示详细信息,--v=9会显示详细的http请求,-w开启实时监控,-A查看所有命名空间,-L按标签名过滤
 kubectl get all # 查看(default命名空间)所有对象信息
 kubectl get -f nginx.yaml -o yaml  # 查看nginx.yaml中包含的资源信息
 kubectl logs -f pod_name -c container_name # 查看pod运行日志
@@ -153,15 +153,155 @@ LimitRange限制命名空间中单个Pod的内存请求总量、内存限制总�
 服务质量类(QoS class),当Node没有足够可用资源时按照BestEffort > Burstable > Guaranteed优先级驱逐Pod
 ```
 
-### 资源配置样例
+### pod配置样例
 ```yaml
 apiVersion: v1
-kind: Namespace
+kind: Namespace  # 简写为ns
 metadata:
   name: dev
 
 ---
 
+apiVersion: v1
+kind: ConfigMap   # 简写为cm
+metadata:
+  name: cm-config
+  namespace: dev
+data:  # key映射成文件名,value映射成文件内容,如果更新了ConfigMap值,挂载目录也会动态更新
+  user: oracle
+  age: '12'  # 注意
+
+---
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: apps
+  namespace: dev
+  labels:
+    version: "3.0"
+    env: test
+spec:
+  hostAliases: # 往/etc/hosts文件追加127.0.0.1 foo.local bar.local,同一个Pod下容器共享IP,所以放在containers同级定义
+    - ip: "127.0.0.1"
+      hostnames:
+        - "foo.local"
+        - "bar.local"
+  containers:
+    - name: python
+      image: python:alpine
+      imagePullPolicy: IfNotPresent # Always用远程,Never用本地,IfNotPresent优先用本地再远程
+      command: ["/bin/sh"] # 如果设置了容器启动时要执行的命令及其参数,容器镜像中自带的命令与参数将会被覆盖而不再执行
+      args: ["-c", "while true; do echo hello; sleep 5;done"] # 如果只是设置了参数,却没有设置其对应的命令,那么容器镜像中自带的命令会使用该新参数作为其执行时的参数
+      env: # 容器环境变量列表,将覆盖容器镜像中指定的所有环境变量,可以在配置的其他地方使用
+      volumeMounts: 
+        - name: logs-volume  # 必须与volumes.name一致
+          mountPath: /avatar  # 推荐写一个不存在的目录,k8s会自动创建
+      resources:
+        limits: # 限制容器运行时最大占用资源,当资源超过最大限制时会重启
+          cpu: 2 # 最多2核
+          memory: "10Gi" # 最大内存
+        requests: # 设置容器需要的最小资源, 低于限制容器将无法启动
+          cpu: 0.5
+          memory: "10Mi"
+    - name: redis
+      image: redis:alpine  
+      volumeMounts: 
+        - name: logs-volume  
+          mountPath: /neos  
+      livenessProbe: 
+        initialDelaySeconds: # 容器启动后等待多少秒执行第一次探测
+        timeoutSeconds: # 探测超时时间,默认一秒
+        periodSeconds: # 执行探测的频率,默认10秒
+        failureThreshold: # 连续探测失败多少次才被认定为失败,默认3
+        successThreshold: # 连续探测成功多少次才被认定为成功,默认1
+#        exec: 
+#          command: ['bin/cat','/hello.txt']
+        tcpSocket: 
+          host: # 默认是pod ip 
+          port: 6379  
+#        httpGet:  # 访问http://127.0.0.1:80/hello
+#          httpHeaders:
+#            - name: Accept
+#              value: application/json
+#          scheme: HTTP
+#          host: 127.0.0.1
+#          port: 80
+#          path: /hello
+        
+  volumes: 
+    - name: logs-volume
+      configMap:
+        name: cm-config # 必须与ConfigMap名字一致
+#      emptyDir:
+#        sizeLimit: 500Mi
+#      hostPath:
+#        path: /home/docker
+#        type: DirectoryOrCreate  # 目录不存在就先创建再使用,存在则直接使用,还支持Directory|File|FileOrCreate
+#      nfs: 
+#        server: 192.168.2.2 # nfs服务器地址
+#        path: /data # 共享文件路径
+  
+  nodeName:  # 将Pod调度到指定的Node节点上
+  nodeSelector: # 将Pod调度到标签ssd=true的节点上
+#    ssd: "true"
+  restartPolicy: Always # Always容器失效时重启(默认),OnFailure容器终止运行且退出码不为0时重启,Never不重启容器,每个容器重启间隔阶梯形增长
+```
+
+### deploy & service配置样例
+```yaml
+apiVersion: apps/v1
+kind: Deployment  # 简写为deploy
+metadata:
+  name: deploy-nginx
+  namespace: default
+spec:
+  replicas: 3
+  revisionHistoryLimit: 10 # 保留的历史版本,默认是10,方便版本回退
+  progressDeadlineSeconds: 600 # 部署超时时间,默认600
+  strategy: # 镜像更新策略
+#    type: Recreate # 创建新Pod前会先杀掉所有已存在的Pod
+    type: RollingUpdate # 滚动更新,杀死一部分Pod就更新一部分,即同时存在2个版本的Pod
+    rollingUpdate:
+      maxUnavailable: 25% # 不可用Pod最大数量,默认25%
+      maxSurge: 25% # 最多比原始Deployment中的replicas设置多出的POD数量,默认25%
+  selector:
+    matchLabels: # 选择Pod模板下的所有Pod
+      run: nginx
+  template: # Pod模板
+    metadata:
+      labels:
+        run: nginx
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:alpine
+
+---
+
+apiVersion: v1
+kind: Service  # 简写为svc
+metadata:
+  name: svc-nginx
+  namespace: default
+spec:
+  selector:
+    run: nginx
+#  type: ClusterIP # 默认值,k8s自动分配虚拟IP,只能在集群内部访问服务,集群内节点通过ClusterIP:port访问服务,集群内Pod通过name:port访问服务
+  type: NodePort # 将Service通过指定Node上的端口暴露给外部,在集群外部可通过任意节点ip:nodePort访问服务,此模式仍然保留type: ClusterIP功能
+#  type: LoadBalancer # 使用外接负载均衡器完成到服务的负载分发,此模式需要外部云环境支持
+#  type: ExternalName # 把集群外部的服务引入集群内部,直接使用
+#  externalName: www.baidu.com # type: ExternalName下有效
+  sessionAffinity: ClientIP # ClientIP相同IP访问的是同一个pod,None则忽略IP执行轮训
+  ports:
+    - protocol: TCP
+      port: 81  # Service端口  
+      targetPort: 80  # Pod端口
+      nodePort: 30000 # 映射关系nodePort -> port -> targetPort,指定绑定的node端口,端口有效范围是[30000,32767],type: NodePort下生效
+```
+
+### 资源配置样例
+```yaml
 apiVersion: v1
 kind: Secret
 type: kubernetes.io/tls
@@ -201,57 +341,7 @@ spec:
                 port:
                   name:  # Service对象的port名,跟下面的number二选一即可
                   number: 81  # Service对象的port号      
----
-
-apiVersion: v1
-kind: Service  # 简写为svc
-metadata:
-  name: svc-nginx
-  namespace: dev
-spec:
-  selector:
-    run: nginx
-#  type: ClusterIP # 默认值,k8s自动分配虚拟IP,只能在集群内部访问服务,集群内节点通过ClusterIP:port访问服务,集群内Pod通过name:port访问服务
-  type: NodePort # 将Service通过指定Node上的端口暴露给外部,在集群外部可通过任意节点ip:nodePort访问服务,此模式仍然保留type: ClusterIP功能
-#  type: LoadBalancer # 使用外接负载均衡器完成到服务的负载分发,此模式需要外部云环境支持
-#  type: ExternalName # 把集群外部的服务引入集群内部,直接使用
-#  externalName: www.baidu.com # type: ExternalName下有效
-  sessionAffinity: ClientIP # ClientIP相同IP访问的是同一个pod,None则忽略IP执行轮训
-  ports:
-    - protocol: TCP
-      port: 81  # Service端口  
-      targetPort: 80  # Pod端口
-      nodePort: 30000 # 映射关系nodePort -> port -> targetPort,指定绑定的node端口,端口有效范围是[30000,32767],type: NodePort下生效
-             
----
-
-apiVersion: apps/v1
-kind: Deployment  # 简写为deploy
-metadata:
-  name: deploy-nginx
-  namespace: dev
-spec:
-  replicas: 3
-  revisionHistoryLimit: 10 # 保留的历史版本,默认是10,方便版本回退
-  progressDeadlineSeconds: 600 # 部署超时时间,默认600
-  strategy: # 镜像更新策略
-#    type: Recreate # 创建新Pod前会先杀掉所有已存在的Pod
-    type: RollingUpdate # 滚动更新,杀死一部分Pod就更新一部分,即同时存在2个版本的Pod
-    rollingUpdate:
-      maxUnavailable: 25% # 用来指定升级过程中不可用Pod最大数量,默认25%
-      maxSurge: 25% # 用来指定升级过程中不可用Pod最大数量,默认25%
-  selector:
-    matchLabels: # 选择Pod模板下的所有Pod
-      run: nginx
-  template: # Pod模板
-    metadata:
-      labels:
-        run: nginx
-    spec:
-      containers:
-        - name: nginx-container
-          image: nginx:alpine
-  
+   
 ---
 
 apiVersion: autoscaling/v2
@@ -344,97 +434,6 @@ spec:
             - name: busybox-container
               image: busybox   
               command: ["/bin/sh","-c","for i in 5 4 3 2 1; do echo $1; sleep 2; done"]
-
----
-
-apiVersion: v1
-kind: Pod
-metadata:
-  name: apps
-  namespace: dev
-  labels:
-    version: "3.0"
-    env: test
-  ownerReferences: # 该对象所依赖的对象列表,一般由k8s自动生成,如果列表中的所有对象都被删除后,该对象将被垃圾回收
-    - apiVersion: 
-      kind: # 如果该Pod是由Deployment对象的Pod模板产生,则值为ReplicaSet,name值为ReplicaSet对应名字
-      name: 
-spec:
-  hostAliases: # 往/etc/hosts文件追加127.0.0.1 foo.local bar.local,同一个Pod下容器共享IP,所以放在containers同级定义
-    - ip: "127.0.0.1"
-      hostnames:
-        - "foo.local"
-        - "bar.local"
-  containers:
-    - name: python-container
-      image: python:alpine
-      imagePullPolicy: IfNotPresent # Always用远程,Never用本地(不是节点本地),IfNotPresent优先用本地再远程
-      command: ["/bin/sh"] # 如果在配置文件中设置了容器启动时要执行的命令及其参数,容器镜像中自带的命令与参数将会被覆盖而不再执行
-      args: ["-c", "while true; do echo hello; sleep 5;done"] # 如果配置文件中只是设置了参数,却没有设置其对应的命令,那么容器镜像中自带的命令会使用该新参数作为其执行时的参数
-      env: # 容器环境变量列表,将覆盖容器镜像中指定的所有环境变量,可以在配置的其他地方使用
-      volumeMounts: 
-        - name: logs-volume  # 必须与volumes.name一致
-          mountPath: /avatar  # 推荐写一个不存在的目录,k8s会自动创建
-      resources:
-        limits: # 限制容器运行时最大占用资源,当资源超过最大限制时会重启
-          cpu: 2 # 最多2核
-          memory: "10Gi" # 最大内存
-        requests: # 设置容器需要的最小资源, 低于限制容器将无法启动
-          cpu: 0.5
-          memory: "10Mi"
-    - name: redis-container
-      image: redis:alpine  
-      volumeMounts: 
-        - name: logs-volume  
-          mountPath: /neos  # 推荐写一个不存在的目录,k8s会自动创建
-      livenessProbe: 
-        initialDelaySeconds: # 容器启动后等待多少秒执行第一次探测
-        timeoutSeconds: # 探测超时时间,默认一秒
-        periodSeconds: # 执行探测的频率,默认10秒
-        failureThreshold: # 连续探测失败多少次才被认定为失败,默认3
-        successThreshold: # 连续探测成功多少次才被认定为成功,默认1
-#        exec: 
-#          command: ['bin/cat','/hello.txt']
-        tcpSocket: 
-          host: # 默认是pod ip 
-          port: 6379  
-#        httpGet:  # 访问http://127.0.0.1:80/hello
-#          httpHeaders:
-#            - name: Accept
-#              value: application/json
-#          scheme: HTTP
-#          host: 127.0.0.1
-#          port: 80
-#          path: /hello
-        
-  volumes: 
-    - name: logs-volume
-      configMap:
-        name: cm-config # 必须与ConfigMap名字一致
-#      emptyDir:
-#        sizeLimit: 500Mi
-#      hostPath:
-#        path: /home/docker
-#        type: DirectoryOrCreate  # 目录不存在就先创建再使用,存在则直接使用,还支持Directory|File|FileOrCreate
-#      nfs: 
-#        server: 192.168.2.2 # nfs服务器地址
-#        path: /data # 共享文件路径
-  
-  nodeName:  # 将Pod调度到指定的Node节点上
-  nodeSelector: # 将Pod调度到标签ssd=true的节点上
-#    ssd: "true"
-  restartPolicy: Always # Always容器失效时重启(默认),OnFailure容器终止运行且退出码不为0时重启,Never不重启容器,每个容器重启间隔阶梯形增长
-
----
-
-apiVersion: v1
-kind: ConfigMap   # 简写为cm
-metadata:
-  name: cm-config
-  namespace: dev
-data:  # key映射成文件,value映射成文件内容,如果更新了ConfigMap值,挂载目录也会动态更新
-  user: oracle
-  age: '12'  # 注意
 ```
 
 ### ingress安装技巧
