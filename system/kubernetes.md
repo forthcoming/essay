@@ -206,6 +206,11 @@ spec:
           memory: "10Mi"
     - name: redis
       image: redis:alpine  
+      ports:  # 一般不配置
+        - containerPort: 6379  # 容器监听的端口
+          hostPort: 6479  # 容器端口映射到所在节点的端口,如果设置,同一个node只能运行一个容器副本,区别与kubectl port-forward
+          name: port_name
+          protocol: TCP
       volumeMounts: 
         - name: logs-volume  
           mountPath: /neos  
@@ -279,6 +284,28 @@ spec:
 
 ---
 
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler  # 简写为hpa
+metadata:
+  name: hpa-nginx
+  namespace: default
+spec:
+  minReplicas: 1
+  maxReplicas: 6
+  scaleTargetRef: # 关联要控制的pod信息
+    apiVersion: apps/v1
+    kind: Deployment
+    name: deploy-nginx
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 50
+        
+---
+
 apiVersion: v1
 kind: Service  # 简写为svc
 metadata:
@@ -292,7 +319,7 @@ spec:
 #  type: LoadBalancer # 使用外接负载均衡器完成到服务的负载分发,此模式需要外部云环境支持
 #  type: ExternalName # 把集群外部的服务引入集群内部,直接使用
 #  externalName: www.baidu.com # type: ExternalName下有效
-  sessionAffinity: ClientIP # ClientIP相同IP访问的是同一个pod,None则忽略IP执行轮训
+  sessionAffinity: ClientIP # ClientIP则相同IP访问同一个pod,None则忽略IP执行轮训
   ports:
     - protocol: TCP
       port: 81  # Service端口  
@@ -341,28 +368,6 @@ spec:
                 port:
                   name:  # Service对象的port名,跟下面的number二选一即可
                   number: 81  # Service对象的port号      
-   
----
-
-apiVersion: autoscaling/v2
-kind: HorizontalPodAutoscaler  # 简写为hpa
-metadata:
-  name: hpa-nginx
-  namespace: dev
-spec:
-  minReplicas: 1
-  maxReplicas: 6
-  scaleTargetRef: # 关联要控制的pod信息
-    apiVersion: apps/v1
-    kind: Deployment
-    name: deploy-nginx
-  metrics:
-  - type: Resource
-    resource:
-      name: cpu
-      target:
-        type: Utilization
-        averageUtilization: 50
         
 ---
 
@@ -467,8 +472,8 @@ spec:
         image: registry.cn-hangzhou.aliyuncs.com/google_containers/nginx-ingress-controller:v1.8.1
         name: controller
         ports:
-        - containerPort: 80  # 容器监听的端口
-          hostPort: 80  # 容器端口映射到所在节点的端口,如果设置,主机只能运行一个容器副本即replicas: 1,区别与kubectl port-forward
+        - containerPort: 80 
+          hostPort: 80 
           name: http
           protocol: TCP
         - containerPort: 443
