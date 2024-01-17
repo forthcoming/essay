@@ -63,7 +63,7 @@ func testWaitGroup() {
 	for ret := range ch2 {
 		fmt.Println(ret)
 	}
-	//for {  // 死循环
+	//for {  // 死循环,等价于上面的for range
 	//	if ret, ok := <-ch2; ok {
 	//		fmt.Println(ret)
 	//	} else {
@@ -219,12 +219,12 @@ func commonMistake() {
 }
 
 func main() {
-	//testWaitGroup()
+	testWaitGroup()
 	//testRaceCondition()
 	//testSelect()
 	//testChannel()
 	//testDefer()
 	//fmt.Println(testDeferReturn())
 	//testMutex()
-	testSingleton()
+	// 	testSingleton()
 }

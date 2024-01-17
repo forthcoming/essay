@@ -57,7 +57,7 @@ kubectl api-resources # 查看所有对象信息
 kubectl explain pod|svc # 查看对象字段的yaml文档
 kubectl top node|pod  # 查看资源使用详情(前提是启用metrics-server功能)
 kubectl delete pod pod_name --force  # 强制删除pod,避免阻塞等待
-kubectl get pod|hpa|node|deploy|svc|ep|cj|rs -o wide|yaml [--v=9] -w -A -L lbs --show-labels  # 查看对象信息,-o显示详细信息,--v=9会显示详细的http请求,-w开启实时监控,-A查看所有命名空间,-L按标签名过滤
+kubectl get pod|hpa|node|deploy|svc|ep|cj|rs -o wide|yaml [--v=9] -w -A -L lbs --show-labels  # 查看对象信息,-o显示详细信息,--v=9会显示详细的http请求,-w开启实时监控,-A查看所有命名空间,-L按标签名过滤,同时查看多个对象用逗号分隔
 kubectl get all # 查看(default命名空间)所有对象信息
 kubectl get -f nginx.yaml -o yaml  # 查看nginx.yaml中包含的资源信息
 kubectl logs -f pod_name -c container_name # 查看pod运行日志
@@ -256,7 +256,7 @@ spec:
 ### deploy & service配置样例
 ```yaml
 apiVersion: apps/v1
-kind: Deployment  # 简写为deploy
+kind: Deployment  # 简写为deploy,会一并创建ReplicaSet和Pod
 metadata:
   name: deploy-nginx
   namespace: default
@@ -292,7 +292,7 @@ metadata:
 spec:
   minReplicas: 1
   maxReplicas: 6
-  scaleTargetRef: # 关联要控制的pod信息
+  scaleTargetRef: # 关联要控制的deploy信息
     apiVersion: apps/v1
     kind: Deployment
     name: deploy-nginx
@@ -327,6 +327,80 @@ spec:
       nodePort: 30000 # 映射关系nodePort -> port -> targetPort,指定绑定的node端口,端口有效范围是[30000,32767],type: NodePort下生效
 ```
 
+### DaemonSet配置样例
+```yaml
+apiVersion: apps/v1
+kind: DaemonSet  # 简写为ds
+metadata:
+  name: ds-hello-world
+  namespace: dev
+spec:
+  selector:
+    matchLabels: 
+      run: hello-world
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+  template: # Pod模板
+    metadata:
+      labels:
+        run: hello-world
+    spec:
+      containers:
+        - name: hello-world-container
+          image: hello-world   
+```
+
+### Job配置样例
+```yaml
+apiVersion: batch/v1
+kind: Job  
+metadata:
+  name: job-busybox
+  namespace: dev
+spec:
+  completions: 4 # Job需要成功运行Pod的次数,默认为1
+  parallelism: 2 # Job在任意时刻并发运行Pod的数量,默认为1
+  activeDeadlineSeconds: 120 # Job可运行的最长时间(所有Pod的构建和执行时间),超时未结束系统将尝试终止
+  backoffLimit: 6 # Job失败后最多重试次数,默认为6
+  template: # Pod模板
+    metadata:
+    spec:
+      restartPolicy: Never # 只能是Never和OnFailure,Pod出现故障时,前者会增加失败次数,后者不增加失败次数
+      containers:
+        - name: busybox-container
+          image: busybox   
+          command: ["/bin/sh","-c","for i in 5 4 3 2 1; do echo $1; sleep 2; done"]
+```
+
+### Cronjob配置样例
+```yaml
+apiVersion: batch/v1
+kind: CronJob  # 简写为cj
+metadata:
+  name: cj-busybox
+  namespace: dev
+spec:
+  schedule: "* * * * *" # cron格式,参考Linux的crontab
+  concurrencyPolicy: Allow # Allow允许Job并发运行,Forbid禁止并发运行(如果上一次运行未完成则跳过本次运行),Replace用新Job替换正在运行的Job
+  failedJobsHistoryLimit: 1 # 失败任务保留的最大历史记录数,默认为1
+  successfulJobsHistoryLimit: 3 # 成功任务保留的最大历史记录数(执行Job后状态为Completed的Pod个数),默认为3
+  jobTemplate: # Job模板
+    metadata: 
+    spec:
+      completions: 1
+      parallelism: 1
+      activeDeadlineSeconds: 120
+      template: # Pod模板
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: busybox-container
+              image: busybox   
+              command: ["/bin/sh","-c","for i in 5 4 3 2 1; do echo $1; sleep 2; done"]
+```
+              
 ### 资源配置样例
 ```yaml
 apiVersion: v1
@@ -367,78 +441,7 @@ spec:
                 name: svc-nginx  # Service对象的name
                 port:
                   name:  # Service对象的port名,跟下面的number二选一即可
-                  number: 81  # Service对象的port号      
-        
----
-
-apiVersion: apps/v1
-kind: DaemonSet  # 简写为ds
-metadata:
-  name: ds-hello-world
-  namespace: dev
-spec:
-  selector:
-    matchLabels: 
-      run: hello-world
-  updateStrategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxUnavailable: 1
-  template: # Pod模板
-    metadata:
-      labels:
-        run: hello-world
-    spec:
-      containers:
-        - name: hello-world-container
-          image: hello-world   
-          
----
-
-apiVersion: batch/v1
-kind: Job  
-metadata:
-  name: job-busybox
-  namespace: dev
-spec:
-  completions: 4 # Job需要成功运行Pod的次数,默认为1
-  parallelism: 2 # Job在任意时刻并发运行Pod的数量,默认为1
-  activeDeadlineSeconds: 120 # Job可运行的最长时间(所有Pod的构建和执行时间),超时未结束系统将尝试终止
-  backoffLimit: 6 # Job失败后最多重试次数,默认为6
-  template: # Pod模板
-    metadata:
-    spec:
-      restartPolicy: Never # 只能是Never和OnFailure,Pod出现故障时,前者会增加失败次数,后者不增加失败次数
-      containers:
-        - name: busybox-container
-          image: busybox   
-          command: ["/bin/sh","-c","for i in 5 4 3 2 1; do echo $1; sleep 2; done"]
-
----
-
-apiVersion: batch/v1
-kind: CronJob  # 简写为cj
-metadata:
-  name: cj-busybox
-  namespace: dev
-spec:
-  schedule: "* * * * *" # cron格式,参考Linux的crontab
-  concurrencyPolicy: Allow # Allow允许Job并发运行,Forbid禁止并发运行(如果上一次运行未完成则跳过本次运行),Replace用新Job替换正在运行的Job
-  failedJobsHistoryLimit: 1 # 失败任务保留的最大历史记录数,默认为1
-  successfulJobsHistoryLimit: 3 # 成功任务保留的最大历史记录数(执行Job后状态为Completed的Pod个数),默认为3
-  jobTemplate: # Job模板
-    metadata: 
-    spec:
-      completions: 1
-      parallelism: 1
-      activeDeadlineSeconds: 120
-      template: # Pod模板
-        spec:
-          restartPolicy: Never
-          containers:
-            - name: busybox-container
-              image: busybox   
-              command: ["/bin/sh","-c","for i in 5 4 3 2 1; do echo $1; sleep 2; done"]
+                  number: 81  # Service对象的port号
 ```
 
 ### ingress安装技巧
@@ -447,7 +450,7 @@ spec:
 minikube addons enable metrics-server
 kubectl get pod,svc -o wide -n kube-system
 minikube ssh 
-docker pull registry.cn-hangzhou.aliyuncs.com/google_containers/metrics-server 
+docker pull registry.cn-hangzhou.aliyuncs.com/google_containers/metrics-server:v0.6.4
 kubectl edit deploy metrics-server -n kube-system  # 修改imagePullPolicy,image,nodeName属性
 ```
 
