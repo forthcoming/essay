@@ -61,7 +61,7 @@ kubectl get pod|hpa|node|deploy|svc|ep|cj|rs -o wide|yaml [--v=9] -w -A -L lbs -
 kubectl get all # 查看(default命名空间)所有对象信息
 kubectl get -f nginx.yaml -o yaml  # 查看nginx.yaml中包含的资源信息
 kubectl logs -f pod_name -c container_name # 查看pod运行日志
-kubectl describe pod nginx -n dev # pod相关描述,通过最后的Events描述可以看到pod构建的各个细节
+kubectl describe pod nginx -n dev # pod相关描述,通过最后的Events描述可以看到pod构建的各个细节,pod也可以替换成其他资源
 kubectl rollout history deploy|ds name # 查看历史发布版本
 kubectl rollout pause|resume deploy|ds name  # 暂停继续发版,金丝雀发版
 kubectl rollout undo deploy|ds name --to-revision=1 # 回退到指定版本,默认回退到上个版本

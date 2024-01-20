@@ -55,6 +55,9 @@ func TestPrint(t *testing.T) {
 
 make用来为slice,map,chan类型分配内存和初始化一个对象,返回的是引用类型
 new可以初始化任意对象,返回的是对象指针,不建议用来new引用类型,因为仅仅为引用的对象名分配空间,对象名此时仍然指向nil,new不常用
+
+可以给内置类型如int增加方法,前提是用type给int定义命名类型(type MyInt int),MyInt和int不再是相同类型
+type AliasInt=int给int起别名,AliasInt和int是相同类型
 */
 
 const pay = "Wechat"                         // 常量在编译期间确定, 无法被修改
