@@ -444,10 +444,8 @@ spec:
                   number: 81  # Service对象的port号
 ```
 
-### ingress安装技巧
+### hpa插件启动失败解决方案
 ```shell
-# 插件开启失败时解决方案
-minikube addons enable metrics-server
 kubectl get pod,svc -o wide -n kube-system
 minikube ssh 
 docker pull registry.cn-hangzhou.aliyuncs.com/google_containers/metrics-server:v0.6.4
