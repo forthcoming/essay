@@ -187,30 +187,20 @@ func testArray() {
 
 func testSlice() {
 	// 切片是引用传递
-	// 声明空切片时优先选择var t []string而不是t := []string{}
-	// 前者声明一个nil切片值,后者非nil但长度为零,它们的len和cap都为零
-	// 注意在有限情况下,首选非nil零长度的切片,例如在编码JSON对象时(nil切片编码为null,而[]string{}编码为JSON数组[])
+	// 声明空切片时优先选择var t []string而不是t := []string{},前者声明一个nil切片值,后者非nil但长度为零的切片,它们的len和cap都为零
+	// 在编码JSON对象时nil切片编码为null,[]string{}编码为数组[]
 	// 设计接口时避免区分nil切片和非nil零长度切片,因为这可能导致微妙的编程错误
 
-	// make返回的都是引用类型,创建一个类型是[]int,长度为4,容量是6,初始默认值是0的切片,容量指重新切片时切片可以达到的最大长度,可省略
-	s0 := make([]int, 4, 6)       // 申请unsafe.Sizeof(int) * cap个字节,如果不指定cap,则cap=len
+	// make返回的都是引用类型,创建一个类型是[]int,长度为4,容量是6,初始默认值是0的切片,容量指切片扩容前可达到的最大长度,可省略,此时cap=len
+	s0 := make([]int, 4, 6)       // 申请unsafe.Sizeof(s0[0]) * cap个字节,在32位平台上int类型占4字节,在64位平台上占用8字节
 	fmt.Println(len(s0), cap(s0)) // 4 6
-	// [0 0 0 0] [0],S[A:B]范围是[A,B),跟python一样包含头不包含尾,但不能是负数,新切片容量cap(s0[:p]) = cap(s0) - p
-	fmt.Println(s0[:4], s0[3:])
-	fmt.Println(s0[:6]) // [0 0 0 0 0 0],下标是否越界看下标是否超过其capacity值(切片,数组皆适用)
+	fmt.Println(s0[:6])           // [0 0 0 0 0 0],下标是否越界看下标是否超过其capacity值(切片,数组皆适用)
 	//fmt.Println(s0[:7]) // error,最大不能超过cap值
 	//fmt.Println(s0[4])           // error,必须小于len值
 
-	// 二维切片初始化
-	xSize, ySize := 5, 10
-	picture := make([][]uint8, ySize) // 每y个单元一行
-	for i := range picture {          // 遍历行,为每一行分配切片
-		picture[i] = make([]uint8, xSize)
-	}
-
 	s1 := make([]int, 3, 4)
-	s2 := s1[:2]                      // 切片的切片还是切片
-	fmt.Println(s2, len(s2), cap(s2)) //  [0 0] 2 4
+	s2 := s1[:2]                      // 切片的切片还是切片,S[A:B]范围是[A,B),跟python一样包含头不包含尾,但不能是负数
+	fmt.Println(s2, len(s2), cap(s2)) //  [0 0] 2 4, cap(S[A:B]) = cap(S) - A
 
 	s1 = append(s1, 1)
 	s2[0]++
@@ -251,6 +241,13 @@ func testSlice() {
 	fmt.Println(len(y), len(z), y != nil, z == nil) // 0 0 true true
 	for idx, value := range z {                     // 遍历y,z都不会报错
 		fmt.Println(idx, value)
+	}
+
+	// 二维切片初始化, ySize行xSize列
+	xSize, ySize := 5, 10
+	picture := make([][]uint8, ySize)
+	for i := range picture { // 遍历行,为每一行分配切片
+		picture[i] = make([]uint8, xSize)
 	}
 }
 
