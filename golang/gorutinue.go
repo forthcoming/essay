@@ -157,20 +157,29 @@ func testChannel() {
 }
 
 func testDefer() {
-	value := 2
-
-	defer func() { // 匿名函数定义
+	defer func() { // 匿名函数定义,defer在函数结束时被调用(return语句之后),当一个函数内多次调用defer时,按后进先出顺序执行
 		err := recover() // 只有在相同的协程中调用recover才能处理错误,不处理错误会使主进程终止
 		if err != nil {
 			fmt.Printf("position 1, error: %v\n", err)
 		}
 	}()
 
-	defer func(value int) { // defer在函数结束时被调用(return语句之后),当一个函数内多次调用defer时,按后进先出顺序执行
-		fmt.Println("position 2,", value) // 输出2, 在执行defer语句时就会对延迟函数的实参进行求值
-	}(value) // 如果value是个函数调用,则会先执行该函数
+	age := 1
+	defer fmt.Println("position 2", age) // 1
 
-	value = 10
+	defer func(age int) {
+		fmt.Println("position 3", age) // 1
+	}(age) // 在执行defer语句时就会对延迟函数的实参进行求值,如果age是个函数调用,则会先执行该函数,区别于python延时绑定
+
+	defer func(age *int) {
+		fmt.Println("position 4", *age) // 2
+	}(&age)
+
+	defer func() {
+		fmt.Println("position 5", age) // 2
+	}()
+
+	age = 2
 	panic("make mistakes")
 	fmt.Println("不会再被执行")
 }
@@ -219,11 +228,11 @@ func commonMistake() {
 }
 
 func main() {
-	testWaitGroup()
+	//testWaitGroup()
 	//testRaceCondition()
 	//testSelect()
 	//testChannel()
-	//testDefer()
+	testDefer()
 	//fmt.Println(testDeferReturn())
 	//testMutex()
 	// 	testSingleton()
