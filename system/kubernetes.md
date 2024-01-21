@@ -78,6 +78,14 @@ kubectl replace -f https://k8s.io/examples/application/nginx/nginx-deployment.ya
 kubectl run nginx --image=nginx:alpine -n dev # 在dev(默认为default)命名空间下运行名为nginx的pod,k8s会自动拉取并运行
 ```
 
+### hpa插件启动失败解决方案
+```shell
+kubectl get pod,svc -o wide -n kube-system
+minikube ssh 
+docker pull registry.cn-hangzhou.aliyuncs.com/google_containers/metrics-server:v0.6.4
+kubectl edit deploy metrics-server -n kube-system  # 修改imagePullPolicy,image,nodeName属性
+```
+
 ### namespace
 ```
 不同的namespace下pod无法相互访问,不同的namespace可以限制其占用的资源(如cpu,内存)
@@ -442,14 +450,6 @@ spec:
                 port:
                   name:  # Service对象的port名,跟下面的number二选一即可
                   number: 81  # Service对象的port号
-```
-
-### hpa插件启动失败解决方案
-```shell
-kubectl get pod,svc -o wide -n kube-system
-minikube ssh 
-docker pull registry.cn-hangzhou.aliyuncs.com/google_containers/metrics-server:v0.6.4
-kubectl edit deploy metrics-server -n kube-system  # 修改imagePullPolicy,image,nodeName属性
 ```
 
 ### ingress原理剖析
