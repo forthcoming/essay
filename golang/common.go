@@ -193,7 +193,7 @@ func testSlice() {
 	// 设计接口时避免区分nil切片和非nil零长度切片,因为这可能导致微妙的编程错误
 
 	// make返回的都是引用类型,创建一个类型是[]int,长度为4,容量是6,初始默认值是0的切片,容量指重新切片时切片可以达到的最大长度,可省略
-	s0 := make([]int, 4, 6)       // 申请unsafe.Sizeof(int) * cap个字节
+	s0 := make([]int, 4, 6)       // 申请unsafe.Sizeof(int) * cap个字节,如果不指定cap,则cap=len
 	fmt.Println(len(s0), cap(s0)) // 4 6
 	// [0 0 0 0] [0],S[A:B]范围是[A,B),跟python一样包含头不包含尾,但不能是负数,新切片容量cap(s0[:p]) = cap(s0) - p
 	fmt.Println(s0[:4], s0[3:])
