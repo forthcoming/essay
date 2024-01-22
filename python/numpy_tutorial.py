@@ -1,4 +1,4 @@
-import numpy as np
+import numpy as np  # 定长,元素类型唯一,支持矩阵运算等优点使其比python数组更快
 import pandas as pd
 
 

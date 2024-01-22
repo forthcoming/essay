@@ -74,6 +74,7 @@ func init() {
 }
 
 func testString() {
+	// ``代表多行字符串
 	str := "AB中C"                  // 字符串底层是一个byte数组,因此string也可以进行切片处理,字符串是不可变对象,无法被修改
 	for index, char := range str { // 观察index发现"中"占了3字节,字符默认是int32类型
 		fmt.Printf("%c=%v starts at byte %d\n", char, char, index)
@@ -187,14 +188,11 @@ func testArray() {
 
 func testSlice() {
 	// 切片是引用传递
-	// 声明空切片时优先选择var t []int而不是t := []int{},前者声明一个nil切片值,后者等价于make([]int, 0, 0),非nil但长度为零的切片,它们的len和cap都为零
-	// 在编码JSON对象时nil切片编码为null,[]int{}编码为数组[]
-	// 设计接口时避免区分nil切片和非nil零长度切片,因为这可能导致微妙的编程错误
-
 	// make返回的都是引用类型,创建一个类型是[]int,长度为4,容量是6,初始默认值是0的切片,容量指切片扩容前可达到的最大长度,可省略,此时cap=len
-	s0 := make([]int, 4, 6)       // 申请unsafe.Sizeof(s0[0]) * cap个字节,在32位平台上int类型占4字节,在64位平台上占用8字节
-	fmt.Println(len(s0), cap(s0)) // 4 6
-	fmt.Println(s0[:6])           // [0 0 0 0 0 0],下标是否越界看下标是否超过其capacity值(切片,数组皆适用)
+	s0 := make([]int, 4, 6)        // 申请unsafe.Sizeof(s0[0]) * cap个字节,在32位平台上int类型占4字节,在64位平台上占用8字节
+	fmt.Println(len(s0), cap(s0))  // 4 6
+	fmt.Println(unsafe.Sizeof(s0)) // 一般为24,由8bit cap + 8bit len + 8bit pointer构成
+	fmt.Println(s0[:6])            // [0 0 0 0 0 0],下标是否越界看下标是否超过其capacity值(切片,数组皆适用)
 	//fmt.Println(s0[:7]) // error,最大不能超过cap值
 	//fmt.Println(s0[4])           // error,必须小于len值
 
@@ -213,16 +211,15 @@ func testSlice() {
 	var s3 []int
 	for i := 0; i < 10; i++ {
 		// 当原切片长度小于1024时,新切片的容量会直接翻倍;当原切片的容量大于等于1024时,每次增加原容量的25%
-		// 每次扩容后s3地址不变,但由于会新创建一个数组,所以切片内部的指针变量的值会随着扩容而改变
+		// s3和&s3[0]始终指向切片第一个元素的地址,每次扩容后s3地址不变,但由于会创建新数组,s3的值会随着扩容而改变
 		s3 = append(s3, i)
-		fmt.Printf("%p, %p, %p, cap: %d\n", &s3, &s3[0], s3, cap(s3)) // s3和&s3[0]都指向切片第一个元素的地址
+		fmt.Printf("%p, %p, %p, cap: %d\n", &s3, &s3[0], s3, cap(s3))
 	}
 
 	s4 := []string{"round", "root", "世界", "cat"} // 未指定数组长度即为切片,等价于make([]string,4,4)并初始化
 	s5 := make([]string, len(s4)-1)
-	copy(s5, s4) // 切片深拷贝,如果s6长度不足,则会自动截取适当长度,返回拷贝的元素数量,数量等于min(len(src), len(dst))
-	s5[0] = "circle"
-	fmt.Println(s5)                 // [circle root 世界]
+	copy(s5, s4) //  [round root 世界],切片深拷贝,如果s5长度不足,则会自动截取适当长度,返回拷贝的元素数量,数量等于min(len(src), len(dst))
+
 	s6 := append(s4[:1], s4[2:]...) // 由于追加的数据s4[2:]...未超过s4的容量,所以会直接影响到s4
 	fmt.Println(s4, s6)             // [round 世界 cat cat] , [round 世界 cat] 思考这个结果
 	_ = append(s4, "another")       // 如果基于s4继续追加的话,由于超过容量,产生一个新数组,此时s4不会被更改,基于这个原因一般使用形式是s=append(s,value)
@@ -231,12 +228,13 @@ func testSlice() {
 	sort.Slice(s7, func(i, j int) bool {
 		return s7[i]%10 < s7[j]%10 // 从小到大排序,按条件为真的顺序排序
 	})
-	fmt.Println(s7)                // [21 1 3 84 6 57]
-	fmt.Println(unsafe.Sizeof(s7)) // 一般为24,由8bit cap + 8bit len + 8bit pointer构成
+	fmt.Println(s7) // [21 1 3 84 6 57]
 
-	// 取元素之前一定要先判断是否为空,判断数组是否为空一律用len方式,防止出错,
-	y := make([]int, 0)
+	// 声明空切片时优先选择var t []int而不是t := []int{},前者声明一个nil切片值,后者等价于make([]int, 0, 0),非nil但长度为零的切片,它们的len和cap都为零
+	// 在编码JSON对象时nil切片编码为null,[]int{}编码为数组[]
+	// 设计接口时避免区分nil切片和非nil零长度切片,因为这可能导致微妙的编程错误
 	var z []int
+	y := make([]int, 0)
 	fmt.Printf("%T,%T\n", y, z)                     // []int,[]int
 	fmt.Println(len(y), len(z), y != nil, z == nil) // 0 0 true true
 	for idx, value := range z {                     // 遍历y,z都不会报错

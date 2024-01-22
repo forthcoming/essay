@@ -1350,7 +1350,7 @@ def sqlite_tutorial():
     pd.DataFrame(result)
 
 
-if __name__ == "__main__":  # import到其他脚本中不会执行以下代码,spawn方式的多进程也需要
+if __name__ == "__main__":  # import到其他脚本中不会执行以下代码,此时__name__为不含后缀的脚本名,spawn方式的多进程也需要
     # frame_tutorial()
     # arguments_tutorial()
     # list_tutorial()
@@ -1367,4 +1367,5 @@ if __name__ == "__main__":  # import到其他脚本中不会执行以下代码,s
     # isinstance_tutorial()
     # with_tutorial()
     # variable_tutorial()
-    float_tutorial()
+    # float_tutorial()
+    exception_tutorial()

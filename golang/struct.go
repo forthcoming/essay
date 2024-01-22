@@ -127,7 +127,6 @@ func testYamlMarshal() {
 		Paragraph string   `yaml:"paragraph"`
 		Object    YamlExt  `yaml:"object"`
 	}
-	// ``代表多行字符串
 	yamlTarget := `
       yaml:
         - slim and flexible
