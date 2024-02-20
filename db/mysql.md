@@ -167,15 +167,15 @@ show procedure status;
 show create procedure requested_song;
 
 drop procedure if exists item;
-create procedure item()
+create procedure item(in suffix char(6))
 begin
   declare i int default 0;
   while i < 10 do
-    insert into test values(concat('项目1-栏目1-测试',i),concat('项目1-栏目2-测试',i));
+    insert into test values(concat('项目1-栏目1-测试',suffix,i),concat('项目1-栏目2-测试',i));
     set i = i + 1;
   end while;
 end
-call item();
+call item('202001');
 ```
 
 ### unique key & primary key & foreign key
@@ -624,7 +624,7 @@ InnoDB二级索引的叶子节点包含了主键值,所以查询字段包含主�
 对于字符型列,索引长度越大,区分度越高,但会占用更多的空间,因此需要在两者间做一个权衡
 惯用手法:在字符列截取不同长度,测试其区分度,选择一个合适的索引长度
 select count(distinct(left(word,4)))/count(*) from tb_name;
-create index idx_word on tb_name(word(4));  -- 指定索引长度为4(如果字符集为utf8,key_len大概为4*3=12)
+create [unique] index idx_word on tb_name(word(4));  -- 指定索引长度为4(如果字符集为utf8,key_len大概为4*3=12)
 前缀索引兼顾索引大小和查询速度,但缺点是不能用于ORDER BY和GROUP BY操作,也不能用于Covering index
 
 延迟索引关联
