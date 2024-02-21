@@ -53,9 +53,9 @@ func testReverse() {
 	var book1Ptr []*Book
 	for _, book := range book1 {
 		book.bookId /= 2                   // 此处book是值拷贝,不会影响到book1
-		book1Ptr = append(book1Ptr, &book) // 错误写法,应为遍历过程中book的地址始终不变,只有值在变
+		book1Ptr = append(book1Ptr, &book) // book在每次遍历中都会重新申请内存
 	}
-	fmt.Println(book1, book1Ptr) // [{C++ sakura 12 <nil>} {Go neo 22 <nil>}] [0xc0001080c0 0xc0001080c0]
+	fmt.Println(book1, book1Ptr) // [{C++ sakura 12 <nil>} {Go neo 22 <nil>}] [0xc00007a0c0 0xc00007a0f0]
 
 	book2 := book1
 	for idx := range book2 {
@@ -128,18 +128,18 @@ func testYamlMarshal() {
 		Object    YamlExt  `yaml:"object"`
 	}
 	yamlTarget := `
-      yaml:
-        - slim and flexible
-        - better for configuration
-      object:
-        key: value
-        array:
-          - null_value:
-            boolean: true  
-          - integer: 1
-      paragraph:
-        Blank lines denote paragraph breaks
-    `
+	 yaml:
+	   - slim and flexible
+	   - better for configuration
+	 object:
+	   key: value
+	   array:
+	     - null_value:
+	       boolean: true
+	     - integer: 1
+	 paragraph:
+	   Blank lines denote paragraph breaks
+	`
 	/*
 		{
 			"Yaml": ["slim and flexible", "better for configuration"],

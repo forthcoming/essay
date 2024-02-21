@@ -48,6 +48,7 @@ c, d = d, c   // 交换两个变量的值
 go语言不支持隐式类型转换
 循环只有for关键字,针对数组切片遍历的是索引+值,针对map遍历的是key+value
 ++,--只支持后置操作
+函数不支持默认参数
 机器指令是由0和1组成的二进制指令,汇编语言是二进制指令的文本形式,与机器指令一一对应,比如加法的机器指令是00000011写成汇编语言就是ADD
 
 单元测试注意点: 文件名必须是xxx_test格式; 测试函数名必须是TestXxx格式; 入参必须是t *testing.T
@@ -175,7 +176,8 @@ func testArray() {
 		{3, 4, 5},
 	}
 	fmt.Println(a0, a1, a2)
-	fmt.Println(unsafe.Sizeof(a0)) // 32,计算的是所有元素大小之和
+	fmt.Println(unsafe.Sizeof(a0))      // 32,计算的是所有元素大小之和
+	fmt.Printf("%p, %p\n", &a0, &a0[0]) // &a0和&a0[0]都指向数组第一个元素的地址
 
 	eleSize := unsafe.Sizeof(a0[0])
 	uintPtr := uintptr(unsafe.Pointer(&a0[0]))              // 将*int类型转换为无符号整数
@@ -336,7 +338,7 @@ func testPrint() {
 func testOpenFile() {
 	fOut, _ := os.OpenFile("test_open_file.txt", os.O_RDWR|os.O_CREATE, 0666)
 	defer fOut.Close()
-	for i := 0; i < 3; i++ {
+	for range 3 { //  for _ := range 3
 		_, _ = fOut.WriteString("write string!\n")
 		_, _ = fOut.Write([]byte("write byte!\n"))
 	}
@@ -430,12 +432,12 @@ func main() { // 程序开始执行的函数,名字main固定,{不能单独一�
 
 	//testString()
 	//testDefinition()
-	testSlice()
+	testArray()
+	//testSlice()
 	//testMap()
 	//testSwitch()
 	//testTime()
 	//testPrint()
 	//testOpenFile()
 	//testReflect()
-	//testArray()
 }
