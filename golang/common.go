@@ -329,7 +329,7 @@ func testPrint() {
 					%T : 变量类型, reflect.TypeOf(args)
 					%v : 默认格式输出(通用输出格式),%+v会为结构体的每个字段添上字段名,%#v按照Go语法打印值
 	*/
-	// 04意思是长度为4,不足的前面用0补齐;返回[0,5)范围内伪随机整数,使用前一定要重置随机种子(py会自动执行这一步)
+	// 04意思是长度为4,不足的前面用0补齐;返回[0,5)范围内伪随机整数,使用前一定要重置随机种子(py会自动执行这一步),%可通过%%进行转意
 	formatString := fmt.Sprintf("%04d", rand.Intn(5)) // sprintf是格式化字符串给变量,printf是格式化字符串打印出来
 	fmt.Println(formatString)
 	fmt.Printf("%v,%T", 2, 2) // 2,int
