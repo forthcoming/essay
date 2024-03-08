@@ -251,7 +251,7 @@ def shared_manager_tutorial():
         print(shared_dict)  # {'a': 10}
         print(shared_list)  # [16016, 19356, 18492, 17892, 13048, 19212, 1844, 14400, 7344, 1008]
 
-        shared_dict_list = manager.list([manager.dict() for _ in range(2)])
+        shared_dict_list = manager.list([manager.dict() for _ in range(2)])  # 如果在子进程中使用manager.dict()会失败
         # shared_dict_list = manager.list([{} for _ in range(2)]) # 此种方式用法错误
         first_inner = shared_dict_list[0]
         first_inner['a'] = 1
