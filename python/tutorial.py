@@ -81,20 +81,6 @@ cpython源码,Python: 解释器相关代码; Objects: built-in objects实现(如
 python -u test.py, 其中-u(unbuffered)参数强制其标准输出同标准错误一样不通过缓存直接打印到屏幕
 
 
-我们导入一个包时, 实际上是导入了它的__init__.py文件,被导入module中的全局代码, 类静态区都会被执行,同一个module只会被导入一次
-如果py文件中使用了相对路径导入,则这个py文件无法作为脚本直接运行,只能作为模块被导入,应为relative import都是先通过module的__package__找到绝对路径
-遇到循环导入问题,可以将某个模块放置函数或类内导入,或者将冲突部分单独提出一个module
-from xxx import *时如果定义了__all__,则只会导入其定义的对象
-
-变量sys.path是一个字符串列表, 它为解释器指定了模块的搜索路径,包括 当前程序所在目录、标准库的安装目录、操作系统环境变量PYTHONPATH所包含的目录
-vim ~/.bashrc  # vim /etc/profile 全局
-export PYTHONPATH=$PYTHONPATH:/root/Desktop/atlas
-source ~/.bashrc
-
-import sys
-sys.path.append('/root/Desktop')   # 添加python查询路径
-
-
 原码 & 补码
 原码: 用最高位表示符号位, 1表示负, 0表示正, 其他位存放该数的二进制的绝对值
 补码: 正数的补码等于他的原码, 负数的补码等于正数的原码取反加一
@@ -152,6 +138,24 @@ b(reak)  在指定行打断点
 ipdb>    后面跟语句,可以直接改变某个变量
 h(elp)   打印当前版本Pdb可用的命令,如果要查询某个命令,可以输入h [command],例如:"h l"查看list命令
 pinfo2   Provide extra detailed information about an object(值,类型,长度等信息)
+
+
+模块(module): 
+是一个包含Python代码的.py文件
+遇到循环导入问题,可以将某个模块放在函数或类内导入,或者将冲突部分单独提出一个模块
+如果py文件中使用了相对路径导入,则这个py文件无法作为脚本直接运行,只能作为模块被导入,应为relative import都是先通过module的__package__找到绝对路径
+包(package): 
+是一个包含多个模块的文件夹,且这个文件夹包含一个名为__init__.py的文件,这使得包内的模块可以被导入到其他Python脚本中
+导入包实际是导入了它的__init__.py文件,被导入module中的全局代码, 类静态区都会被执行,同一个module只会被导入一次
+
+from xxx import *时如果定义了__all__,则只会导入其定义的对象
+变量sys.path是一个字符串列表, 它为解释器指定了模块的搜索路径,包括 当前程序所在目录、标准库的安装目录、操作系统环境变量PYTHONPATH所包含的目录
+vim ~/.bashrc  # vim /etc/profile 全局
+export PYTHONPATH=$PYTHONPATH:/root/Desktop/atlas
+source ~/.bashrc
+
+import sys
+sys.path.append('/root/Desktop')   # 添加python查询路径
 """
 
 
