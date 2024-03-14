@@ -152,19 +152,6 @@ b(reak)  在指定行打断点
 ipdb>    后面跟语句,可以直接改变某个变量
 h(elp)   打印当前版本Pdb可用的命令,如果要查询某个命令,可以输入h [command],例如:"h l"查看list命令
 pinfo2   Provide extra detailed information about an object(值,类型,长度等信息)
-
-
-big-endian: 低位地址保存高位数字,方便阅读和排序
-little-endian: 低位地址保存低位数字(比特位从右至左),在变量指针转换的时候地址保持不变,比如int64*转到int32*
-目前看来是little-endian成为主流了
-bool is_big_endian() //如果字节序为big-endian,返回1,反之返回0
-{
-  unsigned short test = 0x1122;   // 2字节
-  if(*( (unsigned char*) &test ) == 0x11)  // 取低位第一个字节的地址
-    return true;
-  else
-    return false;
-}
 """
 
 
@@ -288,6 +275,29 @@ def is_tutorial():
     print(id(x), id(y), id(z))  # 1685786989512 1685786989512 1685786991112
 
 
+def byte_string_tutorial():
+    byte_string = b'ab\xffc'  # 字节串类型是bytes,如0b11111111没有对应的字符,所以用\xff表示
+    byte_array = bytearray(byte_string)  # bytes和bytearray都可以被遍历,取单个字符时返回的是字符对应的整数值
+    assert len(byte_array) == len(byte_string) == 4
+    # b'中a'  # error,bytes can only contain ASCII literal characters
+    assert "test中".encode() == b'test\xe4\xb8\xad' and b'test\xe4\xb8\xad'.decode() == "test中"
+
+    # big-endian: 低位地址保存高位数字,方便阅读和排序
+    # little-endian: 低位地址保存低位数字(比特位从右至左),在变量指针转换的时候地址保持不变,比如int64*转到int32*
+    # 目前看来是little-endian成为主流了
+    # bool is_big_endian() //如果字节序为big-endian,返回1,反之返回0
+    # {
+    #   unsigned short test = 0x1122;   // 2字节
+    #   if(*( (unsigned char*) &test ) == 0x11)  // 取低位第一个字节的地址
+    #     return true;
+    #   else
+    #     return false;
+    # }
+    assert b'\xff\x01\x03\x00' == struct.pack(">I", 0b11111111000000010000001100000000)  # >: big-endian, i: int
+    assert b'\x00\x03\x01\xff' == struct.pack("<I", 0b11111111000000010000001100000000)
+    assert ord('a') == 97 and chr(97) == 'a' and struct.unpack(">B", b'a')[0] == 97
+
+
 def common_tutorial():
     # collections.deque([iterable[, maxlen]])
     """
@@ -306,14 +316,10 @@ def common_tutorial():
     followlinks - - 设置为true, 则通过软链接访问目录
     """
 
-    assert "test".encode() == b"test" and b"test".decode() == "test"
-    assert ord('a') == b'abc'[0] == 97 and chr(97) == 'a' and struct.unpack(">B", b'a')[0] == 97
-    print(struct.pack(">I", 0b11111111000000010000001100000000))  # b'\xff\x01\x03\x00', >: big-endian, i: int
-    print(struct.pack("<I", 0b11111111000000010000001100000000))  # b'\x00\x03\x01\xff'
     int('0x0102', 16)  # 258, 字符串是16进制,并将其转换成10进制
-    print(binascii.hexlify(b'ab'))  # b'6162', hexlify将b字符串按字符转换为16进制数字b串
     print("content", end="\t", flush=True)  # flush=True意思是不缓存,有内容则输出
     print(None is None)  # None用is判断,速度更快,还防止__eq__风险,不建议用==
+    print(binascii.hexlify(b'ab'))  # b'6162', hexlify将b字符串按字符转换为16进制数字b串
     print(sys.getsizeof([]))  # Return the size of object in bytes.
 
     a, b, c, d = 255, 98, 16, 1
