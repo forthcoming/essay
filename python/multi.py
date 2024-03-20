@@ -143,7 +143,7 @@ def shared_memory_tutorial():
     print(bytes(shared.buf[:6]), bytearray(shared.buf[:6]))  # b"abcdAB" bytearray(b"abcdAB")
 
     new_shared = shared_memory.SharedMemory(shared.name)  # Attach to an existing shared memory block
-    mp.set_start_method("fork")  # 默认方式是spawn
+    mp.set_start_method("fork")  # mac默认方式是spawn,linux默认方式是fork
     """
     Register callables to be called when forking a new process.
     before: A callable to be called in the parent before the fork().
