@@ -242,7 +242,7 @@ def shared_manager_tutorial():
     服务器进程管理器比使用共享内存对象更灵活,因为它可以支持任意对象类型,单个管理器可以由网络上不同计算机上的进程共享,但比使用共享内存慢
     如果您有manager.list()对象,则对托管列表本身的任何更改都会传播到所有其他进程,但如果该列表中有一个列表,则对内部列表的任何更改都不会传播
     """
-    with mp.Manager() as manager:
+    with mp.Manager() as manager:  # 启动一个服务器进程(子进程)
         lock = mp.RLock()  # 必须从外部传入子程序
         shared_dict = manager.dict({'a': 0})
         shared_list = manager.list()
