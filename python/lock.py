@@ -152,9 +152,8 @@ class ReadWriteRLock:  # 分布式可重入读写锁
     """
     is_register_script = False
 
-    def __init__(self, rds, name, timeout=10, blocking_timeout=5, thread_local=True):
+    def __init__(self, rds, timeout=10, blocking_timeout=5, thread_local=True):
         self.rds = rds
-        self.name = name
         self.timeout_ms = int(1000 * timeout)  # 锁过期时间,单位ms
         self.blocking_timeout_s = blocking_timeout  # 尝试获取锁阻塞的最长时间,单位s
         self.local = threading.local() if thread_local else SimpleNamespace()
@@ -164,12 +163,6 @@ class ReadWriteRLock:  # 分布式可重入读写锁
         if not self.__class__.is_register_script:
             self.rds.function_load(self.__class__.read_write_rlock_script, True)
             self.__class__.is_register_script = True
-
-    def get_key(self, suffix):
-        if suffix:
-            return f'{self.name}:{suffix}'
-        else:
-            return self.name
 
     def read_rlock_name(self):
         if not hasattr(self.local, 'token'):
@@ -182,8 +175,7 @@ class ReadWriteRLock:  # 分布式可重入读写锁
         return f'{self.local.token}:w'
 
     @contextmanager
-    def acquire_read_rlock(self, suffix="", blocking_timeout_s=None):
-        key = self.get_key(suffix)
+    def acquire_read_rlock(self, key, blocking_timeout_s=None):
         read_rlock_name = self.read_rlock_name()
         write_rlock_name = self.write_rlock_name()
         if blocking_timeout_s is None:
@@ -203,8 +195,7 @@ class ReadWriteRLock:  # 分布式可重入读写锁
             self.rds.fcall("release_read_rlock", 1, key, read_rlock_name)  # mode=write也可以处理
 
     @contextmanager
-    def acquire_write_rlock(self, suffix="", blocking_timeout_s=None):
-        key = self.get_key(suffix)
+    def acquire_write_rlock(self, key, blocking_timeout_s=None):
         write_rlock_name = self.write_rlock_name()
         if blocking_timeout_s is None:
             blocking_timeout_s = self.blocking_timeout_s
@@ -321,7 +312,7 @@ class Redlock:
 
 class TestLock:
     servers = [  # 建议基数个redis实例
-        Redis(host="localhost", port=6379),
+        Redis(host="192.168.1.243", port=6379),
         # Redis(host="localhost", port=6380),
         # Redis(host="localhost", port=2345),
     ]
@@ -349,47 +340,47 @@ class TestLock:
 
     @staticmethod
     def acquire_read_rlock_work(lock, name):
-        with lock.acquire_read_rlock(blocking_timeout_s=.5):
+        with lock.acquire_read_rlock('test', blocking_timeout_s=.5):
             print(f"{name} get read lock")
             time.sleep(2)
 
     @staticmethod
     def acquire_write_rlock_work(lock, name):
-        with lock.acquire_write_rlock(blocking_timeout_s=.5):
+        with lock.acquire_write_rlock('test', blocking_timeout_s=.5):
             print(f"{name} get write lock")
             time.sleep(2)
 
     @staticmethod
     def acquire_read_write_rlock_work(lock, name):
-        with lock.acquire_write_rlock(blocking_timeout_s=.5):
+        with lock.acquire_write_rlock('test', blocking_timeout_s=.5):
             print(f"{name} get write lock")
-            with lock.acquire_read_rlock(blocking_timeout_s=.5):
+            with lock.acquire_read_rlock('test', blocking_timeout_s=.5):
                 print(f"{name} get read lock")
         print(f"{name} has release read and write locks")
-        with lock.acquire_read_rlock(blocking_timeout_s=.5):
+        with lock.acquire_read_rlock('test', blocking_timeout_s=.5):
             print(f"{name} get read lock")
-            with lock.acquire_write_rlock(blocking_timeout_s=.5):
+            with lock.acquire_write_rlock('test', blocking_timeout_s=.5):
                 print(f"{name} get write lock")
 
     @staticmethod
     def acquire_rlock_work(lock: ReadWriteRLock, name):
-        with lock.acquire_write_rlock(blocking_timeout_s=.5):
+        with lock.acquire_write_rlock('test', blocking_timeout_s=.5):
             print(f"{name} get write lock")
-            with lock.acquire_write_rlock(blocking_timeout_s=.5):
+            with lock.acquire_write_rlock('test', blocking_timeout_s=.5):
                 print(f"{name} get write lock")
-                with lock.acquire_read_rlock(blocking_timeout_s=.5):
+                with lock.acquire_read_rlock('test', blocking_timeout_s=.5):
                     print(f"{name} get read lock")
-                    with lock.acquire_read_rlock(blocking_timeout_s=.5):
+                    with lock.acquire_read_rlock('test', blocking_timeout_s=.5):
                         print(f"{name} get read lock")
                     print(f"{name} has release read lock")
                     # 模拟释放写锁
-                    lock.rds.fcall("release_write_rlock", 1, lock.name, lock.write_rlock_name())
-                    lock.rds.fcall("release_write_rlock", 1, lock.name, lock.write_rlock_name())
+                    lock.rds.fcall("release_write_rlock", 1, 'test', lock.write_rlock_name())
+                    lock.rds.fcall("release_write_rlock", 1, 'test', lock.write_rlock_name())
                     print(f"{name} has release all write locks")
                     time.sleep(2)
 
     def test_read_write_rlock(self):
-        lock = ReadWriteRLock(self.servers[0], "test")
+        lock = ReadWriteRLock(self.servers[0])
 
         def test_scenario_one():
             # 线程A获取了读锁
