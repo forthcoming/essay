@@ -152,10 +152,12 @@ class ReadWriteRLock:  # 分布式可重入读写锁
     """
     is_register_script = False
 
-    def __init__(self, rds, timeout=10, blocking_timeout=5, thread_local=True):
+    def __init__(self, rds, timeout_s=5, blocking_timeout_s: float = 60, thread_local=True):
         self.rds = rds
-        self.timeout_ms = int(1000 * timeout)  # 锁过期时间,单位ms
-        self.blocking_timeout_s = blocking_timeout  # 尝试获取锁阻塞的最长时间,单位s
+        self.timeout_ms = int(1000 * timeout_s)  # 锁过期时间,单位ms
+        if blocking_timeout_s <= 0:
+            blocking_timeout_s = float('inf')
+        self.blocking_timeout_s = blocking_timeout_s  # 尝试获取锁阻塞的最长时间,单位s
         self.local = threading.local() if thread_local else SimpleNamespace()
         self.register_lib()
 
@@ -175,12 +177,10 @@ class ReadWriteRLock:  # 分布式可重入读写锁
         return f'{self.local.token}:w'
 
     @contextmanager
-    def acquire_read_rlock(self, key, blocking_timeout_s=None):
+    def acquire_read_rlock(self, key):
         read_rlock_name = self.read_rlock_name()
         write_rlock_name = self.write_rlock_name()
-        if blocking_timeout_s is None:
-            blocking_timeout_s = self.blocking_timeout_s
-        stop_at = time.monotonic() + blocking_timeout_s
+        stop_at = time.monotonic() + self.blocking_timeout_s
         cnt = 0
         try:
             while time.monotonic() <= stop_at:
@@ -195,11 +195,9 @@ class ReadWriteRLock:  # 分布式可重入读写锁
             self.rds.fcall("release_read_rlock", 1, key, read_rlock_name)  # mode=write也可以处理
 
     @contextmanager
-    def acquire_write_rlock(self, key, blocking_timeout_s=None):
+    def acquire_write_rlock(self, key):
         write_rlock_name = self.write_rlock_name()
-        if blocking_timeout_s is None:
-            blocking_timeout_s = self.blocking_timeout_s
-        stop_at = time.monotonic() + blocking_timeout_s
+        stop_at = time.monotonic() + self.blocking_timeout_s
         cnt = 0
         try:
             while time.monotonic() <= stop_at:
@@ -247,12 +245,14 @@ class Redlock:
     """
     is_register_script = False
 
-    def __init__(self, instances: list[Redis], name, timeout=10, blocking_timeout=20, thread_local=True):
+    def __init__(self, instances: list[Redis], name, timeout_s=5, blocking_timeout_s: float = 60, thread_local=True):
         self.instances = instances
         self.quorum = (len(instances) >> 1) + 1
         self.name = name
-        self.timeout_ms = int(1000 * timeout)  # 锁的最长寿命,转换为毫秒
-        self.blocking_timeout_s = blocking_timeout  # 尝试获取锁阻塞的最长时间
+        self.timeout_ms = int(1000 * timeout_s)  # 锁的最长寿命,转换为毫秒
+        if blocking_timeout_s <= 0:
+            blocking_timeout_s = float('inf')
+        self.blocking_timeout_s = blocking_timeout_s  # 尝试获取锁阻塞的最长时间
         self.local = threading.local() if thread_local else SimpleNamespace()
         self.register_lib()
 
@@ -277,13 +277,11 @@ class Redlock:
         else:
             return self.name
 
-    def acquire(self, suffix="", blocking_timeout_s=None):
+    def acquire(self, suffix=""):
         self.local.token = os.urandom(16)
         drift = int(self.timeout_ms * .01) + 2
         start_time = time.monotonic()
-        if blocking_timeout_s is None:
-            blocking_timeout_s = self.blocking_timeout_s
-        stop_at = start_time + blocking_timeout_s
+        stop_at = start_time + self.blocking_timeout_s
         key = self.get_key(suffix)
         while start_time <= stop_at:
             n = 0
@@ -329,8 +327,8 @@ class TestLock:
 
     def test_redlock(self):
         t1 = time.monotonic()
-        room_lock = Redlock(self.servers, 'room', timeout=3, thread_local=False)
-        song_lock = Redlock(self.servers, 'song', timeout=3, thread_local=False)
+        room_lock = Redlock(self.servers, 'room', timeout_s=3, blocking_timeout_s=20, thread_local=False)
+        song_lock = Redlock(self.servers, 'song', timeout_s=3, blocking_timeout_s=20, thread_local=False)
         threads = [threading.Thread(target=TestLock.do_something, args=(idx, room_lock, song_lock)) for idx in range(8)]
         for thread in threads:
             thread.start()
@@ -340,37 +338,37 @@ class TestLock:
 
     @staticmethod
     def acquire_read_rlock_work(lock, name):
-        with lock.acquire_read_rlock('test', blocking_timeout_s=.5):
+        with lock.acquire_read_rlock('test'):
             print(f"{name} get read lock")
             time.sleep(2)
 
     @staticmethod
     def acquire_write_rlock_work(lock, name):
-        with lock.acquire_write_rlock('test', blocking_timeout_s=.5):
+        with lock.acquire_write_rlock('test'):
             print(f"{name} get write lock")
             time.sleep(2)
 
     @staticmethod
     def acquire_read_write_rlock_work(lock, name):
-        with lock.acquire_write_rlock('test', blocking_timeout_s=.5):
+        with lock.acquire_write_rlock('test'):
             print(f"{name} get write lock")
-            with lock.acquire_read_rlock('test', blocking_timeout_s=.5):
+            with lock.acquire_read_rlock('test'):
                 print(f"{name} get read lock")
         print(f"{name} has release read and write locks")
-        with lock.acquire_read_rlock('test', blocking_timeout_s=.5):
+        with lock.acquire_read_rlock('test'):
             print(f"{name} get read lock")
-            with lock.acquire_write_rlock('test', blocking_timeout_s=.5):
+            with lock.acquire_write_rlock('test'):
                 print(f"{name} get write lock")
 
     @staticmethod
     def acquire_rlock_work(lock: ReadWriteRLock, name):
-        with lock.acquire_write_rlock('test', blocking_timeout_s=.5):
+        with lock.acquire_write_rlock('test'):
             print(f"{name} get write lock")
-            with lock.acquire_write_rlock('test', blocking_timeout_s=.5):
+            with lock.acquire_write_rlock('test'):
                 print(f"{name} get write lock")
-                with lock.acquire_read_rlock('test', blocking_timeout_s=.5):
+                with lock.acquire_read_rlock('test'):
                     print(f"{name} get read lock")
-                    with lock.acquire_read_rlock('test', blocking_timeout_s=.5):
+                    with lock.acquire_read_rlock('test'):
                         print(f"{name} get read lock")
                     print(f"{name} has release read lock")
                     # 模拟释放写锁
@@ -380,7 +378,7 @@ class TestLock:
                     time.sleep(2)
 
     def test_read_write_rlock(self):
-        lock = ReadWriteRLock(self.servers[0])
+        lock = ReadWriteRLock(self.servers[0], blocking_timeout_s=.5)
 
         def test_scenario_one():
             # 线程A获取了读锁
