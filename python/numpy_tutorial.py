@@ -95,7 +95,7 @@ def test_pandas():
 
 
 def one_dimension():
-    arr_a = np.array([20, 30, 40, 50])
+    arr_a = np.array([20, 30, 40, 50])  # shape=(4,), ndim: 1, 注意区别一维和二维shape的区别
     arr_b = np.arange(4)
     print(arr_a - arr_b)  # [20 29 38 47]
     print(arr_b ** 2)  # [0 1 4 9]
@@ -110,6 +110,8 @@ def one_dimension():
 
 
 def two_dimension():
+    print(np.array([[1], [2], [3], [4], [5], [6]]))  # shape: (6, 1), ndim: 2
+    print(np.array([[1, 2, 3, 4, 5, 6]]))  # shape: (1, 6), ndim: 2
     print(np.zeros((3, 4)))  # 3 x 4阶0矩阵
     print(np.diag([1, 2, 3]))  # 3阶对角方阵
     print(np.eye(2))  # 单位方阵
@@ -146,6 +148,9 @@ def two_dimension():
     print(arr.T)  # 转置
     arr.resize(5, 3)  # 自身改变,超出部分用0补充
     print(arr)  # [[2. 1. 5.] [5. 1. 1.] [7. 0. 7.] [8. 2. 0.] [0. 0. 0.]]
+
+    arr = np.arange(4)
+    print(arr[:, np.newaxis])  # shape: (4, 1), ndim: 2
 
 
 def three_dimension():
