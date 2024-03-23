@@ -1162,6 +1162,7 @@ def pickle_tutorial():
     # 除个别外(如不能序列化lambda表达式,线程锁), pickle.dumps可以序列化任何数据类型成b字符串,并保留原有的数据(比如生成好的树,图结构)
     # pickle.loads反序列化后的对象与原对象是等值的副本对象, 类似与deepcopy
     # pickle模块并不安全,你只应该对你信任的数据进行unpickle操作
+    # dill完全兼容pickle,但能序列化更多的python对象(如lambda表达式)
     with open("data", "wb") as f:
         pickle.dump(tuple_tutorial, f)
     with open("data", "rb") as f:
