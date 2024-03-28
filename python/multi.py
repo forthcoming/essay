@@ -95,7 +95,7 @@ def pool_executor_tutorial():
     一旦某个任务结束,会立即执行下一个任务,由pool_work总耗时6s可以验证
     如果提交的任务是一样的,就可以简化成map.假如提交的任务不一样,或者执行的过程之可能出现异常(map执行过程中发现问题会直接抛错)就要用到submit
     """
-    args = [3, 2, 4]
+    args = [3, 2, 4]  # 可以是无限任务如生成器或者阻塞式的redis队列,但只要有任务就会被取出来,且会阻塞后一句的执行,建议直接起多进程
     start_time = time.monotonic()
     with ThreadPoolExecutor(2) as executor:
         futures = [executor.submit(pool_work, arg) for arg in args]  # concurrent.futures._base.Future,不阻塞下一行语句的执行
