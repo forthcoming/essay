@@ -104,9 +104,16 @@ merge冲突时git用<<<<<<<,=======,>>>>>>>标记出不同分支的内容,解决
 merge时含有大量的未commit文件将使你在冲突中难以回退
 建议使用stash命令将这些未commit文件暂存起来,并在解决冲突以后使用git stash pop把这些未commit文件还原出来
 
-conda install git  #推荐,版本更新
-github网页上按t即可按关键字查找文件,可以配置ssh免密码登录
+github网页上按t即可按关键字查找文件
 fork + pull requests用以贡献开源代码
+
+GitHub已在2021.8.13移除对密码认证的支持,需要使用SSH密钥
+1. ssh-keygen -t ed25519 -C "your_email@example.com"
+2. ssh-add ~/.ssh/id_ed25519
+3. pbcopy < ~/.ssh/id_ed25519.pub  # Mac复制SSH公钥到剪贴板
+4. 打开https://github.com/settings/ssh/new,粘贴SSH公钥
+5. ssh -T git@github.com  # 测试SSH连接
+注意: git clone的时候要选择SSH URL而不是HTTPS URL
 
 git配置文件如下,每一个级别覆盖上一级别的配置
 /root/miniconda3/etc/gitconfig   git config --system读写该配置,作用域全局(yum安装对应/etc/gitconfig)
