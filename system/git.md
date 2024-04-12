@@ -109,10 +109,9 @@ fork + pull requests用以贡献开源代码
 
 GitHub已在2021.8.13移除对密码认证的支持,需要使用SSH密钥
 1. ssh-keygen -t ed25519 -C "your_email@example.com"
-2. ssh-add ~/.ssh/id_ed25519
-3. pbcopy < ~/.ssh/id_ed25519.pub  # Mac复制SSH公钥到剪贴板
-4. 打开https://github.com/settings/ssh/new,粘贴SSH公钥
-5. ssh -T git@github.com  # 测试SSH连接
+2. pbcopy < ~/.ssh/id_ed25519.pub  # Mac复制SSH公钥到剪贴板
+3. 打开https://github.com/settings/ssh/new,粘贴SSH公钥
+4. ssh -T git@github.com  # 测试SSH连接
 注意: git clone的时候要选择SSH URL而不是HTTPS URL
 
 git配置文件如下,每一个级别覆盖上一级别的配置
