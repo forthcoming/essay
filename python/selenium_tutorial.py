@@ -101,7 +101,7 @@ options = webdriver.ChromeOptions()
 options.add_argument('--headless')
 options.add_argument('--no-sandbox')
 options.add_argument('--user-data-dir=chrome')
-web = webdriver.Chrome(chrome_options=options, executable_path='/opt/google/chrome/chromedriver')
+web = webdriver.Chrome(options=options, executable_path='/opt/google/chrome/chromedriver')
 web.get('https://www.3658mall.com/member.html')
 try:
     name = web.find_element_by_xpath('//input[@id="username"]')
