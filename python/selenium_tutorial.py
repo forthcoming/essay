@@ -2,8 +2,10 @@ from selenium.webdriver import ActionChains  # 模拟鼠标事件
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium import webdriver
 from selenium.webdriver.support.select import Select
+from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.service import Service
 
-web = webdriver.Chrome('E:/Toolkit/chromedriver.exe')
+web = webdriver.Chrome(service=Service('E:/Toolkit/chromedriver.exe'))
 web.get('http://www.baidu.com')  # 打开网页
 web.back()
 # web.forward()
@@ -15,7 +17,7 @@ print(type(web))  # <class 'WebDriver'>
 web.add_cookie({'name': 'Login_UserNumber', 'value': 'username'})
 web.add_cookie({'name': 'Login_Passwd', 'value': 'password'})
 
-input_button = web.find_element_by_xpath('//*[@id="kw"]')
+input_button = web.find_element(By.XPATH, '//*[@id="kw"]')
 '''
 find_element只匹配第一个,find_elements匹配所有
 find_element_by_link_text('continue'),需要完全匹配
@@ -26,42 +28,42 @@ print(type(input_button))  # <class 'WebElement'>
 print(input_button.id)  # 利用ID判断元素是否相同
 input_button.clear()
 input_button.send_keys('fuck u!!')  # clear send_keys要同时使用
-submit = web.find_element_by_xpath('//*[@id="su"]')
+submit = web.find_element(By.XPATH, '//*[@id="su"]')
 print(submit.get_attribute('id'))
 submit.click()
 
 ################################################################################################################
 
-driver = webdriver.Chrome('e:/toolkit/chromedriver.exe')
+driver = webdriver.Chrome(service=Service('e:/toolkit/chromedriver.exe'))
 driver.get('http://query.customs.gov.cn/MNFTQ/MQuery.aspx')
-driver.find_element_by_xpath('//*[@id="MQueryCtrl1_ddlCustomCode"]/option[48]').click()
-sel = driver.find_element_by_xpath('//*[@id="MQueryCtrl1_ddlCustomCode"]')
+driver.find_element(By.XPATH, '//*[@id="MQueryCtrl1_ddlCustomCode"]/option[48]').click()
+sel = driver.find_element(By.XPATH, '//*[@id="MQueryCtrl1_ddlCustomCode"]')
 Select(sel).select_by_value('0217')  # 下拉框有value属性,等价
 # Select(sel).select_by_index('0217') #下拉框有index属性
-driver.find_elements_by_css_selector('input[type=checkbox]').pop().click()
+driver.find_elements(By.CSS_SELECTOR, 'input[type=checkbox]').pop().click()
 
 ################################################################################################################
 
 web.get('http://www.maiziedu.com')
-ele = web.find_element_by_xpath('//ul[@class="fl top_menu"]/li')
+ele = web.find_element(By.XPATH, '//ul[@class="fl top_menu"]/li')
 print(ele.text)  # 企业直通班
 ActionChains(web).move_to_element(ele).perform()
-ele1 = web.find_element_by_xpath('//div[@class="pcon"]/a[@href="/course/te-px/"]')
+ele1 = web.find_element(By.XPATH, '//div[@class="pcon"]/a[@href="/course/te-px/"]')
 print(ele1.text)  # 软件测试
 ele1.click()
 
 ################################################################################################################
 
 driver.get("http://i.qq.com/")
-driver.switch_to_frame('login_frame')
-driver.find_element_by_xpath('//*[@id="switcher_plogin"]').click()
-user = driver.find_element_by_xpath('//*[@id="u"]')
+driver.switch_to.frame('login_frame')
+driver.find_element(By.XPATH, '//*[@id="switcher_plogin"]').click()
+user = driver.find_element(By.XPATH, '//*[@id="u"]')
 user.clear()
 user.send_keys('212956978')
-pwd = driver.find_element_by_xpath('//*[@id="p"]')
+pwd = driver.find_element(By.XPATH, '//*[@id="p"]')
 pwd.clear()
 pwd.send_keys('pass')
-driver.find_element_by_xpath('//*[@id="login_button"]').click()
+driver.find_element(By.XPATH, '//*[@id="login_button"]').click()
 driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")  # 拖动滚动条到最下面
 driver.execute_script("window.scrollTo(0, 0);")
 element = driver.execute_script("return $('.cheese')[0]")
@@ -73,7 +75,7 @@ element = driver.execute_script("return $('.cheese')[0]")
 driver.execute_script('$("select").attr("style","display:block");')
 web.implicitly_wait(10)  # 全局有效,一旦找到立马返回,WebDriverWait针对一个操作
 web.get('https://www.baidu.com/s?wd=%E9%BA%A6%E5%AD%90%E5%AD%A6%E9%99%A2')
-web.find_element_by_partial_link_text('麦子学院 - 专业IT职业在线教育平台').click()
+web.find_element(By.PARTIAL_LINK_TEXT, '麦子学院 - 专业IT职业在线教育平台').click()
 print(web.window_handles, web.current_window_handle)
 web.switch_to.window(web.window_handles[1])
 
@@ -101,17 +103,17 @@ options = webdriver.ChromeOptions()
 options.add_argument('--headless')
 options.add_argument('--no-sandbox')
 options.add_argument('--user-data-dir=chrome')
-web = webdriver.Chrome(options=options, executable_path='/opt/google/chrome/chromedriver')
+web = webdriver.Chrome(options=options, service=Service('/opt/google/chrome/chromedriver'))
 web.get('https://www.3658mall.com/member.html')
 try:
-    name = web.find_element_by_xpath('//input[@id="username"]')
+    name = web.find_element(By.XPATH, '//input[@id="username"]')
     name.clear()
     name.send_keys('name')
-    pwd = web.find_element_by_xpath('//input[@id="password"]')
+    pwd = web.find_element(By.XPATH, '//input[@id="password"]')
     pwd.clear()
     pwd.send_keys('password')
-    web.find_element_by_xpath('//input[@id="remember"]').click()
-    web.find_element_by_xpath('//input[@id="login_submit"]').click()
+    web.find_element(By.XPATH, '//input[@id="remember"]').click()
+    web.find_element(By.XPATH, '//input[@id="login_submit"]').click()
 except:
     pass
 web.get(hong_chou)
@@ -119,7 +121,7 @@ while True:
     try:
         WebDriverWait(web, 1, .3).until(lambda web: web.find_element_by_id("snum"))
         web.execute_script(f"$('#snum').val({NUM})")
-        web.find_element_by_xpath('//*[@class="btn btn_red conpons_chips_buy"]').click()
+        web.find_element(By.XPATH, '//*[@class="btn btn_red conpons_chips_buy"]').click()
         WebDriverWait(web, 1, .3).until(lambda web: web.find_element_by_xpath(f'//*[@data-rule-num="{NUM}"]'))
         web.execute_script(f"$('a[data-rule-num={NUM}]').click()")
         # web.save_screenshot('3658.png')   # 方便调试
