@@ -77,8 +77,8 @@ res = fromstring(web)
 print(res.xpath('//*[@class="content"]/text()'))  # []   注意
 print(res.xpath('//*[@class="content text-wrap"]/text()'))  # ['Some content']
 print(res.xpath('//*[contains(@class,"content")]/text()'))  # ['Someone', 'Some content']
-print(
-    tostring(res.xpath('//*[@class="content text-wrap"]')[0]))  # b'<div class="content text-wrap">Some content</div>\n'
+# '<div class="content text-wrap">Some content</div>\n'
+print(tostring(res.xpath('//*[@class="content text-wrap"]')[0], encoding='unicode'))  # encoding防止中文被转意
 
 ################################################################################################################
 '''
