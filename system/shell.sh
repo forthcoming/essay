@@ -283,7 +283,6 @@ REDIS=/root/redis/bin
 PYCHARM=/root/pycharm/bin
 CONDA=/root/miniconda3/bin
 export PATH=$PATH:$REDIS:$PYCHARM:$CONDA
-export PYSPARK_PYTHON=/usr/local/bin/python3
 
 alias # 列出所有别名
 avatar='ls -al /home' #给命令起别名(命令带参数时要加引号)
