@@ -129,4 +129,6 @@ Alt+Shift+9 垂直分屏-3屏
 进入指定路径:
 打开访达 
 shift command g 
+
+command + option + v = 剪切
 ```
