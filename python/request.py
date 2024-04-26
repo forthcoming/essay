@@ -2,23 +2,6 @@ import requests
 import json
 from urllib.parse import urlencode, quote, unquote
 
-"""
-When you make a request, Requests makes educated guesses about the encoding of the response based on the HTTP headers.
-The text encoding guessed by Requests is used when you access r.text. 
-You can find out what encoding Requests is using, and change it, using the r.encoding property:
->>> r.encoding
-'utf-8'
->>> r.encoding = 'ISO-8859-1'
-If you change the encoding, Requests will use the new value of r.encoding whenever you call r.text.
-You might want to do this in any situation where you can apply special logic to work out what the encoding of the content will be.
-For example, HTTP and XML have the ability to specify their encoding in their body. 
-In situations like this, you should use r.content to find the encoding, and then set r.encoding.
-This will let you use r.text with the correct encoding.
-Requests will also use custom encodings in the event that you need them.
-If you have created your own encoding and registered it with the codecs module, 
-you can simply use the codec name as the value of r.encoding and Requests will handle the decoding for you.
-"""
-
 ###############################################################################################
 # 请求参数
 url = 'http://httpbin.org/get'
@@ -143,3 +126,31 @@ r = s.get('http://httpbin.org/cookies', cookies={'from-my': 'browser'})
 print(r.text)  # '{"cookies": {"from-my": "browser"}}'
 r = s.get('http://httpbin.org/cookies')
 print(r.text)  # '{"cookies": {}}'
+
+###############################################################################################
+# 爬虫相关:
+
+# 天眼查绕过登录拿⻚面数据,方法是先利用搜索引擎site关键字获取到公司在企查查对应地址url及Referer信息,再访问
+r = requests.get('https://m.baidu.com/s?word=广州奥利⻔窗有限公司 site:www.tianyancha.com')
+# 找到r.content中类似https://m.tianyancha.com/company/2323965264地址,再访问
+
+# xpath采集亚⻢逊基本信息⻚ASIN时,会出现采集不全(只有前4个)的情况
+# 是应为某些标签被JS更改了,而爬虫只能获取未被JS处理的网⻚源代码,解决办法是Chrome设置->禁用亚⻢逊执行JS,然后再F12观察其源码结构
+
+# 当访问r.text 时,Requests会根据HTTP头对响应的编码进行猜测并使用猜测的文本编码
+# 可以使用r.encoding属性找出Requests使用的编码并更改它(绝大部分时间不需要自定义)
+r = requests.get("https://114.1688.com/sitemap.html")
+r.encoding = 'gb2312'  # 例外
+print(r.text)
+
+# 新浪微博为了让自己的结果呈现在搜索引擎中,对来自搜索引擎的爬虫"来者不拒"
+headers = {
+    'User-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36',
+}
+r = requests.get("http://weibo.com/rmrb", headers=headers)
+with open('bad.html', 'wb') as f:  # 无内容
+    f.write(r.content)
+headers = {'User-agent': 'Baiduspider'}  # 伪装成搜索引擎爬虫,谷歌、必应都可以
+r = requests.get("http://weibo.com/rmrb", headers=headers)
+with open('good.html', 'wb') as f:  # 有内容
+    f.write(r.content)
