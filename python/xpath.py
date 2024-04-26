@@ -62,6 +62,7 @@ print(res.xpath('//ul/li[1]/text()'))  # ['1', '4']
 print(res.xpath('(//li)[1]/text()'))  # ['1']
 # get the first LI element under an UL parent in the document
 print(res.xpath('(//ul/li)[1]/text()'))  # ['1']
+print(res.text_content())  # 获取文本内容
 
 ################################################################################################################
 '''
