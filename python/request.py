@@ -154,3 +154,8 @@ headers = {'User-agent': 'Baiduspider'}  # 伪装成搜索引擎爬虫,谷歌、
 r = requests.get("http://weibo.com/rmrb", headers=headers)
 with open('good.html', 'wb') as f:  # 有内容
     f.write(r.content)
+
+# 微信公众号文章
+# 1. 登陆微信公众平台https://mp.weixin.qq.com/cgi-bin/loginpage ,用公众号登陆
+# 2. 点击图文消息
+# 3. 点击超链接,chrome抓包
