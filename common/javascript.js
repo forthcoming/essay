@@ -22,32 +22,23 @@ JS每一个function有自己独立的运行上下文,而箭头函数不属于普
 类型转换
 // From anything to a number
 let foo = "42";
-let myNumber = +foo; // shortcut for Number(foo)
-let negativeFoo = -foo; // or -Number(foo)
-
-// Anything to boolean
-/// Non non p is a boolean p
-let t = 1;
-let f = 0;
-!!t // → true
-!!f // → false
-/// And non-p is a boolean non-p
-!t  // → false
-!f  // → true
+let myNumber = Number(foo);
 
 // Anything to string
 let foo =42;
-""+foo  // shortcut for String(foo)
+let myString= String(foo);
 
-let a=2.33
-~~a   //取整
+let a=2.33;
+let myInt = Math.floor(a);  // ~~a通过位运算取整,只适用于32位
 
 /*******************************************************************************************************************************/
 
-let str=`if ( a )
-             { 1+1; }
-         else
-             { 1+2; }`;
+let str=`
+    if ( a )
+        { 1+1; }
+    else
+        { 1+2; }
+`;   // 多行字符串
 let a = true;
 let b = eval(str);  // returns 2
 alert("b is : " + b);
@@ -55,7 +46,7 @@ a = false;
 b = eval(str);  //returns 3,eval返回对最后一个表达式的求值结果
 alert("b is : " + b);
 
-eval("var test={a:1,b:'xx'}");  //字符串转换成对象,python中用test=eval("{'a':4,2:'a'}"),exec("test={'a':4,2:'a'}") 
+eval("let test={a:1,b:'xx'}");  //字符串转换成对象,python中用test=eval("{'a':4,2:'a'}"),exec("test={'a':4,2:'a'}")
 
 switch(action) {
     case 'draw':
@@ -68,7 +59,7 @@ switch(action) {
         doNothing();
 }
 //类似于c语言
-//switch 和 case 都可以使用需要运算才能得到结果的表达式；在 switch 的表达式和 case 的表达式时使用 === 严格相等运算符进行比较。
+//switch 和 case 都可以使用需要运算才能得到结果的表达式；在 switch 的表达式和 case 的表达式时使用 === 严格相等运算符进行比较
 
 if{}
 if{} else{}
@@ -81,10 +72,10 @@ for (let i=1; i<=10000; i++) {
 } 
 //类似于c语言
 
-//  JavaScript逻辑运算符&& || !
-//  Python中用的是and or not
-//  && || 返回的结果是决定表达式结果的值，not 返回false或者true。这一点跟Python一致
-var name = otherName || "default";
+// JavaScript逻辑运算符&& || !
+// Python中用的是and or not
+// && || 返回的结果是决定表达式结果的值,not 返回false或者true,跟Python一致
+let name = otherName || "default";
 
 /*******************************************************************************************************************************/
 
@@ -96,8 +87,8 @@ var name = otherName || "default";
 匿名函数后面的小括号()是为了让匿名函数立即执行,那大家有没有想过为什么这么写就会报错
 function(){alert(1)}()
 
-因为function前面没有(或者! ~之类的运算符，js解析器会试图将关键字function解析成函数声明语句，而不是函数定义表达式！
-作为组运算符，小括号()会将其内部的表达式当成一个整体，然后返回结果，所以定义一个匿名函数正确的格式就是用小括号将函数体括起来！
+因为function前面没有(或者! ~之类的运算符,js解析器会试图将关键字function解析成函数声明语句，而不是函数定义表达式！
+作为组运算符,小括号()会将其内部的表达式当成一个整体，然后返回结果，所以定义一个匿名函数正确的格式就是用小括号将函数体括起来！
 同样的! ~ + -等运算符也有同样的效果，这是因为匿名函数也是一种值，这些运算符会将后面的函数体当成一个整体，先对匿名函数进行求值，然后在对结果进行运算！
 不过这些运算符虽然能够达到让匿名函数立即执行的目的,但是要小心他们是有副作用的,比如:
 !function() {return 1}()//false
@@ -353,32 +344,6 @@ s[0] = 'X';
 alert(s);  // s仍然为'Test'
 
 /*******************************************************************************************************************************/
-
-Global:They are identical when used like this outside a function block.
-let me = 'go'; //globally scoped
-let i = 'able'; //globally scoped
-
-Function:They are identical when used like this in a function block.
-function ingWithinEstablishedParameters() {
-    let terOfRecommendation = 'awesome worker!'; //function block scoped
-    var sityCheerleading = 'go!'; //function block scoped
-}
-
-Block:Here is the difference. let is only visible in the for() loop and var is visible to the whole function.
-function allyIlliterate() {
-    //tuce is *not* visible out here
-    for( let tuce = 0; tuce < 5; tuce++ ) {
-        //tuce is only visible in here (and in the for() parentheses)
-    }
-    //tuce is *not* visible out here
-}
-function byE40() {
-    //nish *is* visible out here
-    for( var nish = 0; nish < 5; nish++ ) {
-        //nish is visible to the whole function
-    }
-    //nish *is* visible out here
-}
 
 let 用于定义变量,const 用于定义常量,都是块级作用域,其有效范围仅在代码块中,不允许重复声明
 每个语句以;结束,语句块用{}
