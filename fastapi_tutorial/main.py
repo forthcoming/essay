@@ -1,9 +1,12 @@
 import time
-
 import uvicorn
+import pyaudio
+import requests
 from fastapi import FastAPI, Query, Path, Body, status, Response, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field, HttpUrl
+from python.redis_cache import rc
 
 '''
 POST: 创建数据
@@ -28,7 +31,22 @@ Access-Control-Allow-Origin:
 Access-Control-Allow-Methods:
 '''
 
-app = FastAPI()
+
+class Item(BaseModel):
+    name: str  # 没有默认值为必填字段
+    price: float = Field(gt=0, description="The price must be greater than zero")
+    is_offer: bool | None = Field(default=True)
+    url: HttpUrl  # 检查是否为有效的URL,并在JSON Schema / OpenAPI文档中进行记录
+
+
+class StreamingInputs(BaseModel):
+    cid: int
+
+
+app = FastAPI(
+    title="TTS Streaming server",
+    docs_url="/",
+)
 
 # refer: https://developer.mozilla.org/zh-CN/docs/Web/HTTP/CORS
 # refer: https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Headers/Access-Control-Allow-Credentials
@@ -54,13 +72,6 @@ async def add_process_time_header(request: Request, call_next):
     process_time = time.time() - start_time
     response.headers["X-Process-Time"] = str(process_time)
     return response
-
-
-class Item(BaseModel):
-    name: str  # 没有默认值为必填字段
-    price: float = Field(gt=0, description="The price must be greater than zero")
-    is_offer: bool | None = Field(default=True)
-    url: HttpUrl  # 检查是否为有效的URL,并在JSON Schema / OpenAPI文档中进行记录
 
 
 @app.get('/items/{item_id}')  # 路径参数item_id的值将作为参数item_id传递给你的函数
@@ -105,5 +116,36 @@ def update_item(item_id: int, item: Item) -> dict[str, int | str]:  # 定义的�
     return {"item_name": item.name, "item_id": item_id}
 
 
+def predict_streaming_generator(inputs):
+    while True:
+        cache = rc.blpop(f'audio_stream:tts_audio_queue:{inputs.cid}', 0)[1]
+        yield cache
+
+
+@app.post("/tts_stream")
+def predict_streaming_endpoint(inputs: StreamingInputs):
+    return StreamingResponse(
+        predict_streaming_generator(inputs),
+        media_type="audio/wav",
+    )
+
+
+def receive_tts():
+    player = pyaudio.PyAudio()
+    stream = player.open(format=player.get_format_from_width(2), channels=1, rate=16000, output=True)
+    with requests.post(
+            f"http://localhost:8000/tts_stream",
+            json={'cid': 1},
+            stream=True,
+    ) as f:
+        for chunk in f.iter_content(chunk_size=512):  # 数据不够chunk_size大小时会被阻塞
+            stream.write(chunk)
+    # 本应用以下代码执行不到,应为服务端是死循环
+    stream.stop_stream()
+    stream.close()
+    player.terminate()
+
+
 if __name__ == '__main__':
     uvicorn.run(app, host='127.0.0.1', port=8000)
+    # uvicorn main:app --reload --host 0.0.0.0 --port 8000
