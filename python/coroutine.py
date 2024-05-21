@@ -18,7 +18,7 @@ async def say(delay, what):
     return delay
 
 
-async def run_say_by_coroutine():
+async def run_say_by_coroutine():  # 并发运行多个协程
     print(f"main started at {time.strftime('%X')}")
     # coroutine objects,前提是函数被async修饰,类似于生成器初始化
     coroutines = [say(3, 'world'), say(4, 'say'), say(2, 'hello')]
@@ -28,10 +28,10 @@ async def run_say_by_coroutine():
     print(f"main finished at {time.strftime('%X')}")
 
 
-async def run_say_by_task():
+async def run_say_by_task():  # 并发运行多个协程
     print(f"main started at {time.strftime('%X')}")
     coroutines = [say(3, 'world'), say(4, 'say'), say(2, 'hello')]
-    tasks = [asyncio.create_task(c) for c in coroutines]  # task对象, create_task将coroutine变为task,并注册到event loop
+    tasks = [asyncio.create_task(c) for c in coroutines]  # task对象, create_task将coroutine变为task,并注册到event loop,非阻塞
     for task in tasks:  # 如果主程序可以保证在task都完成后退出如await asyncio.sleep(10)且不需要task返回值,该步可省略
         print(await task)  # 按tasks顺序返回say的返回值
     print(f"main finished at {time.strftime('%X')}")
@@ -49,7 +49,6 @@ async def run_fetch():
 
 if __name__ == "__main__":
     # 内部创建一个新的event loop,并将传入的coroutine转换为task,task交还控制权给event loop情况是task执行完或者task遇到await
-    # asyncio.run(run_say_by_coroutine())
-    asyncio.run(run_say_by_task())
+    asyncio.run(run_say_by_coroutine())  # 阻塞
+    # asyncio.run(run_say_by_task())
     # asyncio.run(run_fetch())
-
