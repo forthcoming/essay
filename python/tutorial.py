@@ -1138,7 +1138,7 @@ class LogTutorial:
             filemode='a',
             # format='%(asctime)s %(filename)s %(lineno)d %(process)s %(levelname)s %(module)s %(message)s',
             format='%(asctime)s line:%(lineno)d pid:%(process)s level:%(levelname)s message:%(message)s',
-            datefmt='%Y-%m-%d %H:%M:%S %p',
+            datefmt='%Y-%m-%d %H:%M:%S',
             level=level,
         )
         logging.root.name = __name__
