@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="zh">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Vue应用</title>
+    <!-- 通过 CDN 引入 Vue.js -->
+    <script src="https://unpkg.com/vue"></script>
+  </head>
+  <body>
+    <div id="app">
+      <!-- @click="count++"是vue语法,可用于任意标签的点击操作 -->
+      <button @click="count++">{{ count }}</button>
+    </div>
+  </body>
+  <script>
+    const app = {
+      // 当根组件没有设置template选项时,Vue将自动使用容器的innerHTML作为模板
+      data() {
+        return {
+          count: 0,
+        };
+      },
+    };
+    Vue.createApp(app).mount("#app");
+  </script>
+</html>
