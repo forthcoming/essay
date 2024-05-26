@@ -13,14 +13,16 @@
     </div>
   </body>
   <script>
+    const { createApp, ref } = Vue;
     const app = {
-      // 当根组件没有设置template选项时,Vue将自动使用容器的innerHTML作为模板
-      data() {
+      setup() {
+        const count = ref(0); // 使用ref来定义响应式数据
         return {
-          count: 0,
+          // 返回需要在模板中使用的数据和方法
+          count,
         };
       },
     };
-    Vue.createApp(app).mount("#app");
+    createApp(app).mount("#app");
   </script>
 </html>
