@@ -33,7 +33,7 @@ async def run_say_by_task():  # 并发运行多个协程
     print(f"main started at {time.strftime('%X')}")
     coroutines = [say(3, 'world'), say(4, 'say'), say(2, 'hello')]
     tasks = [asyncio.create_task(c) for c in coroutines]  # task对象, create_task将coroutine变为task,并注册到event loop,非阻塞
-    for task in tasks:  # 如果主程序可以保证在task都完成后退出如await asyncio.sleep(10)且不需要task返回值,该步可省略
+    for task in tasks:  # 如果主程序可以保证在task都完成后退出如await asyncio.sleep(10)且不需要task返回值,该步可省略,asyncio.gather类似
         print(await task)  # 按tasks顺序返回say的返回值
     print(f"main finished at {time.strftime('%X')}")
 
