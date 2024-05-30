@@ -8,6 +8,7 @@ import uvloop
 如果一个对象可以在await语句中使用,那么它就是可等待对象,三种主要类型为 协程,任务,Future
 Future是一种特殊的低层级可等待对象,表示一个异步操作的最终结果
 对于IO密集型: 协程>多线程>多进程>单线程
+asyncio内部创建一个新的event loop,task交还控制权给event loop情况是task执行完或者task遇到await,一个线程只能有一个事件循环
 """
 
 
@@ -52,7 +53,6 @@ async def run_fetch():
 
 
 if __name__ == "__main__":
-    # 内部创建一个新的event loop,并将传入的coroutine转换为task,task交还控制权给event loop情况是task执行完或者task遇到await
     # uvloop.run(run_say_by_coroutine())  # uvloop.run和asyncio.run都是阻塞,前者性能更高
     asyncio.run(run_say_by_task())
     # asyncio.run(run_fetch())
