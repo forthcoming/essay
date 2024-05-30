@@ -1,6 +1,7 @@
 import asyncio
 import time
 import aiohttp
+import uvloop
 
 """
 协程是运行在单线程中的并发,目的是让这些IO操作异步化,相比多线程一大优势是省去了多线程之间的切换开销
@@ -49,6 +50,6 @@ async def run_fetch():
 
 if __name__ == "__main__":
     # 内部创建一个新的event loop,并将传入的coroutine转换为task,task交还控制权给event loop情况是task执行完或者task遇到await
-    asyncio.run(run_say_by_coroutine())  # 阻塞
+    uvloop.run(run_say_by_coroutine())  # uvloop.run和asyncio.run都是阻塞,前者性能更高
     # asyncio.run(run_say_by_task())
     # asyncio.run(run_fetch())
