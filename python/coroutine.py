@@ -32,9 +32,12 @@ async def run_say_by_coroutine():  # 并发运行多个协程
 async def run_say_by_task():  # 并发运行多个协程
     print(f"main started at {time.strftime('%X')}")
     coroutines = [say(3, 'world'), say(4, 'say'), say(2, 'hello')]
-    tasks = [asyncio.create_task(c) for c in coroutines]  # task对象, create_task将coroutine变为task,并注册到event loop,非阻塞
+    # task对象, create_task将coroutine变为task,并注册到event loop,非阻塞
+    tasks = [asyncio.create_task(c, name=f'task-{idx}') for idx, c in enumerate(coroutines)]
     for task in tasks:  # 如果主程序可以保证在task都完成后退出如await asyncio.sleep(10)且不需要task返回值,该步可省略,asyncio.gather类似
-        print(await task)  # 按tasks顺序返回say的返回值
+        print('over:', await task)  # 按tasks顺序返回say的返回值
+    # done, pending = await asyncio.wait(tasks)  # 也可以不遍历,但没法保证返回的顺序
+    # print('pending:', pending, 'done:', done)
     print(f"main finished at {time.strftime('%X')}")
 
 
@@ -50,6 +53,6 @@ async def run_fetch():
 
 if __name__ == "__main__":
     # 内部创建一个新的event loop,并将传入的coroutine转换为task,task交还控制权给event loop情况是task执行完或者task遇到await
-    uvloop.run(run_say_by_coroutine())  # uvloop.run和asyncio.run都是阻塞,前者性能更高
-    # asyncio.run(run_say_by_task())
+    # uvloop.run(run_say_by_coroutine())  # uvloop.run和asyncio.run都是阻塞,前者性能更高
+    asyncio.run(run_say_by_task())
     # asyncio.run(run_fetch())
