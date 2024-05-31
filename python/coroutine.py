@@ -1,7 +1,10 @@
 import asyncio
+import os
 import time
 import aiohttp
 import uvloop
+import concurrent.futures
+import threading
 
 """
 协程是运行在单线程中的并发,目的是让这些IO操作异步化,相比多线程一大优势是省去了多线程之间的切换开销,但没法利用CPU多核资源
@@ -44,6 +47,7 @@ async def run_say_by_task():  # 并发运行多个协程
     print(f"main finished at {time.strftime('%X')}")
 
 
+########################################################################################################################
 async def fetch():
     async with aiohttp.request('GET', 'http://www.baidu.com') as r:
         return await r.text()
@@ -54,6 +58,7 @@ async def run_fetch():
     print(len(results))
 
 
+########################################################################################################################
 async def hello(delay):
     loop = asyncio.get_running_loop()
     loop.slow_callback_duration = .5  # 默认0.1,记录执行时间超过阈值的回调或任务(阻塞事件循环),需要事件循环debug=True
@@ -72,8 +77,41 @@ async def test_callback_duration():
     print(f"test_callback_duration: {time.monotonic() - start_time}")
 
 
+########################################################################################################################
+def blocking_io():
+    # File operations (such as logging) can block the event loop: run them in a thread pool.
+    print(f'in blocking_io, pid:{os.getpid()}, ppid:{os.getppid()}, thread_id:{threading.get_ident()}')
+    with open('/dev/urandom', 'rb') as f:
+        return f.read(100)
+
+
+def cpu_bound():
+    # CPU-bound operations will block the event loop: in general it is preferable to run them in a process pool.
+    print(f'in cpu_bound, pid:{os.getpid()}, ppid:{os.getppid()}')
+    return sum(i * i for i in range(10 ** 7))
+
+
+async def main():
+    print(f'in main, pid:{os.getpid()}, ppid:{os.getppid()}, thread_id:{threading.get_ident()}')
+    loop = asyncio.get_running_loop()
+    # 1. Run in the default loop's executor:
+    result = await loop.run_in_executor(None, blocking_io)
+    print('default thread pool', result)
+
+    # 2. Run in a custom thread pool:
+    with concurrent.futures.ThreadPoolExecutor() as pool:
+        result = await loop.run_in_executor(pool, blocking_io)
+        print('custom thread pool', result)
+
+    # 3. Run in a custom process pool:
+    with concurrent.futures.ProcessPoolExecutor() as pool:
+        result = await loop.run_in_executor(pool, cpu_bound)
+        print('custom process pool', result)
+
+
 if __name__ == "__main__":
     # uvloop.run(run_say_by_coroutine())
     # asyncio.run(run_say_by_task())
     # asyncio.run(run_fetch())
-    uvloop.run(test_callback_duration(), debug=True)
+    # uvloop.run(test_callback_duration(), debug=True)
+    asyncio.run(main(), debug=True)
