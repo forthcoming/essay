@@ -54,6 +54,6 @@ async def run_fetch():
 
 
 if __name__ == "__main__":
-    # uvloop.run(run_say_by_coroutine())  # uvloop.run和asyncio.run都是阻塞,前者性能更高
+    # uvloop.run(run_say_by_coroutine())  # uvloop.run和asyncio.run都是阻塞,前者性能更高,每次调用都会创建和销毁事件循环
     asyncio.run(run_say_by_task())
     # asyncio.run(run_fetch())
