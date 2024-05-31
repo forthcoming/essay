@@ -80,7 +80,7 @@ async def test_callback_duration():
 ########################################################################################################################
 def blocking_io():
     # File operations (such as logging) can block the event loop: run them in a thread pool.
-    print(f'in blocking_io, pid:{os.getpid()}, ppid:{os.getppid()}, thread_id:{threading.get_ident()}')
+    print(f'in blocking_io, pid:{os.getpid()}, thread_id:{threading.get_ident()}')
     with open('/dev/urandom', 'rb') as f:
         return f.read(100)
 
@@ -92,7 +92,7 @@ def cpu_bound():
 
 
 async def main():
-    print(f'in main, pid:{os.getpid()}, ppid:{os.getppid()}, thread_id:{threading.get_ident()}')
+    print(f'in main, pid:{os.getpid()}, thread_id:{threading.get_ident()}')
     loop = asyncio.get_running_loop()
     # 1. Run in the default loop's executor:
     result = await loop.run_in_executor(None, blocking_io)
