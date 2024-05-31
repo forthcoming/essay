@@ -9,7 +9,8 @@ import uvloop
 await后面一般接耗时IO操作,事件循环遇到await后会挂起当前程序执行,去执行别的程序,直到await挂起的程序IO操作结束,拿到结果后继续执行
 Future是一种特殊的低层级可等待对象,表示一个异步操作的最终结果
 对于IO密集型: 协程>多线程>多进程>单线程
-asyncio内部创建一个新的event loop,task交还控制权给event loop情况是task执行完或者task遇到await,一个线程只能有一个事件循环
+uvloop.run和asyncio.run都是阻塞,前者性能更高,每次调用都会创建和销毁事件循环(event loop),一个线程只能有一个事件循环
+task交还控制权给event loop情况是task执行完或者task遇到await
 """
 
 
@@ -53,7 +54,26 @@ async def run_fetch():
     print(len(results))
 
 
+async def hello(delay):
+    loop = asyncio.get_running_loop()
+    loop.slow_callback_duration = .5  # 默认0.1,记录执行时间超过阈值的回调或任务(阻塞事件循环),需要事件循环debug=True
+    print(f"hello started at {time.strftime('%X')}")
+    time.sleep(delay)  # 使用time.sleep 模拟阻塞
+    print(f"hello finished at {time.strftime('%X')}")
+    return delay
+
+
+async def test_callback_duration():
+    start_time = time.monotonic()
+    for i in range(4):
+        await asyncio.create_task(hello(1))
+        # await hello(1)  # 理解create_task和直接await直接区别,这么调用只会有一个task,除非配合await asyncio.sleep一起使用
+        # await asyncio.sleep(0)  # 将控制权还给事件循环,相当于当前事件结束
+    print(f"test_callback_duration: {time.monotonic() - start_time}")
+
+
 if __name__ == "__main__":
-    # uvloop.run(run_say_by_coroutine())  # uvloop.run和asyncio.run都是阻塞,前者性能更高,每次调用都会创建和销毁事件循环
-    asyncio.run(run_say_by_task())
+    # uvloop.run(run_say_by_coroutine())
+    # asyncio.run(run_say_by_task())
     # asyncio.run(run_fetch())
+    uvloop.run(test_callback_duration(), debug=True)
