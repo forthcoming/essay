@@ -1,12 +1,11 @@
 import time
 import uvicorn
-import pyaudio
 import requests
 from fastapi import FastAPI, Query, Path, Body, status, Response, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field, HttpUrl
-from python.redis_cache import rc
+from redis.cluster import RedisCluster
 
 '''
 POST: 创建数据
@@ -104,7 +103,8 @@ async def create_item(item: Item, importance: int = Body(default=5)):  # item为
     #   "item": {
     #     "name": "string",
     #     "price": 0,
-    #     "is_offer": true
+    #     "is_offer": False,
+    #     "url": "http://127.0.0.1",
     #   },
     #   "importance": 5
     # }
@@ -117,8 +117,9 @@ def update_item(item_id: int, item: Item) -> dict[str, int | str]:  # 定义的�
 
 
 def predict_streaming_generator(inputs):
+    rc: RedisCluster = RedisCluster(host="localhost", port=7000)
     while True:
-        cache = rc.blpop(f'audio_stream:tts_audio_queue:{inputs.cid}', 0)[1]
+        cache = rc.blpop([f'audio_stream:tts_audio_queue:{inputs.cid}'], 0)[1]
         yield cache
 
 
@@ -131,6 +132,7 @@ def predict_streaming_endpoint(inputs: StreamingInputs):
 
 
 def receive_tts():
+    import pyaudio
     player = pyaudio.PyAudio()
     stream = player.open(format=player.get_format_from_width(2), channels=1, rate=16000, output=True)
     with requests.post(
