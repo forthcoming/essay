@@ -7,26 +7,9 @@ from pydantic import BaseModel, Field, HttpUrl
 from redis.cluster import RedisCluster
 
 '''
-POST: 创建数据
-GET: 读取数据
-PUT: 更新数据
-DELETE: 删除数据
-
-请求头举例:
-Accept-Encoding:
-Accept-Language:
-Cookie:
-Host:
-Referer:
-User-Agent:
-
-响应头举例:
-Content-Encoding:
-Content-Length:
-Content-Type:
-Keep-Alive:
-Access-Control-Allow-Origin:
-Access-Control-Allow-Methods:
+POST: 创建数据 GET: 读取数据 PUT: 更新数据 DELETE: 删除数据
+请求头举例: Accept-Encoding Accept-Language Cookie Host Referer User-Agent
+响应头举例: Content-Encoding Content-Length Content-Type Keep-Alive Access-Control-Allow-Origin Access-Control-Allow-Methods
 '''
 
 
