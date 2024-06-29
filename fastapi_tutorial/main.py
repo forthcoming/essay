@@ -1,6 +1,5 @@
 import time
 import uvicorn
-import requests
 from fastapi import FastAPI, Query, Path, Body, status, Response, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
@@ -64,12 +63,12 @@ app.add_middleware(
 
 @app.middleware("http")
 async def add_process_time_header(request: Request, call_next):
-    start_time = time.time()
+    start_time = time.monotonic()
     # 请求前
     response = await call_next(request)
     # 响应后
-    process_time = time.time() - start_time
-    response.headers["X-Process-Time"] = str(process_time)
+    process_time = time.monotonic() - start_time
+    response.headers["X-Process-Time"] = str(process_time)  # 添加响应头信息
     return response
 
 
@@ -92,22 +91,7 @@ async def read_item(
 
 @app.post("/items/", tags=['modify'], summary="创建一个item")
 async def create_item(item: Item, importance: int = Body(default=5)):  # item为请求体
-    """
-    Create an item with all the information:
-    - **name**: each item must have a name
-    - **price**: required
-    """
     # importance默认为Query查询参数类型,Body的意思在同一请求体中具有另一个键importance
-    # FastAPI期望如下形式的请求体:
-    # {
-    #   "item": {
-    #     "name": "string",
-    #     "price": 0,
-    #     "is_offer": False,
-    #     "url": "http://127.0.0.1",
-    #   },
-    #   "importance": 5
-    # }
     return item, importance
 
 
@@ -129,23 +113,6 @@ def predict_streaming_endpoint(inputs: StreamingInputs):
         predict_streaming_generator(inputs),
         media_type="audio/wav",
     )
-
-
-def receive_tts():
-    import pyaudio
-    player = pyaudio.PyAudio()
-    stream = player.open(format=player.get_format_from_width(2), channels=1, rate=16000, output=True)
-    with requests.post(
-            f"http://localhost:8000/tts_stream",
-            json={'cid': 1},
-            stream=True,
-    ) as f:
-        for chunk in f.iter_content(chunk_size=512):  # 数据不够chunk_size大小时会被阻塞
-            stream.write(chunk)
-    # 本应用以下代码执行不到,应为服务端是死循环
-    stream.stop_stream()
-    stream.close()
-    player.terminate()
 
 
 if __name__ == '__main__':
