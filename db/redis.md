@@ -282,7 +282,7 @@ HyperLogLog使用双重表示法来表示:稀疏表示法适用于计算少量�
 llen key: 计算key元素个数,时间复杂度O(1)
 lindex key index: 返回index位置上的值,时间复杂度O(N),N是要遍历以到达索引处的元素的元素数,查询列表第一个或最后一个元素的时间复杂度为O(1)
 ltrim key start stop: 使列表只存储[start,stop]范围内的数据,支持负索引,时间复杂度O(N),N是操作要删除的元素数量
-lset key index element: 时间复杂度O(N),N是list长度
+lset key index element: 时间复杂度O(N),N是list长度,Setting either the first or the last element of the list is O(1).
 lrange key start stop: 返回list中[start, stop]中的元素,左数从0开始,右数从-1开始
 lrem key count element: 从列表里移除前count次出现的值为element的元素(count>0从头往尾,count<0从尾往头,count=0移除所有)
 lmove source destination <LEFT | RIGHT> <LEFT | RIGHT>: 原子地返回并删除源中第一/最后个元素,并将该元素存到目标列表第一/最后个元素
