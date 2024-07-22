@@ -78,11 +78,11 @@ async def test_callback_duration():
 
 
 ########################################################################################################################
-def blocking_io():
+def blocking_io(chunk_size):
     # File operations (such as logging) can block the event loop: run them in a thread pool.
     print(f'in blocking_io, pid:{os.getpid()}, thread_id:{threading.get_ident()}')
     with open('/dev/urandom', 'rb') as f:
-        return f.read(100)
+        return f.read(chunk_size)
 
 
 def cpu_bound():
@@ -93,17 +93,12 @@ def cpu_bound():
 
 async def main():
     print(f'in main, pid:{os.getpid()}, thread_id:{threading.get_ident()}')
-    loop = asyncio.get_running_loop()
     # 1. Run in the default loop's executor:
-    result = await loop.run_in_executor(None, blocking_io)
+    result = await asyncio.to_thread(blocking_io, 100)
     print('default thread pool', result)
 
-    # 2. Run in a custom thread pool:
-    with concurrent.futures.ThreadPoolExecutor() as pool:
-        result = await loop.run_in_executor(pool, blocking_io)
-        print('custom thread pool', result)
-
-    # 3. Run in a custom process pool:
+    # 2. Run in a custom process pool:
+    loop = asyncio.get_running_loop()
     with concurrent.futures.ProcessPoolExecutor() as pool:
         result = await loop.run_in_executor(pool, cpu_bound)
         print('custom process pool', result)
