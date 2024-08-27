@@ -462,7 +462,7 @@ sudo su ccktv  # 输入的密码是执行sudo命令的用户密码,环境变量�
 sudo -s ccktv  # 输入的密码是执行sudo命令的用户密码,不切换环境变量
 firewall-cmd --zone=public --list-port  # centos查看开放的端口信息
 bash -c 'TAG="test-k8s-$(date +%Y%m%d%H%M)"; git tag ${TAG}; git push origin tag ${TAG}' # 一次执行多条命令,引用变量TAG要使用${TAG}
-sudo tcpdump -XvvennSs 0 -i eth0  -w ./http.cap 
+sudo tcpdump -XvvennSs 0 -i eth0  -w ./http.cap
 ------------------------------------------------------------------------------------------------------------------------
 Ubuntu
 launcher地址: /usr/share/applications/eclipse.desktop
