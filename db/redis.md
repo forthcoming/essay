@@ -603,6 +603,7 @@ Usage: redis-cli [OPTIONS] [cmd [arg [arg ...]]]
 --count: Count option when using the --scan, --bigkeys or --hotkeys (default: 10).
 --eval Desktop/test.lua key1 key2 , argv1 argv2 # 注意逗号两边要用空格隔开
 redis-cli -h 127.0.0.1 -p 8001 -n 1 --pass 'password' monitor |grep "common_service_hbt"
+nc localhost 6379   set a 1   get a  # 简易的方式连接redis
 ```
 
 ### redis-benchmark
