@@ -1,12 +1,10 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from matplotlib.font_manager import FontProperties
 from mpl_toolkits.mplot3d import Axes3D
 
-font = FontProperties(fname='/System/Library/Fonts/Hiragino Sans GB.ttc')
 plt.rcParams.update({
-    "font.family": ["Times New Roman", "SimSun"],  # 指定默认字体,Windows下设置
+    "font.family": ["Times New Roman", "SimSun", "Hiragino Sans GB"],  # 指定默认字体,Windows + MacOS
     "mathtext.fontset": "stix",
     "axes.unicode_minus": False,  # 解决保存图像是负号'-'显示为方块的问题,Windows下设置
 })
@@ -21,11 +19,11 @@ def draw_line():  # 曲线图
     plt.plot(x, y1, color='red', linewidth=.5, linestyle='--', label='up')
     plt.cla()  # 清除当前画板的所有内容
     plt.plot(x, y2, label='down')  # 一个画布上画多张图
-    plt.title("这是title", fontproperties=font)
+    plt.title("这是title")
     plt.xlabel('x axis')  # x轴说明
     plt.ylabel(r"$-Z^{''}(m\Omega)$", size=10)
     plt.legend()  # 增加图例,需要画图函数有label参数
-    plt.text(0, 3, '这是text', fontproperties=font)
+    plt.text(0, 3, '这是text')
     plt.xticks([-3, -2, -1, 0, 1, 2, 3], color='g', size=10)  # 设置x轴刻度
     plt.ylim(-2, 10)  # 设置y轴刻度范围
     plt.grid(axis='y', ls='--')  # 设置y轴网格
@@ -98,9 +96,9 @@ def move_axes():
 
 
 if __name__ == "__main__":
-    # draw_line()
+    draw_line()
     # draw_bar()
-    draw_hist()
+    # draw_hist()
     # draw_scatter()
     # draw_pie()
     # draw_3d()
