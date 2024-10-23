@@ -135,4 +135,5 @@ command + option + v = 剪切
 苹果手机通过数据线连接苹果电脑后,打开Safari,菜单 => 开发 => iphone 就可以查看手机Safari的DOM信息
 
 sudo xattr -r -d com.apple.quarantine /Applications/Termius.app
+有时候快捷键突然失效,大概率是新安装软件的快捷键占用了老的快捷键        
 ```
