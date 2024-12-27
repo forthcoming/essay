@@ -156,6 +156,10 @@ source ~/.bashrc
 
 import sys
 sys.path.append('/root/Desktop')   # 添加python查询路径
+
+CUDA_VISIBLE_DEVICES=0,1,2,3,4 python server.py
+GPU设备通常从0开始编号,设置CUDA_VISIBLE_DEVICES环境变量来控制哪些GPU对PyTorch可见,不设置则对所有GPU可见(仅影响可见行,不决定使用gpu还是cpu)
+'cuda': 按CUDA_VISIBLE_DEVICES指定顺序使用第一块GPU; 'cuda:2': 按CUDA_VISIBLE_DEVICES指定顺序使用第三块GPU
 """
 
 
