@@ -1365,6 +1365,41 @@ def sqlite_tutorial():
     pd.DataFrame(result)
 
 
+def match_tutorial():
+    # _ 是默认分支
+    status = 404
+    match status:
+        case 200:
+            print("OK")
+        case 404:
+            print("Not Found")
+        case _:
+            print("Unknown")
+
+    # 这里point按顺序依次与每个case比较,匹配成功后执行对应代码,不需要break
+    point = (0, 0)
+    match point:
+        case (x, 0):
+            print(f"On X-axis at {x}")
+        case (0, 0):
+            print("Origin")
+        case (0, y):
+            print(f"On Y-axis at {y}")
+        case _:
+            print("Error")
+
+    lst = [1, 2]
+    match lst:
+        case []:
+            print("空列表")
+        case [x]:
+            print(f"只有一个元素: {x}")
+        case [x, y]:
+            print(f"两个元素: {x}, {y}")
+        case [x, *rest]:
+            print(f"第一个元素是 {x}，其余是 {rest}")
+
+
 if __name__ == "__main__":  # import到其他脚本中不会执行以下代码,此时__name__为不含后缀的脚本名,spawn方式的多进程也需要
     # frame_tutorial()
     # arguments_tutorial()
@@ -1383,4 +1418,5 @@ if __name__ == "__main__":  # import到其他脚本中不会执行以下代码,�
     # with_tutorial()
     # variable_tutorial()
     # float_tutorial()
+    # match_tutorial()
     exception_tutorial()
