@@ -21,9 +21,8 @@ from functools import lru_cache, wraps
 from heapq import heapify, heappop, heappush, nlargest, nsmallest, heappushpop
 from subprocess import run, PIPE
 from threading import Lock
-
+from playwright.async_api import async_playwright
 import pandas as pd
-
 import socket
 
 """
@@ -1398,6 +1397,52 @@ def match_tutorial():
             print(f"两个元素: {x}, {y}")
         case [x, *rest]:
             print(f"第一个元素是 {x}，其余是 {rest}")
+
+
+async def playwright_tutorial():
+    async def handle_request(request):
+        url = request.url
+        print("handle_request", url)
+
+    async def handle_response(response):
+        url = response.url
+        print("handle_request", url)
+
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(
+            headless=False,
+            args=[
+                '--disable-blink-features=AutomationControlled',
+                '--no-sandbox',
+                '--disable-infobars',
+                '--disable-dev-shm-usage',
+                '--disable-gpu',
+                '--start-maximized'
+            ]
+            # channel='chrome',  # 使用本机安装的Chrome,而不是内置的Chromium
+        )
+        context = await browser.new_context()  # 相当于一个新窗口,有独立的cookies、localStorage等
+        page = await context.new_page()
+        page.on("request", handle_request)  # 每次浏览器发起网络请求时触发,用于监听请求
+        page.on("response", handle_response)  # 每次浏览器收到响应时触发,用于监听响应
+        await page.goto("http://i.qq.com/")
+        content = await page.content()
+        cookies = await context.cookies()  # 获取当前context中的所有cookies(必须时可以按domain过滤cookie)
+        # cookies = await page.context.cookies() # 获取当前context中的所有cookies,仅在没有context对象时使用
+        await page.screenshot(path='3658.png')
+        frame = page.frame(name="login_frame")  # 切换到iframe
+        await frame.click('#switcher_plogin')
+        await frame.fill('#u', '212956')
+        await frame.fill('#p', 'pass')
+        await frame.click('#login_button')
+        await page.wait_for_timeout(2000)  # 等待2s内容加载
+        # 滚动页面到最底部，然后再滚回顶部
+        await page.evaluate("window.scrollTo(0, document.body.scrollHeight);")  # 整个页面即document上执行JS
+        await page.evaluate("window.scrollTo(0, 0);")
+        # 在页面中找到某个元素,然后在这个元素上运行一段js代码,并返回结果
+        qrcode = await page.eval_on_selector("#animate_qrcode_container img", "el => el.src")
+        await page.close()
+        await browser.close()
 
 
 if __name__ == "__main__":  # import到其他脚本中不会执行以下代码,此时__name__为不含后缀的脚本名,spawn方式的多进程也需要
