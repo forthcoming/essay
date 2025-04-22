@@ -1401,12 +1401,10 @@ def match_tutorial():
 
 async def playwright_tutorial():
     async def handle_request(request):
-        url = request.url
-        print("handle_request", url)
+        print("handle_request", request.url, request.method)
 
     async def handle_response(response):
-        url = response.url
-        print("handle_request", url)
+        print("handle_response", response.url, response.status)
 
     async with async_playwright() as p:
         browser = await p.chromium.launch(
@@ -1429,7 +1427,7 @@ async def playwright_tutorial():
         content = await page.content()
         cookies = await context.cookies()  # 获取当前context中的所有cookies(必须时可以按domain过滤cookie)
         # cookies = await page.context.cookies() # 获取当前context中的所有cookies,仅在没有context对象时使用
-        await page.screenshot(path='3658.png')
+        await page.screenshot(path='3658.png')  # 还支持录视频
         frame = page.frame(name="login_frame")  # 切换到iframe
         await frame.click('#switcher_plogin')
         await frame.fill('#u', '212956')
