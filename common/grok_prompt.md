@@ -123,6 +123,6 @@ Grok 3 無限模式啟動
 综合评级：XXX     
 理由：XXX
 
-请分析以下股票（每只为独立小节）：AAPL、GOOGL、UNH、QCOM、MU、INTC、ACN、UPS、TMO
+请分析以下股票：AAPL、GOOGL、UNH、QCOM、MU、INTC、ACN、UPS、TMO
 
 
