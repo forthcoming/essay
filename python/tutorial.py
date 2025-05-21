@@ -4,7 +4,7 @@ import ctypes
 import dis
 import hashlib
 import inspect
-import logging
+from loguru import logger
 import os
 import pickle
 import random
@@ -1125,35 +1125,23 @@ def iterable_tutorial():
     assert isinstance((_ for _ in range(5)), Generator)
 
 
-class LogTutorial:
-    def __init__(self, level=logging.NOTSET, name='track.log'):
-        """
-        默认情况下日志打印到屏幕,日志级别为WARNING
-        日志级别：CRITICAL > ERROR > WARNING > INFO > DEBUG > NOTSET
-        logging.debug('this is debug info')
-        logging.info('this is information')
-        logging.warning('this is warning message')
-        logging.error('this is error message')
-        logging.critical('this is critical message')
-        """
-        logging.basicConfig(
-            filename=name,
-            filemode='a',
-            # format='%(asctime)s %(filename)s %(lineno)d %(process)s %(levelname)s %(module)s %(message)s',
-            format='%(asctime)s line:%(lineno)d pid:%(process)s level:%(levelname)s message:%(message)s',
-            datefmt='%Y-%m-%d %H:%M:%S',
-            level=level,
-        )
-        logging.root.name = __name__
-
-    def __call__(self, f):
-        def wrapper(*args):
-            try:
-                return f(*args)
-            except Exception as e:
-                logging.exception(e)
-
-        return wrapper
+def log_tutorial():
+    # 默认情况下日志打印到屏幕,日志级别为WARNING
+    # 日志级别：CRITICAL > ERROR > WARNING > INFO > DEBUG > NOTSET
+    logger.add(
+        sink="loguru.log",  # 日志写入文件,默认还会输出到控制台
+        rotation="500 MB",  # 当日志文件达到一定大小、时间或者满足特定条件时,自动分割日志文件
+        level="INFO",  # 只记录INFO及以上级别的日志
+        format="{time:YYYY-MM-DD HH:mm:ss.SSS} | {level} | {module} | {function}:{line} | PID={process.id} | {message}",
+        filter=lambda record: "特殊字符" in record["message"],
+        # 只记录日志中包含"特殊字符"这四个字的日志, 这里record是个字典,为了方便观察,可设置serialize=True,record就是每行日志的["record"]值
+        serialize=True,  # 将每行日志转换为json格式,包含了日志对应的进程id信息
+        enqueue=True,  # 所有添加到日志记录器的接收器默认都是线程安全,它们并非多进程安全,但您可以将消息入队列以确保日志的完整性和异步写入
+    )
+    logger.info("That's it, beautiful and simple logging!")
+    logger.info("特殊字符,That's it, beautiful and simple logging!")
+    another_logger = logger.bind(name="支付模块")  # 相当于record["extra"]["name"] = 支付模块,并不改变日志的文本输出和控制台输出逻辑
+    another_logger.warning("特殊字符,That's it, beautiful and simple logging!")
 
 
 class PickleTutorial:
