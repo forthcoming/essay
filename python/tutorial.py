@@ -1126,6 +1126,7 @@ def iterable_tutorial():
 
 
 def log_tutorial():
+    # logger是全局对象,配置一次全局生效,最好是放在主程序最开始的位置,尤其要在任何日志输出语句之前调用logger.add()
     # 默认情况下日志打印到屏幕,日志级别为WARNING
     # 日志级别：CRITICAL > ERROR > WARNING > INFO > DEBUG > NOTSET
     logger.add(
