@@ -36,3 +36,5 @@ async def proxy_request(request: Request):
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
     # nginx也可以做类似的转发操作,但没法详细的记录日志,无法很好的支持流式响应转发
+    # cline配置:
+    # 打开设置,API Provide选择OpenAI Compatible, Base URL填写http://localhost:8000,API Key填写OpenRouter的key,就可以使用了
