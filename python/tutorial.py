@@ -36,6 +36,7 @@ pip install --proxy=socks5://127.0.0.1:1080 scrapy==1.4.0
 pip install redis -i http://mirrors.aliyun.com/pypi/simple --trusted-host mirrors.aliyun.com  # -i指定库的安装源
 pip uninstall
 pip config edit --editor vim  # 手动编辑配置文件
+
 conda list  # 列出当前虚拟环境的所有安装包(包括conda和pip安装的包,这两个命令install作用差不多)
 conda create -n scrapy python=3.12 # 创建虚拟环境
 conda env list  
@@ -44,6 +45,21 @@ conda deactivate # 退出虚拟环境
 conda install -n scrapy python=3.12  # 也可以先进到对应虚拟环境,再conda install python=3.12
 conda install /root/Desktop/软件名,如果某些包找不到,可以先切换到对应的虚拟环境,再python -m pip install安装
 conda remove -n scrapy --all
+
+uv python list: View available Python versions.
+uv run example.py  # 在uv管理的环境中运行命令,无需source .venv/bin/activate, 会根据pyproject.toml文件自动安装缺少的依赖
+uv init: Create a new Python project.
+uv add: Add a dependency to the project.类似于pip install <package> + 写入pyproject.toml,如果虚拟环境未创建,会先执行uv venv
+uv remove: Remove a dependency from the project.
+uv sync: Sync the project's dependencies with the environment.根据pyproject.toml安装或更新项目依赖
+uv tree: View the dependency tree for the project.
+uv build: Build the project into distribution archives.
+uv publish: Publish the project to a package index.
+uvx [--python 3.8] scrapy version: uvx用于临时运行Python命令行工具（CLI）,而无需永久安装这些工具,等价于uv tool run
+pyproject.toml: 项目的元数据和项目依赖,由开发者手动维护.
+uv.lock文件作用: 所有直接依赖和它们的子依赖具体版本、下载地址和校验哈希等,保证项目环境的一致性（可复现部署）,自动生成.
+.python-version: 控制项目虚拟环境的python版本,但必须满足pyproject.toml.requires-python要求
+
 
 python运算符优先级如下, 与传统c语言运算符优先级有区别
 refer: https://docs.python.org/3/reference/expressions.html?highlight=operator%20precedence
