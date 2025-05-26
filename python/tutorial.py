@@ -57,7 +57,7 @@ uv build: Build the project into distribution archives.
 uv publish: Publish the project to a package index.
 uvx [--python 3.8] scrapy version: uvx用于临时运行Python命令行工具（CLI）,而无需永久安装这些工具,等价于uv tool run
 pyproject.toml: 项目的元数据和项目依赖,由开发者手动维护.
-uv.lock文件作用: 所有直接依赖和它们的子依赖具体版本、下载地址和校验哈希等,保证项目环境的一致性（可复现部署）,自动生成.
+uv.lock: 所有直接依赖和它们的子依赖具体版本、下载地址和校验哈希等,保证项目环境的一致性（可复现部署）,自动生成.
 .python-version: 控制项目虚拟环境的python版本,但必须满足pyproject.toml.requires-python要求
 
 
