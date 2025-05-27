@@ -53,3 +53,18 @@ if __name__ == "__main__":
     # }
     # </arguments>
     # </use_mcp_tool>
+
+    # <ask_followup_question> </ask_followup_question> 模型询问用户问题(比如模型不知道接下来做什么,或者用户的问题不清晰)
+    # <thinking> </thinking> 模型思考用户的提问,模型回答结束前也会思考
+    # <attempt_completion> </attempt_completion> 标志着模型回答结束
+
+# ReAct（Reasoning and Acting）是一种结合“语言推理”和“工具行动”的智能体（Agent）决策模式，用于提升语言模型在复杂任务中的表现
+# ReAct模式使得语言模型不仅能思考和规划,还可以交互和执行,并在执行后继续思考下一步
+# 可以设置模型开头提示词: 你是一个智能助手，遵循 ReAct 模式推理
+# cline使用的就是ReAct模式,类似的还有Chain-of-Thought模式
+
+# ReAct模式引入了以下三个关键组成部分：
+# Thought（思考）：语言模型描述它的当前推理
+# Action（行动）：模型选择一个工具,并传入参数调用
+# Observation（观察）：系统返回工具调用的结果,供下一步思考使用
+# 这个过程会循环多轮,直到模型给出最终的答案
