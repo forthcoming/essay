@@ -47,7 +47,7 @@ conda install /root/Desktop/软件名,如果某些包找不到,可以先切换�
 conda remove -n scrapy --all
 
 uv python list: View available Python versions.
-uv run example.py  # 在uv管理的环境中运行命令,无需source .venv/bin/activate, 会根据pyproject.toml文件自动安装缺少的依赖
+uv --directory /root run example.py  # 在uv管理的环境中运行命令,无需source .venv/bin/activate, 会根据pyproject.toml文件自动安装缺少的依赖
 uv init: Create a new Python project.
 uv add: Add a dependency to the project.类似于pip install <package> + 写入pyproject.toml,如果虚拟环境未创建,会先执行uv venv
 uv remove: Remove a dependency from the project.
@@ -55,7 +55,7 @@ uv sync: Sync the project's dependencies with the environment.根据pyproject.to
 uv tree: View the dependency tree for the project.
 uv build: Build the project into distribution archives.
 uv publish: Publish the project to a package index.
-uvx [--python 3.8] scrapy version: uvx用于临时运行Python命令行工具（CLI）,而无需永久安装这些工具,等价于uv tool run
+uvx [--python 3.8] scrapy version: 临时安装Python包并执行包中的命令行工具,执行完毕后清理环境,等价于uv tool run
 pyproject.toml: 项目的元数据和项目依赖,由开发者手动维护.
 uv.lock: 所有直接依赖和它们的子依赖具体版本、下载地址和校验哈希等,保证项目环境的一致性（可复现部署）,自动生成.
 .python-version: 控制项目虚拟环境的python版本,但必须满足pyproject.toml.requires-python要求
