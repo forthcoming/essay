@@ -47,7 +47,9 @@ conda install /root/Desktop/软件名,如果某些包找不到,可以先切换�
 conda remove -n scrapy --all
 
 uv python list: View available Python versions.
-uv --directory /root run example.py  # 在uv管理的环境中运行命令,无需source .venv/bin/activate, 会根据pyproject.toml文件自动安装缺少的依赖
+uv --directory /root run example.py
+# 在uv管理的环境中运行命令, 会根据pyproject.toml文件自动安装缺少的依赖
+# 创建子进程,然后执行/root/.venv/bin/python3 example.py, 因此无需source .venv/bin/activate切换环境
 uv init: Create a new Python project.
 uv add: Add a dependency to the project.类似于pip install <package> + 写入pyproject.toml,如果虚拟环境未创建,会先执行uv venv
 uv remove: Remove a dependency from the project.
