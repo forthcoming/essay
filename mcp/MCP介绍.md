@@ -91,6 +91,13 @@ if __name__ == "__main__":
     asyncio.run(main())
 ```
 
+### Debug
+
+```shell
+npx -y @modelcontextprotocol/inspector uv run main.py
+# 直接在命令行执行即可
+```
+
 ### 使用说明
 
 ![使用说明.png](src/使用说明.png)
