@@ -50,7 +50,8 @@ uv python list: View available Python versions.
 uv --directory /root run example.py
 # 在uv管理的环境中运行命令, 会根据pyproject.toml文件自动安装缺少的依赖
 # 创建子进程,然后执行/root/.venv/bin/python3 example.py, 因此无需source .venv/bin/activate切换环境
-uv init: Create a new Python project.
+uv init proj: Create a new Python project.
+uv init --package -p 3.1.12: 将当前目录初始化为一个包(可用于上传至pypi),并使用python 3.1.12
 uv add: Add a dependency to the project.类似于pip install <package> + 写入pyproject.toml,如果虚拟环境未创建,会先执行uv venv
 uv remove: Remove a dependency from the project.
 uv sync: Sync the project's dependencies with the environment.根据pyproject.toml安装或更新项目依赖
