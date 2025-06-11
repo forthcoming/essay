@@ -1114,7 +1114,7 @@ def log_tutorial():
         sink="loguru.log",  # 日志写入文件,默认还会输出到控制台
         rotation="500 MB",  # 当日志文件达到一定大小、时间或者满足特定条件时,自动分割日志文件
         level="INFO",  # 只记录INFO及以上级别的日志
-        format="{time:YYYY-MM-DD HH:mm:ss.SSS} | {level} | {module} | {function}:{line} | PID={process.id} | {message}",
+        format="{time:YYYY-MM-DD HH:mm:ss.SSS} | {level} | {process} | {module}:{function}:{line} | {message}",
         filter=lambda record: "特殊字符" in record["message"],
         # 只记录日志中包含"特殊字符"这四个字的日志, 这里record是个字典,为了方便观察,可设置serialize=True,record就是每行日志的["record"]值
         serialize=True,  # 将每行日志转换为json格式,包含了日志对应的进程id信息
