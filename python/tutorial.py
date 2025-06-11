@@ -1110,7 +1110,7 @@ def log_tutorial():
     # logger是全局对象,配置一次全局生效,最好是放在主程序最开始的位置,尤其要在任何日志输出语句之前调用logger.add()
     # 默认情况下日志打印到屏幕,日志级别为WARNING
     # 日志级别：CRITICAL > ERROR > WARNING > INFO > DEBUG > NOTSET
-    fmt = '{{"t": "{time:YYYY-MM-DD HH:mm:ss.SSS}", "lv": "{level}", "pid": "{process}", "pos": "{module}:{function}:{line}", "msg": "{message}"}}'
+    fmt = '{{<green>"t": "{time:YYYY-MM-DD HH:mm:ss.SSS}"</green>, <level>"lv": "{level}"</level>, <magenta>"msg": "{message}"</magenta>, <cyan>"pid": "{process}", "pos": "{module}:{function}:{line}"</cyan>}}'
     logger.add(
         sink="loguru.log",  # 日志写入文件,默认还会输出到控制台
         rotation="500 MB",  # 当日志文件达到一定大小、时间或者满足特定条件时,自动分割日志文件
