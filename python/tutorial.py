@@ -1110,17 +1110,19 @@ def log_tutorial():
     # logger是全局对象,配置一次全局生效,最好是放在主程序最开始的位置,尤其要在任何日志输出语句之前调用logger.add()
     # 默认情况下日志打印到屏幕,日志级别为WARNING
     # 日志级别：CRITICAL > ERROR > WARNING > INFO > DEBUG > NOTSET
-    fmt = '{{<green>"t": "{time:YYYY-MM-DD HH:mm:ss.SSS}"</green>, <level>"lv": "{level}"</level>, <magenta>"msg": "{message}"</magenta>, <cyan>"pid": "{process}", "pos": "{module}:{function}:{line}"</cyan>}}'
+    file_fmt = '{{"t": "{time:YYYY-MM-DD HH:mm:ss.SSS}", "lv": "{level}", "msg": "{message}", "pid": "{process}", "pos": "{module}:{function}:{line}"}}'
     logger.add(
         sink="loguru.log",  # 日志写入文件,默认还会输出到控制台
         rotation="500 MB",  # 当日志文件达到一定大小、时间或者满足特定条件时,自动分割日志文件
         level="INFO",  # 只记录INFO及以上级别的日志
-        format=fmt,
+        format=file_fmt,
         filter=lambda record: "特殊字符" in record["message"],
         # 只记录日志中包含"特殊字符"这四个字的日志, 这里record是个字典,为了方便观察,可设置serialize=True,record就是每行日志的["record"]值
         # serialize=True,  # 将每行日志转换为json格式,包含了日志对应的进程id信息
         enqueue=True,  # 所有添加到日志记录器的接收器默认都是线程安全,它们并非多进程安全,但您可以将消息入队列以确保日志的完整性和异步写入
     )
+    std_fmt = '<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level}</level> | <magenta>{message}</magenta> | <cyan>{process}</cyan> | <cyan>{module}:{function}:{line}</cyan>'
+    logger.add(sink=sys.stderr, format=std_fmt, colorize=True)
     logger.info("That's it, beautiful and simple logging!")
     logger.info("特殊字符,That's it, beautiful and simple logging!")
     another_logger = logger.bind(name="支付模块")  # 相当于record["extra"]["name"] = 支付模块,并不改变日志的文本输出和控制台输出逻辑
