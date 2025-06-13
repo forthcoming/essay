@@ -1,16 +1,6 @@
 from lxml.html import fromstring, tostring
 
 ################################################################################################################
-"""
-lxml.etree
-XML processing
-lxml.html
-Since version 2.0, lxml comes with a dedicated Python package for dealing with HTML: lxml.html.It is based on lxml's HTML parser, 
-but provides a special Element API for HTML elements,as well as a number of utilities for common HTML processing tasks.
-The main API is based on the lxml.etree API, and thus, on the ElementTree API.
-"""
-
-################################################################################################################
 '''
 Avoid using contains(.//text(), ‘search text’) in your XPath conditions. Use contains(., 'search text') instead.
 You can read more detailed explanations about string values of nodes and node-sets in the XPath spec.
