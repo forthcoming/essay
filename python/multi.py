@@ -143,7 +143,7 @@ def shared_memory_tutorial():
     print(bytes(shared.buf[:6]), bytearray(shared.buf[:6]))  # b"abcdAB" bytearray(b"abcdAB")
 
     new_shared = shared_memory.SharedMemory(shared.name)  # Attach to an existing shared memory block
-    mp.set_start_method("fork")  # mac,windows默认方式是spawn,linux默认方式是fork
+    mp.set_start_method("fork")
     """
     Register callables to be called when forking a new process.
     before: A callable to be called in the parent before the fork().
@@ -463,24 +463,45 @@ class ThreadLocal:
 
 
 def fork_tutorial():
-    """
-    子进程可通过fork或者spawn方式生成,spawn底层用了pickle将父进程数据序列化后传到子进程
-    子进程是从fork后面那个指令开始执行,在父进程中fork返回新创建子进程的进程ID,子进程返回0
-    kill(跟linux一致),pid>0: 向进程号pid的进程发送信号,可以验证kill杀死父进程,子进程会不会结束;pid=0: 向当前进程所在的进程组发送信号
-    父进程里使用wait(被join调用),这个函数会让父进程阻塞,直到任意一个子进程执行完成,回收该子进程的内核进程资源
-    每个进程都属于一个进程组,通过getpgid(0)获取,getpgid(pid)获取进程ID是pid所在组的组ID,默认为父进程id,父进程,子进程以及子子进程都属于这个进程组
-
-    孤儿进程: 父进程退出而它的子进程还在运行,则子进程将成为孤儿进程
-    僵尸进程: 使用fork创建子进程,如果子进程退出,父进程还在运行,并且没有调用wait/waitpid回收资源,则子进程成为僵死进程,Linux中用defunct标记
-    如果主进程开了多个子进程,当某个子进程出错,并不影响其他子进程和主进程的运行,但其自身会变为僵尸进程
-    multiprocessing不会产生孤儿进程,需要用os.fork模拟产生,可以产生僵尸进程
-    僵尸进程将会导致资源浪费,而孤儿进程并不会有什么危害,将被init进程(进程号为1)所收养,成为该子进程的父进程,并对它们完成状态收集工作
-    kill -9不能杀掉僵尸进程,可以先找到僵尸进程的父进程(ps -ef | grep defunct),将父进程杀掉,子进程就自动消失,通过top能查看当前僵尸进程个数
-
-    所有信号都由操作系统来发,应用程序通过signal()捕捉,SIGKILL和SIGSTOP信号除外
-    当子进程退出的时候,内核都会给父进程一个SIGCHLD信号,终端上按下ctrl+c会产生SIGINT信号
-    如果父进程不关心子进程什么时候结束,可以用signal(SIGCHLD,SIG_IGN)通知内核,当子进程结束后内核会回收,默认采用SIG_DFL,代表不理会该信号
-    """
+    # 当使用multiprocessing启动子进程时,Linux默认使用fork,macOS和Windows默认使用spawn
+    # 在主进程创建了多个子进程的情况下，若某个子进程异常退出，一般不会影响其他子进程或主进程的正常运行
+    # fork
+    # 在父进程中调用fork(),会复制出一个几乎完全相同的子进程,子进程继承父进程的所有内存空间、文件描述符等资源
+    # fork()返回值: 父进程中返回子进程的PID,子进程中返回0
+    # 子进程从fork()调用之后的那行指令开始执行
+    # spawn
+    # 先新建一个空的Python进程,再通过pickle将父进程的必要数据（函数、对象、参数等）序列化、传输到子进程,最后在子进程中反序列化并调用目标函数
+    # 相比fork,spawn保证子进程从干净环境开始,避免继承不必要的状态（例如在多线程程序里避免锁状态被继承）,但性能开销大于fork,且传输的数据需要支持pickle序列化
+    # import multiprocessing as mp
+    # def son_process():
+    #     print(a)
+    #
+    # if __name__ == "__main__":
+    #     a = 1
+    #     # mp.set_start_method('spawn') # Error
+    #     mp.set_start_method('fork')  # OK
+    #     p = mp.Process(target=son_process)
+    #     p.start()
+    #     p.join()
+    #
+    # 父进程调用wait()或join(): 会阻塞父进程,直到某个子进程退出,随后回收该子进程的内核资源,避免产生僵尸进程(join内部会调用wait)
+    # 进程组: 每个进程都有一个所属的进程组,默认组ID等于其父进程的PID,父进程,子进程以及子子进程都属于这个进程组
+    # getpgid(0) 获取当前进程所在进程组ID
+    # getpgid(pid) 获取指定进程pid所在的进程组ID
+    # kill(pid, sig): 向进程或进程组发送信号,跟linux的命令行为一致
+    # pid > 0 向指定PID的进程发送信号(可以验证kill杀死父进程,子进程会不会结束)
+    # pid == 0 向调用进程所在的整个进程组发送信号
+    #
+    #
+    # 信号由操作系统或用户程序通过函数(如kill或raise)发送,用于通知进程发生了某些事件
+    # 大多数信号可以通过signal()函数进行捕捉和处理,但SIGKILL和SIGSTOP例外,它们不能被捕捉、阻塞或忽略，操作系统会强制执行它们的行为
+    # SIGINT：通常由终端按 Ctrl+C 触发
+    # SIGCHLD：当子进程退出时,内核自动向父进程发送
+    # signal(SIGCHLD, handler)控制子进程结束后的资源回收行为; signal(SIGCHLD,SIG_IGN)忽略SIGCHLD信号,内核会自动回收子进程,不会产生僵尸进程
+    #
+    # 孤儿进程: 父进程先于子进程退出,子进程将成为孤儿进程,被系统PID=1的init进程收养,并由其完成回收工作,一般不会造成危害
+    # 僵尸进程(Zombie/Defunct): 子进程已经退出,但父进程尚未调用wait()来回收其资源,此时子进程成为僵尸进程,仅占用极少量内核资源,Linux中用defunct标记
+    # 无法用kill -9直接杀死僵尸进程,需先终止其父进程(ps -ef | grep defunct),或者让父进程调用wait(),通过top能查看当前僵尸进程个数
     signal.signal(signal.SIGCHLD, lambda sv, frame: print(f"sv:{sv}, time:{datetime.datetime.now()},frame:{frame}"))
     signal.signal(signal.SIGINT, signal.SIG_IGN)  # protect process from KeyboardInterrupt signals
     if os.fork() == 0:
