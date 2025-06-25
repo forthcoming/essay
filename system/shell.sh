@@ -46,6 +46,7 @@ conda install -n scrapy python=3.12  # 也可以先进到对应虚拟环境,再c
 conda install /root/Desktop/软件名,如果某些包找不到,可以先切换到对应的虚拟环境,再python -m pip install安装
 conda remove -n scrapy --all
 
+uv pip: 在uv管理下的虚拟环境中使用pip,可以提供诸如show,list等功能
 uv python list: View available Python versions.
 uv --directory /root run example.py
 # 在uv管理的环境中运行命令, 会根据pyproject.toml文件自动安装缺少的依赖
