@@ -1410,8 +1410,10 @@ async def playwright_tutorial():
         # 滚动页面到最底部，然后再滚回顶部
         await page.evaluate("window.scrollTo(0, document.body.scrollHeight);")  # 整个页面即document上执行JS
         await page.evaluate("window.scrollTo(0, 0);")
-        # 在页面中找到某个元素,然后在这个元素上运行一段js代码,并返回结果
-        qrcode = await page.eval_on_selector("#animate_qrcode_container img", "el => el.src")
+        await page.eval_on_selector("#animate img", "el => el.src")  # 对第一个符合选择器的元素执行一段脚本,并返回执行结果
+        await page.wait_for_selector('#animate img')  # 需要在后续操作前显式等待某个元素加载或状态变化时使用,返回ElementHandle
+        await page.query_selector("#animate img")  # 立即查找第一个符合选择器的元素,返回ElementHandle/None
+        await page.query_selector_all('ul[data="scroll"] li a')  # 立即查找所有符合选择器的元素,返回[ElementHandle,...]
         await page.close()
         await browser.close()
 
