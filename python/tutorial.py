@@ -1414,6 +1414,7 @@ async def playwright_tutorial():
         await page.wait_for_selector('#animate img')  # 需要在后续操作前显式等待某个元素加载或状态变化时使用,返回ElementHandle
         await page.query_selector("#animate img")  # 立即查找第一个符合选择器的元素,返回ElementHandle/None
         await page.query_selector_all('ul[data="scroll"] li a')  # 立即查找所有符合选择器的元素,返回[ElementHandle,...]
+        # 默认使用CSS选择器,也可以使用xpath选择器
         await page.close()
         await browser.close()
 
