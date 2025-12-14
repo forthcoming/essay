@@ -347,30 +347,18 @@ from redis import Redis
 
 r = Redis()
 p = r.pubsub()
-p.subscribe('my-first-channel')
+p.subscribe('my-channel')
 p.psubscribe('my-*')
-r.publish('my-first-channel', 'some data')
-print(p.get_message())
-print(p.get_message())
-print(p.get_message())
-print(p.get_message())
-print(p.get_message())
-r.publish('my-first-channel', 'some data')
-print(p.get_message())
-print(p.get_message())
-print(p.get_message())
-'''
-With [un]subscribe messages, this value will be the number of channels and patterns the connection is currently subscribed to.
-With [p]message messages, this value will be the actual published message.
-{'type': 'subscribe', 'pattern': None, 'channel': b'my-first-channel', 'data': 1}
-{'type': 'psubscribe', 'pattern': None, 'channel': b'my-*', 'data': 2}
-{'type': 'message', 'pattern': None, 'channel': b'my-first-channel', 'data': b'some data'}
-{'type': 'pmessage', 'pattern': b'my-*', 'channel': b'my-first-channel', 'data': b'some data'}
-None
-{'type': 'message', 'pattern': None, 'channel': b'my-first-channel', 'data': b'some data'}
-{'type': 'pmessage', 'pattern': b'my-*', 'channel': b'my-first-channel', 'data': b'some data'}
-None
-'''
+r.publish('my-channel', 'one')
+print(p.get_message())  # {'type': 'subscribe', 'pattern': None, 'channel': b'my-channel', 'data': 1}
+print(p.get_message())  # {'type': 'psubscribe', 'pattern': None, 'channel': b'my-*', 'data': 2}, data意思是订阅的channel数
+print(p.get_message())  # {'type': 'message', 'pattern': None, 'channel': b'my-channel', 'data': b'one'}
+print(p.get_message())  # {'type': 'pmessage', 'pattern': b'my-*', 'channel': b'my-channel', 'data': b'one'}
+print(p.get_message())  # None
+r.publish('my-channel', 'two')
+print(p.get_message())  # {'type': 'message', 'pattern': None, 'channel': b'my-channel', 'data': b'two'}
+print(p.get_message())  # {'type': 'pmessage', 'pattern': b'my-*', 'channel': b'my-channel', 'data': b'two'}
+print(p.get_message())  # None
 ```
 
 ### scripting and functions
