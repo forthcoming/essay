@@ -32,7 +32,8 @@ async def run_say_by_coroutine():  # 并发运行多个协程
     print(asyncio.iscoroutinefunction(say))  # True
     print(asyncio.iscoroutine(coroutines[0]))  # True
     # 一次性返回say返回值列表,与coroutine顺序一致,入参也可以是tasks,如果是coroutines会隐式转换成tasks
-    results = await asyncio.gather(*coroutines, return_exceptions=True)  # True代表任务出错不影响其他任务执行
+    # True意思是如果某个任务出错,返回异常,继续等待其他任务执行; False意思是如果某个任务出错,直接抛出异常,其他任务继续执行
+    results = await asyncio.gather(*coroutines, return_exceptions=True)
     for result in results:
         if isinstance(result, Exception):
             print(f'error:{result}')
