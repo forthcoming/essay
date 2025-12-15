@@ -31,7 +31,7 @@ async def run_say_by_coroutine():  # 并发运行多个协程
     coroutines = [say(3, 'world'), say(4, 'say'), say(2, 'hello')]
     print(asyncio.iscoroutinefunction(say))  # True
     print(asyncio.iscoroutine(coroutines[0]))  # True
-    print(await asyncio.gather(*coroutines))  # say返回值集合,与coroutine顺序一致,入参也可以是tasks,如果是coroutines会隐式转换成tasks
+    print(await asyncio.gather(*coroutines))  # 一次性返回say返回值列表,与coroutine顺序一致,入参也可以是tasks,如果是coroutines会隐式转换成tasks
     print(f"main finished at {time.strftime('%X')}")
 
 
@@ -41,7 +41,7 @@ async def run_say_by_task():  # 并发运行多个协程
     # task对象, create_task将coroutine变为task,并注册到event loop,非阻塞
     tasks = [asyncio.create_task(c, name=f'task-{idx}') for idx, c in enumerate(coroutines)]
     for task in tasks:  # 如果主程序可以保证在task都完成后退出如await asyncio.sleep(10)且不需要task返回值,该步可省略,asyncio.gather类似
-        print('over:', await task)  # 按tasks顺序返回say的返回值
+        print('over:', await task)  # 按tasks顺序返回say的返回值,返回完当前任务结果,才会继续返回下一个任务结果
     # done, pending = await asyncio.wait(tasks)  # 也可以不遍历,但没法保证返回的顺序
     # print('pending:', pending, 'done:', done)
     print(f"main finished at {time.strftime('%X')}")
