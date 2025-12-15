@@ -31,7 +31,13 @@ async def run_say_by_coroutine():  # 并发运行多个协程
     coroutines = [say(3, 'world'), say(4, 'say'), say(2, 'hello')]
     print(asyncio.iscoroutinefunction(say))  # True
     print(asyncio.iscoroutine(coroutines[0]))  # True
-    print(await asyncio.gather(*coroutines))  # 一次性返回say返回值列表,与coroutine顺序一致,入参也可以是tasks,如果是coroutines会隐式转换成tasks
+    # 一次性返回say返回值列表,与coroutine顺序一致,入参也可以是tasks,如果是coroutines会隐式转换成tasks
+    results = await asyncio.gather(*coroutines, return_exceptions=True)  # True代表任务出错不影响其他任务执行
+    for result in results:
+        if isinstance(result, Exception):
+            print(f'error:{result}')
+        else:
+            print(f'data:{result}')
     print(f"main finished at {time.strftime('%X')}")
 
 
