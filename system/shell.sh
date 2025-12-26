@@ -503,18 +503,9 @@ bash -c 'TAG="test-k8s-$(date +%Y%m%d%H%M)"; git tag ${TAG}; git push origin tag
 sudo tcpdump -XvvennSs 0 -i eth0  -w ./http.cap
 单引号: 完全禁止解释,所有内容都按原样保留,不会进行变量替换、命令替换、转义字符处理
 双引号: 会进行变量替换,注意没有引号时,如果变量是空的或含空格,会产生参数拆分问题
-------------------------------------------------------------------------------------------------------------------------
-Ubuntu
-launcher地址: /usr/share/applications/eclipse.desktop
-apt镜像地址: /etc/apt/sources.list  
-安装增强功能: mount -t vboxsf Share /media/sf_Share
-安装Chrome: 注意不能以root身份运行,需要在/usr/share/applications/google-chrome.desktop中添加--no-sandbox
-安装sublime: 
-ctrl+shift+p -> Build:New Build System
-{
-  "shell_cmd":"/opt/miniconda3/bin/python3.6 -u \"$file\"",
-  "selector":"source.python"
-}
+;   间隔各命令按顺序依次执行（dos下用&）
+&&  当前一个指令执行成功时,执行后一个指令（与dos一致）
+||  当前一个指令执行失败时,执行后一个指令（第一个成功则不执行第二个,与dos一致）
 ------------------------------------------------------------------------------------------------------------------------
 dpkg -P elasticsearch #卸载软件,包括其配置文件
 dpkg -i chrome.deb   #安装chrome.deb软件包,-i等价于--install
@@ -539,10 +530,6 @@ apt remove <package>  # remove packages
 apt purge <package>   # remove packages and configs
 apt upgrade
 ------------------------------------------------------------------------------------------------------------------------
-ufw enable   #开启防火墙
-ufw disable  #关闭防火墙
-ufw status
-------------------------------------------------------------------------------------------------------------------------
 # 文件以.sh为后缀,需要给可执行权限
 #! /usr/bin/expect
 spawn ssh -p 32200 ccktv@10.1.169.215
@@ -550,141 +537,4 @@ expect "*password:"
 # 注意要加\r
 send "ccktv@123\r"   
 interact
-------------------------------------------------------------------------------------------------------------------------
-文件：（对root用户权限失效）
-r(4)：可以查看文件内容（cat more等）
-w(2)：可以修改文件内容（vi pico等），并不代表可以删除文件
-x(1)：可以执行文件
-
-目录：（对root用户权限失效。）
-r(4)：可以列出目录内容（ls,前提是有x权限）
-w(2)：可以在目录中创建删除文件（rm mkdir touch等，前提是有x权限）
-x(1)：可以进入目录（cd）
-
-cp既要有文件夹的可写权限，又要有文件的可读权限
-某文件有w权限并不代表可以被删除，得看其所在目录是否有w权限
-mv与rm只需要文件夹有可写权限即可（但前提是有x权限）
-
-umask #显示新建文件or目录缺省权限
-umask 027 #改变默认的掩码
-so:
-创建目录默认权限为755
-缺省创建的文件不能授予x权限，其权限默认为644
-sh -x shell.sh  #执行脚本并显示所有变量的值
-sh -n shell.sh  #不执行脚本，只是检查语法，并返回错误
-
-使用stat命令可以查看三时间值:如 stat filename
-
-1.  mtime(modify time):最后一次修改文件或目录的时间
-2.  ctime(chang time) :最后一次改变文件或目录属性的时间
-如:更改该文件的目录。
-3.  atime(access time)::最后一次访问/执行文件或目录的时间
-
-对于文件:
-当修改mtime时,ctime必须随着改变.因为文件大小等都属性；
-有人说说atime也一定会改变，要想修改文件必须先访问；其实是不对的
-不必访问文件就能修改其内容：如：#echo “This is a test !” >> /etc/issue,
-issue文件内容会变，但并没有访问文件，所以atime并没有改变.
-
-对于目录：
-访问一个目录其atime改变，mtime ，ctime不变；
-修改一个目录如在一个目录下touch一个文件，mtime与ctime会改变，atime不一定会变；
-
-文件夹：
-文件夹的 Access time，atime 是在读取文件或者执行文件时更改的
-我们只cd进入一个目录然后cd ..不会引起atime的改变，但ls一下就不同了。
-
-文件夹的 Modified time，mtime 是在文件夹中有文件的新建、删除才会改变
-如果只是改变文件内容不会引起mtime的改变，换句话说如果ls -f <directory>的结果发生改变mtime就会被刷新。
-这里可能有人要争论了：我进入dd这个文件夹vi了一个文件然后退出，
-前后ls -f <directory>的结果没有改变但是文件夹的mtime发生改变了……
-这点请主意vi命令在编辑文件时会在本文件夹下产生一 个".file.swp"临时文件，该文件随着vi的退出而被删除……
-这就导致了mtime的改变 [Auxten:p]不信你可以用nano修改文件来试验）。
-
-文件夹的 Change time，ctime 基本同文件的ctime，其体现的是inode的change time。
-
-补充一点：mount -o noatime(mount -o remount,atime / 可以在线重新挂载根目录) 可以选择不记录文件的atime的改变，
-这意味着当你创建了这个文件后这个文件的atime就定格了，除非你用touch或者touch -a强制刷新文件的atime。
-这样在可以在一定程度上提升文件系统的读写性能，特别是网站这种系统中在fstab里面加上noatime是个好主意
-
-#-------------------------------------------------------------------
-#  使用: spider.sh [-r]开启/结束计划，无需其他任何配置。
-#  第一次使用spider.sh前请先执行chmod 777 spider.sh。
-#-------------------------------------------------------------------
-set -ex   # e: 若指令传回值不等于0,则立即退出shell(默认继续执行后面命令); x:执行指令后,会先显示该指令及所下的参数
-file='.task.sh'                #任务名
-pro_dir=$(cd `dirname $0`;pwd) #工程目录
-plan='0 10,15 * * *'           #计划时间
-schedule='/var/spool/cron/root'
-re_plan="${plan//\*/\*} `pwd`/${file}"  #替换将$plan下所有的*替换成\*
-
-if [ $# == 0 ];then       #[]和=两边要有空格,不带参数时执行
-    # service crond restart &>/dev/null && chkconfig --level 345 crond on
-    # [ -d "${pro_dir}../../data/" ] ||  mkdir -p "${pro_dir}../../data/"
-    echo 'source /etc/profile' > $file
-    echo "cd ${pro_dir}" >> $file
-    echo "for i in \``which scrapy` list\` ;do ">>$file
-    echo "`which scrapy` crawl \$i">>$file
-    echo 'done'>>$file
-    chmod 777 $file
-    grep "${re_plan}" $schedule &>/dev/null  ||
-    echo "${plan} `pwd`/${file}" >> $schedule
-    #屏蔽grep回显及$schedule可能不存在带来的错误
-    echo '定时任务设置成功!'
-
-elif [ $1 = '-r' ];then  #字符串用=判断
-    rm -rf $file
-    sed -i "\#${re_plan}#d" $schedule &>/dev/null  #d代表删除，默认以/作为分割符
-    echo '已取消定时任务'
-
-else
-    echo -e '\nError !\nUse "spider.sh [-r]" instead !\n'  #-e显示转意字符
-fi
-
-
-#   注释
-;   间隔各命令按顺序依次执行（dos下用&）
-&&  当前一个指令执行成功时,执行后一个指令（与dos一致）
-||  当前一个指令执行失败时,执行后一个指令（第一个成功则不执行第二个,与dos一致）
-$   变量前需要加的变量值
-!   逻辑运算中的"非"(not)
-'   单引号,不具有变量置换功能
-"   双引号,具有变量置换功能
-`   将一个命令的输出作为另一个命令的参数
-
-
-
-#-----------------------------------------------------
-#  功能  : 定时自动爬取。
-#  使用  : spider.sh [-r|crawl]开启/结束计划，无需其他任何配置。
-#  说明  : 该脚本可放置在Linux任意目录; 第一次使用spider.sh前请先执行chmod 777 spider.sh
-#-----------------------------------------------------
-plan='*/10 * * * *'                     #计划时间，可配置
-pro_dir='/usr/local/project_scrapy/OP/oil/'      #工程目录，可配置
-schedule='/var/spool/cron/root'
-
-case $1 in
-'')                                                                                    #不带参数
-service crond restart &>/dev/null &&
-chkconfig --level 345 crond on
-[ -d "${pro_dir}../../data/" ] || mkdir -p "${pro_dir}../../data/"
- grep "${plan//\*/\*} `pwd`/$0 crawl" $schedule &>/dev/null  ||
- #屏蔽grep回显及schedule可能不存在的提示,sed/grep用正则,so将$plan下所有*替换成\*
- echo "${plan} `pwd`/$0 crawl" >> $schedule
- echo '定时任务设置成功!'
- ;;
- '-r')
- sed -i "\#`pwd`/$0 crawl#d" $schedule &>/dev/null   #d代表删除，默认以/为分割符,匹配所有行
- echo '已取消定时任务'
- ;;
- 'crawl')
- source /etc/profile    #导入环境变量，默认路径是/usr/bin:/bin
- cd $pro_dir            #* * * * * command，command可以包含空格，出现错误时会在/var/spool/mail/root生成日志
- for i in `/usr/local/bin/scrapy list`;do
- /usr/local/bin/scrapy crawl $i --nolog
- done
- ;;
- *)
- echo -e '\nError !\nUse "spider.sh [-r|crawl]" instead !\n'  #-e显示转意字符
- ;;
- esac
+-----------------------------------------------------------------------------------------------
