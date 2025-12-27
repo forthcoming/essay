@@ -67,8 +67,6 @@ async def run_fetch():
 
 ########################################################################################################################
 async def hello(delay):
-    loop = asyncio.get_running_loop()
-    loop.slow_callback_duration = .5  # 默认0.1,记录执行时间超过阈值的回调或任务(阻塞事件循环),需要事件循环debug=True
     print(f"hello started at {time.strftime('%X')}")
     time.sleep(delay)  # 使用time.sleep 模拟阻塞
     print(f"hello finished at {time.strftime('%X')}")
@@ -76,10 +74,12 @@ async def hello(delay):
 
 
 async def test_callback_duration():
+    loop = asyncio.get_running_loop()
+    loop.slow_callback_duration = .5  # 默认0.1,记录执行时间超过阈值的回调或任务(阻塞事件循环),需要事件循环debug=True
     start_time = time.monotonic()
     for i in range(4):
-        await asyncio.create_task(hello(1))
-        # await hello(1)  # 理解create_task和直接await直接区别,这么调用只会有一个task,除非配合await asyncio.sleep一起使用
+        # await asyncio.create_task(hello(1))
+        await hello(1)  # 理解create_task和直接await直接区别,这么调用只会有一个task,除非配合await asyncio.sleep一起使用
         # await asyncio.sleep(0)  # 将控制权还给事件循环,相当于当前事件结束
     print(f"test_callback_duration: {time.monotonic() - start_time}")
 
@@ -115,5 +115,5 @@ if __name__ == "__main__":
     # uvloop.run(run_say_by_coroutine())
     # asyncio.run(run_say_by_task())
     # asyncio.run(run_fetch())
-    # uvloop.run(test_callback_duration(), debug=True)
-    asyncio.run(main(), debug=True)
+    uvloop.run(test_callback_duration(), debug=True)
+    # asyncio.run(main(), debug=True)
