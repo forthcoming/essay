@@ -5,6 +5,7 @@ import aiohttp
 import uvloop
 import concurrent.futures
 import threading
+from collections.abc import Callable, AsyncGenerator
 
 """
 协程是运行在单线程中的并发,目的是让这些IO操作异步化,相比多线程一大优势是省去了多线程之间的切换开销,但没法利用CPU多核资源
@@ -25,12 +26,20 @@ async def say(delay, what):
     return delay
 
 
+async def async_gen():
+    for i in range(5):
+        await asyncio.sleep(.1)
+        yield 1
+
+
 async def run_say_by_coroutine():  # 并发运行多个协程
     print(f"main started at {time.strftime('%X')}")
     # coroutine objects,前提是函数被async修饰,类似于生成器初始化
     coroutines = [say(3, 'world'), say(4, 'say'), say(2, 'hello')]
     print(asyncio.iscoroutinefunction(say))  # True
     print(asyncio.iscoroutine(coroutines[0]))  # True
+    print(isinstance(async_gen, Callable))  # True,是函数
+    print(isinstance(async_gen(), AsyncGenerator))  # True,异步生成器,不再是协程(coroutine),必须在协程函数内通过async for调用
     # 一次性返回say返回值列表,与coroutine顺序一致,入参也可以是tasks,如果是coroutines会隐式转换成tasks
     # True意思是如果某个任务出错,返回异常,继续等待其他任务执行; False意思是如果某个任务出错,直接抛出异常,其他任务继续执行
     results = await asyncio.gather(*coroutines, return_exceptions=True)
@@ -112,8 +121,8 @@ async def main():
 
 
 if __name__ == "__main__":
-    # uvloop.run(run_say_by_coroutine())
+    uvloop.run(run_say_by_coroutine())
     # asyncio.run(run_say_by_task())
     # asyncio.run(run_fetch())
-    uvloop.run(test_callback_duration(), debug=True)
+    # uvloop.run(test_callback_duration(), debug=True)
     # asyncio.run(main(), debug=True)
