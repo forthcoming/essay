@@ -27,7 +27,7 @@ git merge dev #合并dev分支到当前分支,优先使用Fast-forward模式(直
 git merge --no-ff -m'--no-ff' dev #合并dev分支到当前分支,--no-ff表示禁用Fast-forward模式,合并后的历史有(合并的最后多了一条汇总)
 git merge --abort  #取消某次合并
 git revert commit_id  #逆操作之前的某个操作(历史记录仍然在,版本向前推进,有坑,需要重新构建分支才能再次合并)
-git reset HEAD filename  #git add的反向操作,使其从Changes to be committed 到 Changes not staged for commit
+git restore --staged filename  #git add的反向操作,使其从Changes to be committed 到 Changes not staged for commit
 git reset 47902f         #回到之前某次提交状态,保留工作目录,47902f之后的提交记录都会消失(能通过git reflog查看版本号再恢复)
 git reset --hard 47902f  #回到之前某次提交状态,不保留工作目录(使用前先确认所有提交已推送到远程,否则这些提交将会丢失)
 git reset -–hard HEAD^   #回到上次提交状态

@@ -37,15 +37,6 @@ pip install redis -i http://mirrors.aliyun.com/pypi/simple --trusted-host mirror
 pip uninstall
 pip config edit --editor vim  # 手动编辑配置文件
 
-conda list  # 列出当前虚拟环境的所有安装包(包括conda和pip安装的包,这两个命令install作用差不多)
-conda create -n scrapy python=3.12 # 创建虚拟环境
-conda env list
-conda activate scrapy # 激活,进入到虚拟环境后,如果该环境没有python2,pip等之类包的话会自动识别到base虚拟环境中的包,路径:miniconda3/envs/scrapy
-conda deactivate # 退出虚拟环境
-conda install -n scrapy python=3.12  # 也可以先进到对应虚拟环境,再conda install python=3.12
-conda install /root/Desktop/软件名,如果某些包找不到,可以先切换到对应的虚拟环境,再python -m pip install安装
-conda remove -n scrapy --all
-
 uv pip: 在uv管理下的虚拟环境中使用pip,可以提供诸如show,list等功能
 uv python list: View available Python versions.
 uv --directory /root run example.py
