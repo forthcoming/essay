@@ -55,9 +55,8 @@ git branch branchname   #在当前提交分支上创建分支
 git branch -d iss53   #删除本地分支
 git push origin --delete test #删除远程分支test 
 git push --tags #一次推送所有本地新增的标签,标签对应的版本如果未push到origin,则会连同标签一起被push,其他分支和标签仍看不到该版本
-git checkout branchname  #切换分支,对应的工作目录也切换了
-git checkout -b iss53   #等价于git branch iss53 && git checkout iss53
-git checkout -- <file>   #把file在工作区的修改全部撤销
+git switch branchname   # 切换分支
+git switch -c iss53    # 创建并切换分支
 1. file自动修改后,还没有放到暂存区,使用撤销修改就回到和版本库一模一样的状态
 2. file已经放入暂存区了,接着又作了修改,撤销修改就回到添加暂存区后的状态
 注意:—很重要,如果没有 — 的话,那么命令变成创建分支
@@ -80,8 +79,8 @@ git push origin --force --all
 #    new file:   README
 #
 # Changes not staged for commit:
-#   (use "git add <file>..." to update what will be committed)
-#   (use "git checkout -- <file>..." to discard changes in working directory)
+#   (use "git add <file>..." 更新要提交的内容)
+#   (use "git restore <file>..." 丢弃工作区的改动)
 #
 #    modified:   README
 
