@@ -37,7 +37,7 @@ class ObjectId:
     @classmethod
     def _random(cls) -> bytes:  # Generate a 5-byte random number once per process.
         pid = os.getpid()
-        if pid != cls._pid:
+        if pid != cls._pid:  # fork方式才需要判断,spawn方式子进程重新执行类定义,_random_value = os.urandom(5)自动获得新值
             cls._pid = pid
             cls._random_value = os.urandom(5)
         return cls._random_value
