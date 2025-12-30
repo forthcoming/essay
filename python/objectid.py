@@ -46,10 +46,6 @@ class ObjectId:
         return cls.__random
 
     @property
-    def binary(self) -> bytes:  # 12-byte binary representation of this ObjectId.
-        return self.__id
-
-    @property
     def generation_time(self) -> datetime.datetime:
         timestamp = _UNPACK_INT(self.__id[0:4])[0]
         return datetime.datetime.fromtimestamp(timestamp)
