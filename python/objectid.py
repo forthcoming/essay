@@ -6,17 +6,16 @@ import time
 from random import SystemRandom
 
 _MAX_COUNTER_VALUE = 0xFFFFFF
-_PACK_INT = struct.Struct(">I").pack
-_PACK_INT_RANDOM = struct.Struct(">I5s").pack  # 大端序无符号4字节整数 + 5个字节的bytes
-_UNPACK_INT = struct.Struct(">I").unpack
+_INT_STRUCT = struct.Struct(">I")
+_INT_RANDOM_STRUCT = struct.Struct(">I5s")  # 大端序无符号4字节整数 + 5个字节的bytes
 
 
 class ObjectId:
+    __slots__ = ("_id",)
     _pid = os.getpid()
     _inc = SystemRandom().randint(0, _MAX_COUNTER_VALUE)
     _inc_lock = threading.Lock()
-    __random = os.urandom(5)
-    __slots__ = ("__id", "__weakref__")
+    _random_value = os.urandom(5)
 
     def __init__(self):
         # refer: https://github.com/mongodb/mongo-python-driver/blob/master/bson/objectid.py
@@ -33,26 +32,26 @@ class ObjectId:
             inc = ObjectId._inc  # 好处是可以将self.__id放到锁外,减少锁持有时间
             ObjectId._inc = (inc + 1) & _MAX_COUNTER_VALUE
         # _inc只有3byte长度so高位会被填充成0
-        self.__id = _PACK_INT_RANDOM(int(time.time()), ObjectId._random()) + _PACK_INT(inc)[1:4]
+        self._id = _INT_RANDOM_STRUCT.pack(int(time.time()), ObjectId._random()) + _INT_STRUCT.pack(inc)[1:4]
 
     @classmethod
     def _random(cls) -> bytes:  # Generate a 5-byte random number once per process.
         pid = os.getpid()
         if pid != cls._pid:
             cls._pid = pid
-            cls.__random = os.urandom(5)
-        return cls.__random
+            cls._random_value = os.urandom(5)
+        return cls._random_value
 
     @property
     def generation_time(self) -> datetime.datetime:
-        timestamp = _UNPACK_INT(self.__id[0:4])[0]
+        timestamp = _INT_STRUCT.unpack(self._id[0:4])[0]
         return datetime.datetime.fromtimestamp(timestamp)
 
     def __str__(self) -> str:
-        return self.__id.hex()
+        return self._id.hex()
 
     def __int__(self) -> int:
-        return int.from_bytes(self.__id, 'big')
+        return int.from_bytes(self._id, 'big')
 
 
 if __name__ == "__main__":
