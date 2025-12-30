@@ -29,11 +29,9 @@ class ObjectId:
         # 3字节计数器当驱动程序首次激活时,必须初始化为随机值,之后每次创建ObjectID时必须加1,溢出时必须重置为0
         # 计数器使得每秒、每个进程可以有多个ObjectID
         # 由于计数器可能会溢出,因此如果在一台机器的同一进程中每秒创建达到2**24个ObjectID,则可能出现重复ObjectID
-        # Timestamp和Counter是big endian,因为我们可以使用memcmp对ObjectID排序,并且我们希望确保递增顺序
         with ObjectId._inc_lock:  # 确保相同进程的同一秒产生的ID也是不同的,前提是相同进程同一秒产生的ID不能超过2^24
             inc = ObjectId._inc  # 好处是可以将self.__id放到锁外,减少锁持有时间
             ObjectId._inc = (inc + 1) & _MAX_COUNTER_VALUE
-        # 4 bytes current time + 5 bytes random + 3 bytes inc
         # _inc只有3byte长度so高位会被填充成0
         self.__id = _PACK_INT_RANDOM(int(time.time()), ObjectId._random()) + _PACK_INT(inc)[1:4]
 
