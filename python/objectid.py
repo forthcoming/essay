@@ -38,10 +38,10 @@ class ObjectId:
         timestamp = _INT_STRUCT.unpack(self._id[0:4])[0]
         return datetime.datetime.fromtimestamp(timestamp)
 
-    def __str__(self) -> str:
+    def __str__(self) -> str:  # 24位16进制字符串
         return self._id.hex()
 
-    def __int__(self) -> int:
+    def __int__(self) -> int:  # 29位十进制整数
         return int.from_bytes(self._id, 'big')
 
     @staticmethod
