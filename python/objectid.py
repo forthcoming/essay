@@ -12,7 +12,6 @@ _INT_RANDOM_STRUCT = struct.Struct(">I5s")  # 大端序无符号4字节整数 + 
 
 class ObjectId:
     __slots__ = ("_id",)
-    _pid = os.getpid()
     _inc = SystemRandom().randint(0, _MAX_COUNTER_VALUE)
     _inc_lock = threading.Lock()
     _random_value = os.urandom(5)
@@ -32,15 +31,7 @@ class ObjectId:
             inc = ObjectId._inc  # 好处是可以将self.__id放到锁外,减少锁持有时间
             ObjectId._inc = (inc + 1) & _MAX_COUNTER_VALUE
         # _inc只有3byte长度so高位会被填充成0
-        self._id = _INT_RANDOM_STRUCT.pack(int(time.time()), ObjectId._random()) + _INT_STRUCT.pack(inc)[1:4]
-
-    @classmethod
-    def _random(cls) -> bytes:  # Generate a 5-byte random number once per process.
-        pid = os.getpid()
-        if pid != cls._pid:  # fork方式才需要判断,spawn方式子进程重新执行类定义,_random_value = os.urandom(5)自动获得新值
-            cls._pid = pid
-            cls._random_value = os.urandom(5)
-        return cls._random_value
+        self._id = _INT_RANDOM_STRUCT.pack(int(time.time()), ObjectId._random_value) + _INT_STRUCT.pack(inc)[1:4]
 
     @property
     def generation_time(self) -> datetime.datetime:
@@ -53,6 +44,14 @@ class ObjectId:
     def __int__(self) -> int:
         return int.from_bytes(self._id, 'big')
 
+    @staticmethod
+    def reinit_after_fork():  # spawn方式子进程重新执行类定义,所有类变量都是新值,无需调用 reinit_after_fork
+        ObjectId._inc = SystemRandom().randint(0, _MAX_COUNTER_VALUE)
+        ObjectId._inc_lock = threading.Lock()  # 直接创建新锁，无论旧锁什么状态
+        ObjectId._random_value = os.urandom(5)
+
+
+os.register_at_fork(after_in_child=ObjectId.reinit_after_fork)  # fork方式才会触发,fork之后立马执行,不会有多线程冲突
 
 if __name__ == "__main__":
     obj_id = ObjectId()
