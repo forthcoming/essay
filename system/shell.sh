@@ -47,6 +47,7 @@ uv init --package -p 3.1.12: 将当前目录初始化为一个包(可用于上�
 uv add: Add a dependency to the project.类似于pip install <package> + 写入pyproject.toml,如果虚拟环境未创建,会先执行uv venv
 uv remove: Remove a dependency from the project.
 uv sync: Sync the project's dependencies with the environment.根据pyproject.toml安装或更新项目依赖
+uv lock --upgrade && uv sync  # 更新版本
 uv tree: View the dependency tree for the project.
 uv build: Build the project into distribution archives.
 uv publish: Publish the project to a package index.
