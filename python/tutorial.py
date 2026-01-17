@@ -266,6 +266,7 @@ def is_tutorial():
 def byte_string_tutorial():
     byte_string = b'ab\xffc'  # 字节串类型是bytes,如0b11111111没有对应的字符,所以用\xff表示
     byte_array = bytearray(byte_string)  # bytes和bytearray都可以被遍历,取单个字符时返回的是字符对应的整数值
+    # bytes和bytearray两种类型可以相加,结果的类型与加号左边的变量类型一致
     assert len(byte_array) == len(byte_string) == 4
     # b'中a'  # error,bytes can only contain ASCII literal characters
     assert "test中".encode() == b'test\xe4\xb8\xad' and b'test\xe4\xb8\xad'.decode() == "test中"
