@@ -33,12 +33,13 @@ daemon=False: 父线/进程运行完,会接着等子线/进程全部都执行完
 daemon=True: 父进程结束,他会杀死自己的子线/进程使其终止,但父进程被kill -9杀死时子进程不会结束,会被系统托管
 
 进程间通信(进程间数据不共享)
-共享内存如shared_memory, memoryview基于mmap实现,shared_memory基于memoryview实现
+共享内存如shared_memory,mmap
 文件系统如Queue & Pipe & Manager, Queue和Manager基于Pipe实现
 信号如signal
 
 sys.setswitchinterval(n) # 设置解释器的线程切换间隔(以秒为单位),实际值可能更高,特别是在使用长时间运行的内部函数或方法时
 在间隔结束时调度哪个线程是操作系统的决定,解释器没有自己的调度程序
+memoryview让你可以直接访问对象的底层内存,而不需要复制数据,可以作用于任何实现了buffer protocol的对象,如bytes,bytearray,array.array等
 """
 
 
@@ -169,7 +170,6 @@ def shared_mmap_tutorial():
     共享的仅仅是内存,文件指针等属性不共享
     """
     mm = mmap.mmap(fileno=-1, length=13, flags=mmap.MAP_SHARED)
-    # buf = memoryview(mm)  # memoryview基于mmap实现
     mm.write(b"Hello world!")
     mm.seek(0)
     pid = os.fork()
