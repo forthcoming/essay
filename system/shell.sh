@@ -415,10 +415,47 @@ N: 以PID大小降序排列
 q: 退出top模式
 c: 开启COMMAND列详情,可以找到对应的进程启动者
 空格: 手动刷新
-%MEM: 进程使用物理内存百分比
-S: 进程状态  R=>运行 S=>睡眠  Z=>僵尸进程
-假设你的系统有4个CPU核,总的CPU使用率可以达到400%,top命令显示的%CPU是所有CPU核的总和
 top -p pid       # 然后按H,查看某个进程下的所有线程
+
+top - 17:52:14 up 441 days, 51 min, 11 users,  load average: 2.04, 2.71, 3.02
+任务: 1118 total,   1 running, 1115 sleeping,   1 stopped,   1 zombie
+%Cpu(s):  4.2 us,  1.1 sy,  0.0 ni, 94.5 id,  0.0 wa,  0.0 hi,  0.1 si,  0.0 st
+MiB Mem : 386344.5 total,  17770.6 free,  60546.0 used, 308028.0 buff/cache
+MiB Swap:   2048.0 total,      0.0 free,   2048.0 used. 312097.3 avail Mem
+
+ 进程号 USER      PR  NI    VIRT    RES    SHR    %CPU  %MEM     TIME+ COMMAND
+1740875 yiyangz+  20   0   59.9g  15.8g   6.7g S 150.8   4.2   2118:40 python
+ 817782 zhouguo+  20   0 1330528  19204   5364 S   8.9   0.0 131:53.93 redis-server
+ 821136 zhouguo+  20   0   49.1g   2.5g 565196 S   5.9   0.7  85:05.06 python3
+   1678 root      20   0       0      0      0 S   5.6   0.0  13597:43 nv_queue
+
+已知服务器用48核
+load average: 2.04, 2.71, 3.02
+              ↑     ↑     ↑
+           1分钟  5分钟  15分钟 的平均值
+load average = 正在运行 + 等待运行的进程数平均值,必须对比核心数才有意义
+load = 2.04 表示：过去1分钟内，平均有2.04个进程
+
+%Cpu(s):  4.2 us, 94.5 id
+%Cpu(s)指标代表所有cpu的平均值,s是summary的缩写
+94.5 id : 48个核心的idle加起来 ÷ 48 ≈ 94.7%
+4.2 us :  用户程序占用了4.2%
+
+MiB Mem : 386344.5 total,  17770.6 free,  60546.0 used, 308028.0 buff/cache
+MiB = Mebibyte,是二进制单位,1 MiB = 1024 × 1024 = 1,048,576 字节
+total: 386GB物理内存总量
+free: 17.4GB完全空闲、未被使用的物理内存
+used: 59.1GB进程实际占用的物理内存
+buff/cache: 300.8GB被内核用作缓冲区(buffer)和缓存(cache)的物理内存,这部分内存在系统需要时可以立即释放给应用程序使用
+avail Mem: 304.8GB实际可用物理内存（约等于free + 可回收的 buff/cache）,他是MiB Mem的指标
+
+VIRT : 虚拟内存（申请的）
+RES : 实际物理内存（真正占用的）,最重要
+SHR : 共享内存
+S: 进程状态  R=>运行 S=>睡眠  Z=>僵尸进程
+%CPU : 所有核CPU使用率, 单核最大100%,150.8% = 用了约 1.5 个核心
+%MEM : 进程使用物理内存百分比
+TIME+ : 累计 CPU 时间 2118:40,2118 分钟 40 秒 = 35.3 小时,表示这个进程总共消耗了 35 小时的 CPU 计算时间（不是运行时长）
 ------------------------------------------------------------------------------------------------------------------------
 nohup &
 &: 后台运行,即使你用ctrl C,进程照样运行,因为对SIGINT信号免疫.但如果你直接关掉shell,进程同样消失.可见&对SIGHUP信号不免疫
