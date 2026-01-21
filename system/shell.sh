@@ -402,6 +402,7 @@ ps -efL|grep pid # 查看某个进程下的所有线程,用LWP表示
 pstree -p pid    # 查看某个进程下的所有线程
 ps -efj          # j获取进程的PPID, PID, PGID and SID(会话ID)
 
+htop: 跟top类似,有颜色
 top(动态显示进程列表)
 top -d n: 每n秒刷新一次,默认设置每3秒钟刷新一次,按CPU占有率降序排列
 u: 显示某个用户下的进程信息
@@ -499,6 +500,7 @@ ls -l *.conf *.aof | awk 'BEGIN{sum=0} {sum+=$5} END {print sum}'  # 计算所�
 common
 好用的终端工具推荐 MobaXterm
 nvidia-smi  # 查看GPU信息
+nvitop # 查看GPU信息,带颜色
 file file_name # 显示文件类型
 telnet 10.73.20.5 3306 测试ip端口是否被监听
 zip -r data.zip data/   # -r代表压缩文件夹
