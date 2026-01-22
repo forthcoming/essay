@@ -1114,7 +1114,7 @@ def log_tutorial():
     file_fmt = '{{"t": "{time:YYYY-MM-DD HH:mm:ss.SSS}", "lv": "{level}", "msg": "{message}", "pid": "{process}", "pos": "{module}:{function}:{line}"}}'
     logger.add(
         sink="loguru.log",  # 日志写入文件,默认还会输出到控制台
-        rotation="500 MB",  # 当日志文件达到一定大小、时间或者满足特定条件时,自动分割日志文件
+        rotation="500 MB",  # 当日志文件达到一定大小、时间或者满足特定条件时,自动分割日志文件(多进程同时写到同一个文件时,rotation时会有问题)
         level="INFO",  # 只记录INFO及以上级别的日志
         format=file_fmt,
         filter=lambda record: "特殊字符" in record["message"],
