@@ -4,7 +4,6 @@ import sys
 import time
 import weakref
 from multiprocessing import Process
-
 import objgraph
 
 '''
