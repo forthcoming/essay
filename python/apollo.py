@@ -4,9 +4,7 @@ import os
 import threading
 import time
 from multiprocessing.dummy import Process
-
 import requests
-
 from circuit_breaker import CircuitBreaker, Policy
 from tutorial import singleton, get_ip
 
