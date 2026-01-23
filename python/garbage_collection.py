@@ -8,7 +8,7 @@ import objgraph
 
 '''
 引用计数+1情况
-对象被创建,例如a=23
+对象被创建,例如a=257
 对象被引用,例如b=a
 对象作为参数传入到一个函数中,例如func(a)
 对象作为一个元素存储在容器中,例如list1=[a]
@@ -32,7 +32,7 @@ y.append(x)
 当g0回收一次时g1计数器加一,当g1计数器达到阈值10时,进行一次g1回收
 当g1回收一次时g2计数器加一,当g2计数器达到阈值10时,进行一次g2回收
 垃圾回收包含引用计数(不可解决循环引用),标记清除(可解决循环引用)和分代回收
-对象被销毁(引用计数为0)时如果自定义了__del__,会执行__del__函数(一般用于资源释放如数据库连接),然后销毁对象
+对象被销毁(引用计数为0)时如果自定义了__del__,会执行__del__函数
 内存泄漏仅仅存在于某个进程中,无法进程间传递(即gc.get_objects仅仅统计所在进程的对象),会随着进程的结束而释放内存
 
 gc流程(仅针对容器)
@@ -364,9 +364,9 @@ class ObjGraph:
 
 if __name__ == '__main__':
     # test_ref()
-    # test_cache()
+    test_cache()
     # test_circular_reference()
     # test_multiprocess_circular_reference()
     # test_default_parameter()
     # test_generator()
-    test_garbage_collection()
+    # test_garbage_collection()
