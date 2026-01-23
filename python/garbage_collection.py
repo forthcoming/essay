@@ -247,7 +247,7 @@ def test_circular_reference():
         circular_reference_to_leak()
         if idx == 20:
             print(gc.collect())
-        print(os.getpid(), objgraph.count('Gc'), gc.get_count())
+        print(os.getpid(), objgraph.count('Gc'), gc.get_count()) # 统计当前进程中类名为'Gc'的实例数量;三代垃圾回收器的当前计数
 
 
 def test_multiprocess_circular_reference():
