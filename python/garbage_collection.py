@@ -235,28 +235,13 @@ def test_cache():
     assert len({id_set2, id_list2, id_set1, id_list1}) == 4
 
 
-def circular_reference_to_leak():
-    a = Gc()
-    b = Gc()
-    a.next = b  # a.next = weakref.ref(b),解决循环引用问题
-    b.next = a  # b.next = weakref.ref(a),解决循环引用问题
-
-
-def default_parameter_to_leak(idx, _cache={}):
-    _cache[idx] = {Gc()}  # a very explicit and easy-to-find "leak" but oh well
-    _ = Gc()  # this one doesn't leak
-    print("in default_parameter_to_leak", objgraph.count('Gc'))
-
-
-def generator_to_leak():
-    cnt = 0
-    _ = [Gc() for _ in range(10)]
-    while True:
-        yield cnt
-        cnt += 1
-
-
 def test_circular_reference():
+    def circular_reference_to_leak():
+        a = Gc()
+        b = Gc()
+        a.next = b  # a.next = weakref.ref(b),解决循环引用问题
+        b.next = a  # b.next = weakref.ref(a),解决循环引用问题
+
     for idx in range(40):
         time.sleep(1)
         circular_reference_to_leak()
@@ -275,14 +260,26 @@ def test_multiprocess_circular_reference():
 
 
 def test_default_parameter():
+    def default_parameter_to_leak(idx, _cache={}):
+        _cache[idx] = {Gc()}  # a very explicit and easy-to-find "leak" but oh well
+        _ = Gc()  # this one doesn't leak
+        print("in default_parameter_to_leak", objgraph.count('Gc'))
+
     objgraph.show_growth(limit=2)  # 调用函数之前We take a snapshot of all the objects counts that are alive
-    for idx in range(10):
-        default_parameter_to_leak(idx)
+    for i in range(10):
+        default_parameter_to_leak(i)
         print("in test_default_parameter", objgraph.count('Gc'))
         objgraph.show_growth()
 
 
 def test_generator():
+    def generator_to_leak():
+        cnt = 0
+        _ = [Gc() for _ in range(10)]
+        while True:
+            yield cnt
+            cnt += 1
+
     it = generator_to_leak()
     next(it)
     print(objgraph.count("Gc"))
@@ -364,8 +361,8 @@ class ObjGraph:
 
 if __name__ == '__main__':
     # test_ref()
-    test_cache()
-    # test_circular_reference()
+    # test_cache()
+    test_circular_reference()
     # test_multiprocess_circular_reference()
     # test_default_parameter()
     # test_generator()
