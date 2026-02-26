@@ -16,7 +16,7 @@ import time
 from bisect import insort_right, bisect_left, bisect_right
 from collections import Counter
 from collections.abc import Iterable, Iterator, Generator
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from functools import lru_cache, wraps
 from heapq import heapify, heappop, heappush, nlargest, nsmallest, heappushpop
 from subprocess import run, PIPE
@@ -635,7 +635,7 @@ def delayed_binding_tutorial():
 
 
 def datetime_tutorial():
-    print(datetime.now())  # 获取的是本地时间
+    print(datetime.now(tz=timezone.utc))  # 如果不指定tz,默认获取的是本地时间
     print(datetime.now().date())
     print(datetime.now().time())
     print(datetime.now().weekday())
@@ -644,7 +644,8 @@ def datetime_tutorial():
     print(datetime.now().strftime('%Y-%m-%d'))  # <class 'str'>
     print(datetime.now() - timedelta(days=2))  # weeks,minutes
     print(datetime.strptime('2016-9-9 18:19:59', '%Y-%m-%d %H:%M:%S'))  # <class 'datetime.datetime'>
-    print(datetime.fromtimestamp(time.time()))  # 2020-08-12 15:48:21.636170
+    # 编程语言中时间戳都是基于 UTC 的 Unix timestamp, time.time()返回的就是utc时间戳
+    print(datetime.fromtimestamp(time.time(), tz=timezone.utc))  # 2026-02-26 07:27:20.274007+00:00,如果不指定tz,默认获取的是本地时间
     _ = datetime(2020, 10, 9, 11, 12, 13)  # 2020-10-09 11:12:13, time.time受系统时间影响
 
     time.monotonic()  # 不区分线程进程,按调用顺序递增,以小数秒为单位,时钟不受系统时钟更新的影响,只有两次调用结果之间的差值才有效
