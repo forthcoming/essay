@@ -69,7 +69,8 @@ docker run --network my_net -d redis
 docker run -v /conf:/etc/redis redis redis-server /etc/redis/redis.conf  
 docker run -d -it --name test ubuntu /bin/bash
 
-docker compose up [-d] # 启动所有compose服务,-d后台运行,前提是当前目录存在compose.yaml文件
+docker compose up [-d] # 启动所有compose服务,-d后台运行,前提是当前目录存在compose.yaml文件,一般用于第一次启动项目,因为此时容器不存在
+docker compose restart # 对现有容器执行重新启动,容器不会被删除或重新创建
 docker compose down # 停止并删除容器,网络,卷,镜像
 docker compose build [--no-cache] # 构建容器
 docker compose ps # 查看当前compose运行的所有容器
