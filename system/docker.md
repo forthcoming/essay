@@ -1,15 +1,14 @@
 ### common
 
 ```
-docker0是docker在主机虚拟出的网桥,使用ifconfig或ip address查看,镜像产生的容器IP位于该网段,苹果电脑下无法创建docker0网桥,所以宿主机无法ping通容器
-构建Dockerfile或者docker pull拉下来的叫镜像, 运行中的镜像叫容器,同一个镜像可以实例化多个容器
+Dockerfile 用来构建镜像，docker pull 用来下载镜像
+容器是根据镜像创建的运行实例,可以是 created、running、exited、paused 等状态
+同一个镜像可以创建多个相互独立的容器
+
 容器内访问外部服务用的ip是宿主机ip
 docker建议每个容器只运行一个服务
 每个虚拟机都是独立的环境,容器共享操作系统,占用资源更少
 mac系统docker desktop在engine设置页面新增:
-"registry-mirrors": ["https://yxzrazem.mirror.aliyuncs.com","http://hub-mirror.c.163.com"]
-centos系统修改如下:
-sudo vi /etc/docker/daemon.json
 "registry-mirrors": ["https://yxzrazem.mirror.aliyuncs.com","http://hub-mirror.c.163.com"]
 sudo systemctl restart docker
 sudo dockerd # 启动dockerd服务
@@ -33,14 +32,8 @@ docker network ls   # 查看docker网络模式,容器默认使用桥接网络
 docker network inspect brideg_name   # 查看网络详情(包含哪些容器使用当前网络)
 docker network create network_name  # 默认创建的是桥接网络
 docker history [--no-trunc] image_name[:tag] # 逆序查看镜像构建语句
-docker compose up [-d] # 启动所有compose服务,-d后台运行,前提是当前目录存在compose.yaml文件
-docker compose down # 停止并删除容器,网络,卷,镜像
-docker compose build [--no-cache] # 构建容器
-docker compose ps # 查看当前compose运行的所有容器
-docker compose config # 校验并输出解析后的compose.yaml配置文件
 docker save/load image_name # 保存加载镜像
 docker export/import container_name # 导出导入容器
-
 docker ps [-a] # 查看正在运行的容器(也可以查看容器的映射端口),-a查看所有容器
 docker top [container_name|container_id]  # 查看容器负载情况(pid并非容器内进程的pid)
 docker rm [-f] container_name|container_id  # 删除已经停止的容器,-f强制删除容器
@@ -71,6 +64,12 @@ docker run -p 80:80 -v /usr/local/data:/container/data --name=test centos echo '
 docker run --network my_net -d redis 
 docker run -v /conf:/etc/redis redis redis-server /etc/redis/redis.conf  
 docker run -d -it --name test ubuntu /bin/bash
+
+docker compose up [-d] # 启动所有compose服务,-d后台运行,前提是当前目录存在compose.yaml文件
+docker compose down # 停止并删除容器,网络,卷,镜像
+docker compose build [--no-cache] # 构建容器
+docker compose ps # 查看当前compose运行的所有容器
+docker compose config # 校验并输出解析后的compose.yaml配置文件
 ```
 
 
