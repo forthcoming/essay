@@ -17,35 +17,39 @@ sudo dockerd # 启动dockerd服务
 ### docker命令
 
 ```shell
-docker info # 查看docker相关信息
+docker info # 查看 Docker 客户端、服务端、存储驱动、容器、镜像、插件等系统级信息
+docker system df # 查看镜像,容器,数据卷占用空间
 docker pull image_name[:tag] # 拉镜像,如果不指定tag,默认值是latest
 docker images [-a|--no-trunc]  # 查看本地镜像列表,-a显示所有镜像(默认隐藏中间镜像),--no-trunc意思是不要截断输出
+docker rmi [-f] image_id|image_name[:tag] # 删除镜像,如果镜像对应的容器正在运行则无法删除,需-f强制删除
 docker search [--no-trunc] nginx  # 搜索docker hub中的镜像
-docker system df # 查看镜像,容器,数据卷占用空间
-docker rmi [-f] image_id|image_name[:tag] # 删除镜像,如果镜像对应的容器正在运行则无法删除,需先stop再-f强制删除
 docker commit [-a 'author'|-m 'the first image'] container_id image_name[:tag] # 保存已经更改的容器为新镜像
-docker login # 登陆
+docker login # 登录,不带服务器地址时,默认登录 Docker Hub
 docker push yourname/image_name[:tag] # 推送本地镜像到远程仓库,需提前用docker login账户创建好仓库
-docker tag old_image_name[:tag] yourname/image_name[:tag] # 给原镜像打标签,产生的新镜像跟之前的镜像是同一个image_id
-docker build [--no-cache] -t image_name[:tag] [-f dir/Dockerfile] .  # 构建镜像,不指定-f则默认为当前目录下名为Dockerfile的文件
-docker network ls   # 查看docker网络模式,容器默认使用桥接网络
-docker network inspect brideg_name   # 查看网络详情(包含哪些容器使用当前网络)
-docker network create network_name  # 默认创建的是桥接网络
+docker tag old_image_name[:tag] yourname/image_name[:tag] # 给原镜像打标签,不复制镜像数据,指向同一个image_id
+docker build -t image_name[:tag] [-f dir/Dockerfile] .  # 构建镜像,不指定-f则默认为当前目录下名为Dockerfile的文件,最后的 . 是构建上下文目录,Dockerfile 中的 COPY 和 ADD 只能访问构建上下文里的文件
 docker history [--no-trunc] image_name[:tag] # 逆序查看镜像构建语句
-docker save/load image_name # 保存加载镜像
-docker export/import container_name # 导出导入容器
+docker save -o my-image.tar IMAGE[:TAG] # 保存镜像
+docker load -i my-image.tar # 加载镜像
+
+docker network ls   # 列出 Docker 网络
+docker network inspect bridge_name   # 查看网络详情(包含哪些容器使用当前网络)
+docker network create network_name  # 默认创建的是桥接网络
+
+# 容器查看与管理命令
 docker ps [-a] # 查看正在运行的容器(也可以查看容器的映射端口),-a查看所有容器
-docker top [container_name|container_id]  # 查看容器负载情况(pid并非容器内进程的pid)
+docker top [container_name|container_id]  # 查看容器中正在运行的进程
 docker rm [-f] container_name|container_id  # 删除已经停止的容器,-f强制删除容器
 docker start container_name|container_id # 启动已经停止的容器
-docker restart container_name|container_id # 重启正在运行的容器
-docker stop container_name|container_id # 停止正在运行的容器
-docker attach container_name|container_id  # 进入正在运行的容器终端
-docker exec container_name|container_id cmd  # 在运行中的容器中启动新进程,在容器环境执行命令并显示,如docker exec -it redis /bin/bash
-docker kill container_name|container_id # 强制停止容器
+docker restart container_name|container_id # 重新启动容器；运行中的容器会先停止再启动
+docker stop container_name|container_id # 尝试优雅停止运行中的容器，超时后强制终止
+docker attach container_name|container_id  # 将本地终端连接到容器主进程的标准输入输出；不会创建新的 Shell
+docker exec container_name|container_id cmd  # 在运行中的容器中启动新进程,在容器环境执行命令,如docker exec -it redis /bin/bash
+docker kill container_name|container_id # 默认发送 SIGKILL，立即强制终止容器；可通过 --signal 指定其他信号
 docker logs [-tf] container_name|container_id # 查看容器控制台输出日志,-f参考linux的tail,-t显示时间戳
 docker inspect image_id|container_id  # 查看镜像或容器的详细信息,只有启动的容器才分配IP,IP保存在IPAddress字段
-docker cp container_name|container_id:container_path source_path # 拷贝容器中的文件到本机
+docker inspect NETWORK|VOLUME # 查看网络、volume 等多种 Docker 对象
+docker cp container_name|container_id:container_path local_path # 复制容器中的文件到宿主机,也支持从宿主机复制到容器
 ctrl+p & ctrl+q # 退出容器
 exit # 退出容器并停止容器
 
