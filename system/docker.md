@@ -50,7 +50,7 @@ docker logs [-tf] container_name|container_id # 查看容器控制台输出日�
 docker inspect image_id|container_id  # 查看镜像或容器的详细信息,只有启动的容器才分配IP,IP保存在IPAddress字段
 docker inspect NETWORK|VOLUME # 查看网络、volume 等多种 Docker 对象
 docker cp container_name|container_id:container_path local_path # 复制容器中的文件到宿主机,也支持从宿主机复制到容器
-ctrl+p & ctrl+q # 退出容器
+ctrl+d # 退出容器
 exit # 退出容器并停止容器
 
 docker run image_id  # 运行本地镜像,如果镜像不存在,会先去dockerhub拉取镜像
