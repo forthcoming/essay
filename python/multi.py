@@ -94,7 +94,8 @@ def pool_executor_tutorial():
     with代码块结束会自动调用executor.shutdown(wait=True),wait=True则对任务进行join操作,因此主程序会等待with代码块所有任务结束
     无论wait的值是多少,整个程序都不会退出,直到所有待处理任务都执行完毕,即daemon=False
     一旦某个任务结束,会立即执行下一个任务,由pool_work总耗时6s可以验证
-    如果提交的任务是一样的,就可以简化成map.假如提交的任务不一样,或者执行的过程之可能出现异常(map执行过程中发现问题会直接抛错)就要用到submit
+    同一个函数批量作用、且不需要单独处理每个任务的失败 → 用 map；
+    需要提交不同任务，或者要按任务粒度隔离异常/保留部分成功结果 → 用 submit（配合逐个 try/except）
     """
     args = [3, 2, 4]  # 可以是无限任务如生成器或者阻塞式的redis队列,但只要有任务就会被取出来,且会阻塞后一句的执行,建议直接起多进程
     start_time = time.monotonic()
