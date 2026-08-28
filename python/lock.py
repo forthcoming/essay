@@ -5,9 +5,8 @@ import threading
 import time
 from contextlib import contextmanager
 from types import SimpleNamespace
-
 from redis import Redis
-from redis.exceptions import RedisError
+from redis.exceptions import RedisError, ResponseError
 
 '''
 程序如何防止死锁:
@@ -17,34 +16,33 @@ from redis.exceptions import RedisError
 '''
 
 
-class ReadWriteRLock:  # 分布式可重入读写锁
+class ReadWriteRLock:  # 分布式可重入读写锁,不能用于协程服务,例如fastapi的协程接口服务
     """
-    互斥锁适合对共享资源的互斥访问即同时只允许一个线程访问资源; 读写锁适合读取频率较高,写入频率较低的情况,以提高并发性能
-    当读写锁处于读模式时,如果有另外线程试图以写模式加锁,读写锁通常会阻塞随后的读模式锁请求,这样可以避免读模式锁长期占用,而等待的写模式锁请求长期阻塞
-    只用写锁就会退化为互斥锁
-    refer:
-        https://github.com/redisson/redisson/blob/master/redisson/src/main/java/org/redisson/RedissonWriteLock.java
-        https://github.com/redisson/redisson/blob/master/redisson/src/main/java/org/redisson/RedissonReadLock.java
+        互斥锁适合对共享资源的互斥访问即同时只允许一个线程访问资源; 读写锁适合读取频率较高,写入频率较低的情况,以提高并发性能
+        当读写锁处于读模式时,如果有另外线程试图以写模式加锁,读写锁通常会阻塞随后的读模式锁请求,这样可以避免读模式锁长期占用,而等待的写模式锁请求长期阻塞
+        只用写锁就会退化为互斥锁
+        refer:
+            https://github.com/redisson/redisson/blob/master/redisson/src/main/java/org/redisson/RedissonWriteLock.java
+            https://github.com/redisson/redisson/blob/master/redisson/src/main/java/org/redisson/RedissonReadLock.java
 
-    A线程加写锁成功
-        1. 未加过读写锁
-        2. A线程加过写锁
-    A线程加读锁成功
-        1. 未加过读写锁
-        2. 加过读锁
-        3. A加过写锁
+        A线程加写锁成功
+            1. 未加过读写锁
+            2. A线程加过写锁
+        A线程加读锁成功
+            1. 未加过读写锁
+            2. 加过读锁
+            3. A加过写锁
 
-    mode=read,只可能有读锁,但可以包含多个线程
-    mode=write,可能有读锁和写锁,但只可能包含一个线程且写锁比读锁先获得
-    同一时刻只会按以下一种形式存在,mode=write在释放写锁时有可能转换为mode=read
-    rw_lock = { 'mode':'read','t1':2,'t2':3,'tn':2 }
-    rw_lock = { 'mode':'write','t1:w':2,'t1':3 }
+        mode=read,只可能有读锁,但可以包含多个线程
+        mode=write,可能有读锁和写锁,但只可能包含一个线程且写锁比读锁先获得
+        同一时刻只会按以下一种形式存在,mode=write在释放写锁时有可能转换为mode=read
+        rw_lock = { 'mode':'read','t1':2,'t2':3,'tn':2 }
+        rw_lock = { 'mode':'write','t1:w':2,'t1':3 }
 
-    todo:
-    使用看门狗给锁续期
-    写锁优先
-    """
-
+        todo:
+        使用看门狗给锁续期
+        写锁优先
+        """
     # acquire_read_rlock: keys[1]锁在redis中的key, args[1]锁过期时间, args[2]读锁的名称, args[3]写锁的名称,它是在读锁后面加上":w"
     # 加锁流程:
     # 1. 获取锁的mode,如果mode=false,表示之前没有设置过读写锁,此时可以获得读锁
@@ -77,7 +75,7 @@ class ReadWriteRLock:  # 分布式可重入读写锁
         local function acquire_read_rlock(keys,args) 
             local mode = redis.call('hget', keys[1], 'mode')
             if mode == false then
-                redis.call('hmset', keys[1], 'mode', 'read', args[2], 1)       
+                redis.call('hset', keys[1], 'mode', 'read', args[2], 1)
                 redis.call('pexpire', keys[1], args[1])
                 return true
             end
@@ -89,7 +87,7 @@ class ReadWriteRLock:  # 分布式可重入读写锁
             end
             return false
         end
-        
+
         local function release_read_rlock(keys,args)
             local mode = redis.call('hget', keys[1], 'mode')
             if mode == false then
@@ -98,7 +96,7 @@ class ReadWriteRLock:  # 分布式可重入读写锁
             if redis.call('hexists', keys[1], args[1]) == 0 then
                 return 1
             end
-            
+
             if redis.call('hincrby', keys[1], args[1], -1) == 0 then
                 redis.call('hdel', keys[1], args[1])
                 if redis.call('hlen', keys[1]) == 1 then
@@ -111,7 +109,7 @@ class ReadWriteRLock:  # 分布式可重入读写锁
         local function acquire_write_rlock(keys,args)      
             local mode = redis.call('hget', keys[1], 'mode')
             if mode == false then
-                redis.call('hmset', keys[1], 'mode', 'write', args[2], 1)
+                redis.call('hset', keys[1], 'mode', 'write', args[2], 1)
                 redis.call('pexpire', keys[1], args[1])
                 return true
             end
@@ -144,72 +142,70 @@ class ReadWriteRLock:  # 分布式可重入读写锁
             end    
             return 1    
         end
-             
+
         redis.register_function('acquire_read_rlock', acquire_read_rlock) 
         redis.register_function('release_read_rlock', release_read_rlock) 
         redis.register_function('acquire_write_rlock', acquire_write_rlock) 
         redis.register_function('release_write_rlock', release_write_rlock) 
     """
-    is_register_script = False
 
-    def __init__(self, rds, timeout_s=5, blocking_timeout_s: float = 60, thread_local=True):
+    def __init__(self, rds, timeout_s=5, blocking_timeout_s: float | None = 60):
         self.rds = rds
         self.timeout_ms = int(1000 * timeout_s)  # 锁过期时间,单位ms
-        if blocking_timeout_s <= 0:
-            blocking_timeout_s = float('inf')
+        if self.timeout_ms <= 0:
+            raise ValueError('timeout_s must be at least 0.001')
+        if blocking_timeout_s is not None and blocking_timeout_s < 0:
+            raise ValueError('blocking_timeout_s cannot be negative')
         self.blocking_timeout_s = blocking_timeout_s  # 尝试获取锁阻塞的最长时间,单位s
-        self.local = threading.local() if thread_local else SimpleNamespace()
-        self.register_lib()
+        self.local = threading.local()
+        self.rds.function_load(self.read_write_rlock_script, replace=True)
 
-    def register_lib(self):
-        if not self.__class__.is_register_script:
-            self.rds.function_load(self.__class__.read_write_rlock_script, True)
-            self.__class__.is_register_script = True
+    def _fcall(self, function, key, *args):
+        try:
+            return self.rds.fcall(function, 1, key, *args)
+        except ResponseError as exc:
+            if str(exc) != 'Function not found':
+                raise
+            self.rds.function_load(self.read_write_rlock_script, replace=True)
+            return self.rds.fcall(function, 1, key, *args)
 
-    def read_rlock_name(self):
+    def _rlock_name(self, suffix):
         if not hasattr(self.local, 'token'):
-            self.local.token = os.urandom(16)
-        return self.local.token
+            self.local.token = os.urandom(16).hex()
+        return f'{self.local.token}:{suffix}'
 
-    def write_rlock_name(self):
-        if not hasattr(self.local, 'token'):
-            self.local.token = os.urandom(16)
-        return f'{self.local.token}:w'
+    def _acquire(self, function, key, *args):
+        deadline = None if self.blocking_timeout_s is None else time.monotonic() + self.blocking_timeout_s
+        first_attempt = True
+        while first_attempt or deadline is None or time.monotonic() < deadline:
+            first_attempt = False
+            if self._fcall(function, key, *args):
+                return
+            remaining = None if deadline is None else deadline - time.monotonic()
+            if remaining is not None and remaining <= 0:
+                break
+            delay = random.uniform(.05, .1)
+            time.sleep(delay if remaining is None else min(delay, remaining))
+        raise TimeoutError(f'获取锁超时: {key}')
 
     @contextmanager
     def acquire_read_rlock(self, key):
-        read_rlock_name = self.read_rlock_name()
-        write_rlock_name = self.write_rlock_name()
-        stop_at = time.monotonic() + self.blocking_timeout_s
-        cnt = 0
+        read_rlock_name = self._rlock_name('r')
+        write_rlock_name = self._rlock_name('w')
+        self._acquire("acquire_read_rlock", key, self.timeout_ms, read_rlock_name, write_rlock_name)
         try:
-            while time.monotonic() <= stop_at:
-                if self.rds.fcall("acquire_read_rlock", 1, key, self.timeout_ms, read_rlock_name, write_rlock_name):
-                    yield
-                    break
-                cnt += 1
-                time.sleep(max(.02 * cnt * random.random(), .05))
-            else:
-                raise Exception('获取读锁超时')
+            yield
         finally:
-            self.rds.fcall("release_read_rlock", 1, key, read_rlock_name)  # mode=write也可以处理
+            self._fcall("release_read_rlock", key, read_rlock_name)  # mode=write也可以处理
 
     @contextmanager
     def acquire_write_rlock(self, key):
-        write_rlock_name = self.write_rlock_name()
-        stop_at = time.monotonic() + self.blocking_timeout_s
-        cnt = 0
+        write_rlock_name = self._rlock_name('w')
+        self._acquire("acquire_write_rlock", key, self.timeout_ms, write_rlock_name)
         try:
-            while time.monotonic() <= stop_at:
-                if self.rds.fcall("acquire_write_rlock", 1, key, self.timeout_ms, write_rlock_name):
-                    yield
-                    break
-                cnt += 1
-                time.sleep(max(.02 * cnt * random.random(), .05))
-            else:
-                raise Exception('获取写锁超时')
+            yield
         finally:
-            self.rds.fcall("release_write_rlock", 1, key, write_rlock_name)
+            self._fcall("release_write_rlock", key, write_rlock_name)
 
 
 class Redlock:
@@ -372,8 +368,8 @@ class TestLock:
                         print(f"{name} get read lock")
                     print(f"{name} has release read lock")
                     # 模拟释放写锁
-                    lock.rds.fcall("release_write_rlock", 1, 'test', lock.write_rlock_name())
-                    lock.rds.fcall("release_write_rlock", 1, 'test', lock.write_rlock_name())
+                    lock.rds.fcall("release_write_rlock", 1, 'test', lock._rlock_name('w'))
+                    lock.rds.fcall("release_write_rlock", 1, 'test', lock._rlock_name('w'))
                     print(f"{name} has release all write locks")
                     time.sleep(2)
 
