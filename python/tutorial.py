@@ -1116,12 +1116,14 @@ def log_tutorial():
     logger.add(
         sink="loguru.log",  # 日志写入文件,默认还会输出到控制台
         rotation="500 MB",  # 当日志文件达到一定大小、时间或者满足特定条件时,自动分割日志文件(多进程同时写到同一个文件时,rotation时会有问题)
+        retention=10,  # 最多保留的文件数量
         level="INFO",  # 只记录INFO及以上级别的日志
         format=file_fmt,
         filter=lambda record: "特殊字符" in record["message"],
         # 只记录日志中包含"特殊字符"这四个字的日志, 这里record是个字典,为了方便观察,可设置serialize=True,record就是每行日志的["record"]值
         # serialize=True,  # 将每行日志转换为json格式,包含了日志对应的进程id信息
         enqueue=True,  # 所有添加到日志记录器的接收器默认都是线程安全,它们并非多进程安全,但您可以将消息入队列以确保日志的完整性和异步写入
+        compression="gz",  # 历史日志自动 gzip 压缩
     )
     std_fmt = '<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level}</level> | <magenta>{message}</magenta> | <cyan>{process}</cyan> | <cyan>{module}:{function}:{line}</cyan>'
     logger.add(sink=sys.stderr, format=std_fmt, colorize=True)
